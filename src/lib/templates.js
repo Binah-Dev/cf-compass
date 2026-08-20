@@ -1,5 +1,5 @@
 const EMPTY_LIBRARY = {
-  root: "C:\\Users\\16080\\Desktop\\OJ\\Template Library",
+  root: "",
   exists: false,
   scannedAt: null,
   categories: [{ id: "unclassified", label: "待整理", tone: "muted" }],
