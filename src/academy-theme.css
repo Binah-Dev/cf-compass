@@ -1637,6 +1637,27 @@ select:focus-visible {
   color: var(--accent-strong);
 }
 
+.appearance-reset-button {
+  margin-top: 10px;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64829b;
+  border: 1px solid rgba(61, 125, 176, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.42);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.appearance-reset-button:hover {
+  color: var(--accent-strong);
+  border-color: rgba(47, 134, 246, 0.34);
+  background: var(--accent-soft);
+}
+
 .appearance-drawer__footer {
   min-height: 68px;
   padding: 12px 16px;
@@ -2552,6 +2573,18 @@ select:focus-visible {
 .accent-picker button i {
   border-color: #ddecf5;
   box-shadow: 0 4px 12px rgba(0, 5, 13, 0.28);
+}
+
+.appearance-reset-button {
+  color: #8faabd;
+  border-color: rgba(109, 178, 223, 0.18);
+  background: rgba(12, 31, 50, 0.72);
+}
+
+.appearance-reset-button:hover {
+  color: #e8f8ff;
+  border-color: rgba(88, 199, 255, 0.4);
+  background: rgba(24, 62, 90, 0.9);
 }
 
 .appearance-drawer__footer {
