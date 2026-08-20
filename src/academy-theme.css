@@ -1302,6 +1302,27 @@ select:focus-visible {
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.38);
 }
 
+.wallpaper-preview--empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  color: #7192aa;
+  background-image:
+    linear-gradient(135deg, rgba(47, 134, 246, 0.08), rgba(67, 199, 161, 0.04)),
+    repeating-linear-gradient(135deg, transparent 0 12px, rgba(79, 148, 194, 0.05) 12px 13px);
+}
+
+.wallpaper-preview--empty::after {
+  display: none;
+}
+
+.wallpaper-preview--empty > span {
+  position: static;
+  color: inherit;
+  text-shadow: none;
+}
+
 .wallpaper-actions {
   margin-top: 9px;
   display: grid;
@@ -1327,6 +1348,11 @@ select:focus-visible {
   color: var(--accent-strong);
   border-color: rgba(47, 134, 246, 0.4);
   background: #e4f4ff;
+}
+
+.wallpaper-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 
 .wallpaper-library {

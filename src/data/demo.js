@@ -57,9 +57,9 @@ export const demoSubmissions = acceptedPlan.flatMap(([contestId, index, count, d
 
 export const demoData = {
   version: 2,
-  handle: "iron_lotus",
+  handle: "compass_demo",
   user: {
-    handle: "iron_lotus",
+    handle: "compass_demo",
     country: "China",
     rank: "pupil",
     rating: 1385,

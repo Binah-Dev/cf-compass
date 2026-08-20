@@ -1,12 +1,9 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { _electron: electron } = require(
-  "C:/Users/16080/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright",
-);
+const { _electron: electron } = require(process.env.CF_COMPASS_PLAYWRIGHT || "playwright");
 
 const projectRoot = path.resolve(__dirname, "..");
-const evidenceRoot =
-  "C:/Users/16080/.codex/visualizations/2026/07/28/019fa67b-5654-7110-afe6-f2e10cdb3e47";
+const evidenceRoot = process.env.CF_COMPASS_QA_OUTPUT || path.join(projectRoot, ".qa-output");
 const packagedExecutable = process.env.CF_COMPASS_QA_EXECUTABLE;
 const userDataRoot = path.join(
   evidenceRoot,

@@ -3,6 +3,7 @@ node_modules/
 dist/
 release/
 coverage/
+.qa-output/
 .vite/
 .env
 .env.*

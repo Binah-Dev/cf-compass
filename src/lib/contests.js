@@ -228,7 +228,7 @@ export function buildDemoContestReplay() {
   ];
   return {
     version: 1,
-    handle: "iron_lotus",
+    handle: "compass_demo",
     syncedAt: new Date().toISOString(),
     contests,
     progress: { total: contests.length, completed: contests.length, failed: 0, pending: 0, percent: 100 },
