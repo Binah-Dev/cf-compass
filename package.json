@@ -1,6 +1,7 @@
 {
   "name": "cf-compass",
   "version": "3.11.2",
+  "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": "CF Compass",
   "license": "MIT",
