@@ -1,0 +1,40 @@
+name: Bug 报告
+description: 报告可复现的问题
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 请说明发生了什么以及期望结果。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: "1. 打开…\n2. 点击…\n3. 看到…"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本与系统
+      placeholder: "CF Compass 3.11.2 / Windows 11"
+    validations:
+      required: true
+  - type: dropdown
+    id: theme
+    attributes:
+      label: 主题色
+      options: [天空蓝, 薄荷绿, 珊瑚粉, 与主题无关]
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隐私确认
+      options:
+        - label: 我已移除截图、日志中的个人数据、凭据和本地敏感路径。
+          required: true

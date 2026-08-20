@@ -1,0 +1,68 @@
+{
+  "name": "cf-compass",
+  "version": "3.11.2",
+  "private": true,
+  "author": "CF Compass",
+  "license": "MIT",
+  "description": "A polished Codeforces practice companion for Windows.",
+  "homepage": "https://github.com/qeffg/cf-compass#readme",
+  "bugs": {
+    "url": "https://github.com/qeffg/cf-compass/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qeffg/cf-compass.git"
+  },
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "desktop": "concurrently -k \"pnpm dev\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "verify": "vite build",
+    "desktop:pack": "vite build && electron-builder --dir",
+    "desktop:build": "vite build && electron-builder --win portable"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "vite": "^6.0.5",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.cfcompass.desktop",
+    "productName": "CF Compass",
+    "electronDist": "node_modules/electron/dist",
+    "asar": true,
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "CF-Compass-${version}-portable.${ext}"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+name: 功能建议
+description: 提议一个可讨论的新功能或改进
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 使用场景
+      description: 你遇到了什么问题？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 你希望 CF Compass 如何解决它？
+    validations:
+      required: true
+  - type: checkboxes
+    id: asset-boundary
+    attributes:
+      label: 开源边界
+      options:
+        - label: 该建议不要求仓库内置第三方壁纸、角色图片或其他受限素材。
+          required: true

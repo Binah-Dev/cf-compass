@@ -1,0 +1,22 @@
+node_modules/
+.pnpm-store/
+dist/
+release/
+coverage/
+.vite/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local extraction/runtime caches and high-resolution game assets.
+tools/
+public/material-library/lobbies-hq/
+public/material-library/
+src/assets/wallpapers/
+
+# Local export/build workspaces.
+open-source-export/
