@@ -9,7 +9,7 @@ CF Compass 的界面、应用图标、三套主题色和主要功能代码为本
 
 ## 第三方算法
 
-- 赛事复盘的表现分使用 [Carrot Plus](https://github.com/niteling/carrot-plus) FFT 预测核心的本地适配版本。原项目采用 MIT License，授权文本保存在 `electron/carrot/LICENSE.md`。
+- 赛事复盘的表现分使用 [Carrot](https://github.com/meooow25/carrot) FFT 预测核心的本地适配版本。原项目作者为 Soumik Sarkar，采用 MIT License，原始版权声明与授权文本保存在 `electron/carrot/LICENSE.md`。
 
 ## 主要开源依赖
 

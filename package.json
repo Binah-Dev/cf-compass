@@ -1,11 +1,11 @@
 {
   "name": "cf-compass",
-  "version": "3.11.4",
+  "version": "3.11.5",
   "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": "CF Compass",
   "license": "MIT",
-  "description": "A polished Codeforces practice companion for Windows.",
+  "description": "A local-first training, review, and contest analysis companion for OI, ICPC, Codeforces, and competitive programmers.",
   "homepage": "https://github.com/qeffg/cf-compass#readme",
   "bugs": {
     "url": "https://github.com/qeffg/cf-compass/issues"
@@ -17,6 +17,7 @@
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
+    "postinstall": "install-electron --no",
     "dev": "vite --host 127.0.0.1",
     "desktop": "concurrently -k \"pnpm dev\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
     "build": "vite build",
@@ -34,8 +35,8 @@
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
-    "electron": "^34.0.0",
-    "electron-builder": "^25.1.8",
+    "electron": "43.4.0",
+    "electron-builder": "26.15.3",
     "vite": "^6.0.5",
     "wait-on": "^8.0.1"
   },
@@ -55,7 +56,7 @@
     },
     "win": {
       "icon": "build/icon.ico",
-      "signAndEditExecutable": false,
+      "signExecutable": false,
       "target": [
         {
           "target": "portable",

@@ -62,21 +62,21 @@ let app;
   await page.waitForSelector(".progress-panel");
   await page.waitForTimeout(1600);
   await page.screenshot({
-      path: path.join(evidenceRoot, "cf-compass-3.4.1-dashboard.png"),
+    path: path.join(evidenceRoot, "cf-compass-dashboard.png"),
   });
 
   await page.getByRole("button", { name: "赛事复盘" }).click();
   await page.waitForSelector(".contest-replay-page");
   await page.waitForTimeout(1200);
   await page.screenshot({
-    path: path.join(evidenceRoot, "cf-compass-3.4.1-contests.png"),
+    path: path.join(evidenceRoot, "cf-compass-contests.png"),
     fullPage: true,
   });
 
   await page.getByRole("tab", { name: "Div.3", exact: true }).click();
   await page.getByText("Codeforces Round 1038").waitFor();
   await page.screenshot({
-    path: path.join(evidenceRoot, "cf-compass-3.4.1-contests-div3.png"),
+    path: path.join(evidenceRoot, "cf-compass-contests-div3.png"),
     fullPage: true,
   });
 
@@ -89,7 +89,7 @@ let app;
   await page.waitForSelector(".is-immersive");
   await page.waitForTimeout(800);
   await page.screenshot({
-      path: path.join(evidenceRoot, "cf-compass-3.4.1-immersive.png"),
+    path: path.join(evidenceRoot, "cf-compass-immersive.png"),
   });
 
   console.log(

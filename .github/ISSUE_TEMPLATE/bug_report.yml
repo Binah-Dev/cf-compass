@@ -21,7 +21,7 @@ body:
     id: version
     attributes:
       label: 版本与系统
-      placeholder: "CF Compass 3.11.2 / Windows 11"
+      placeholder: "CF Compass 3.11.5 / Windows 11"
     validations:
       required: true
   - type: dropdown

@@ -18,6 +18,10 @@
 </p>
 
 <p align="center">
+  <strong>简体中文</strong> · <a href="./README.en.md">English</a>
+</p>
+
+<p align="center">
   <a href="#为什么是-cf-compass">为什么选择它</a> ·
   <a href="#核心功能">核心功能</a> ·
   <a href="#快速开始">快速开始</a> ·
@@ -236,7 +240,7 @@ flowchart LR
 打开 [Latest Release](https://github.com/qeffg/cf-compass/releases/latest)，下载：
 
 ```text
-CF-Compass-3.11.4-portable.exe
+CF-Compass-3.11.5-portable.exe
 ```
 
 portable 版无需安装，双击即可运行。Release 同时提供 `.sha256` 校验文件，方便确认下载完整性。
@@ -283,7 +287,7 @@ pnpm desktop:build
 
 构建产物位于 `release/`，不会提交到 Git。正式 Release 同时提供 Windows x64 portable 程序、SHA-256 校验文件以及 GitHub 自动生成的源码包。
 
-主分支和 Pull Request 会在 GitHub Actions 的 Windows 环境中自动安装依赖、运行重点回归测试并验证生产构建。
+主分支和 Pull Request 会在 GitHub Actions 的 Windows 环境中自动安装依赖、检查生产依赖安全性、运行重点回归测试，并真实构建可下载的 Windows portable 程序及 SHA-256 校验文件。
 
 ## 技术组成
 
@@ -363,7 +367,3 @@ cf-compass/
 ## 许可证
 
 原创代码、应用图标与三套主题色使用 [MIT License](./LICENSE)。第三方依赖及算法归属见 [CREDITS.md](./CREDITS.md)。
-
-## English summary
-
-CF Compass is an open-source Windows desktop companion that turns Codeforces practice into a connected workflow: discover the right problems, follow a tiered daily plan, revisit mistakes through spaced review, analyze contest performance, and organize local algorithm templates. The public edition ships with three original CSS themes and contains no third-party wallpapers, credentials, or user data.

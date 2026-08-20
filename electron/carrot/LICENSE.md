@@ -1,15 +1,15 @@
-# Carrot Plus algorithm attribution
+# Carrot algorithm attribution
 
 The contest performance prediction core in this directory is adapted from:
 
-- Project: Carrot Plus
-- Source: https://github.com/niteling/carrot-plus
-- Original authors and contributors: the Carrot Plus contributors
+- Project: Carrot
+- Source: https://github.com/meooow25/carrot
+- Original author: Soumik Sarkar
 - License: MIT
 
 ## MIT License
 
-Copyright (c) Carrot Plus contributors
+Copyright (c) 2020 Soumik Sarkar
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

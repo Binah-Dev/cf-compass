@@ -4,6 +4,7 @@ const {
   dialog,
   ipcMain,
   nativeTheme,
+  session,
   shell,
 } = require("electron");
 const fs = require("node:fs/promises");
@@ -1932,6 +1933,10 @@ function createWindow() {
   });
 
   mainWindow.setMenuBarVisibility(false);
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (!isTrustedRendererUrl(url)) event.preventDefault();
+  });
   const devUrl = process.env.VITE_DEV_SERVER_URL;
   if (devUrl) {
     mainWindow.loadURL(devUrl);
@@ -1944,70 +1949,116 @@ function createWindow() {
   });
 }
 
+function trustedRendererUrl() {
+  return (
+    process.env.VITE_DEV_SERVER_URL ||
+    pathToFileURL(path.join(__dirname, "..", "dist", "index.html")).toString()
+  );
+}
+
+function isTrustedRendererUrl(candidate) {
+  try {
+    const expected = new URL(trustedRendererUrl());
+    const actual = new URL(candidate);
+    if (expected.protocol === "file:") {
+      return actual.protocol === "file:" && actual.pathname === expected.pathname;
+    }
+    return actual.origin === expected.origin;
+  } catch {
+    return false;
+  }
+}
+
+function assertTrustedIpcEvent(event) {
+  const senderUrl = event.senderFrame?.url || event.sender?.getURL?.() || "";
+  if (!isTrustedRendererUrl(senderUrl)) {
+    throw new Error("已拒绝来自非受信页面的应用请求");
+  }
+}
+
+function handleTrusted(channel, listener) {
+  ipcMain.handle(channel, (event, ...args) => {
+    assertTrustedIpcEvent(event);
+    return listener(event, ...args);
+  });
+}
+
+function onTrusted(channel, listener) {
+  ipcMain.on(channel, (event, ...args) => {
+    assertTrustedIpcEvent(event);
+    return listener(event, ...args);
+  });
+}
+
 app.whenReady().then(() => {
-  ipcMain.handle("data:get-cache", () => readJson("cache.json", null));
-  ipcMain.handle("data:sync", (_event, handle) => syncHandle(handle));
-  ipcMain.handle("contests:get", async () => {
+  session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
+    callback(false);
+  });
+  session.defaultSession.setPermissionCheckHandler(() => false);
+
+  handleTrusted("data:get-cache", () => readJson("cache.json", null));
+  handleTrusted("data:sync", (_event, handle) => syncHandle(handle));
+  handleTrusted("contests:get", async () => {
     const replay = await refreshContestReplayIndex();
     void startContestReplayAutoCalculation();
     return replay;
   });
-  ipcMain.handle("contests:calculate", (_event, contestId, force = false) =>
+  handleTrusted("contests:calculate", (_event, contestId, force = false) =>
     calculateContestReplay(contestId, force),
   );
-  ipcMain.handle("contests:calculate-next", () => calculateNextContestReplay());
-  ipcMain.handle("contest-center:get", (_event, force = false) =>
+  handleTrusted("contests:calculate-next", () => calculateNextContestReplay());
+  handleTrusted("contest-center:get", (_event, force = false) =>
     loadContestCenter(force),
   );
-  ipcMain.handle("contest-center:get-detail", (_event, contestId, force = false) =>
+  handleTrusted("contest-center:get-detail", (_event, contestId, force = false) =>
     loadContestCenterDetail(contestId, force),
   );
-  ipcMain.handle("data:status", () => getDataCenterStatus());
-  ipcMain.handle("data:export", (_event, snapshot) => exportData(snapshot));
-  ipcMain.handle("data:import", () => importData());
-  ipcMain.handle("data:open-backups", async () => {
+  handleTrusted("data:status", () => getDataCenterStatus());
+  handleTrusted("data:export", (_event, snapshot) => exportData(snapshot));
+  handleTrusted("data:import", () => importData());
+  handleTrusted("data:open-backups", async () => {
     await fs.mkdir(backupDirectory(), { recursive: true });
     return shell.openPath(backupDirectory());
   });
-  ipcMain.handle("favorites:get", () => readJson("favorites.json", []));
-  ipcMain.handle("favorites:set", async (_event, favorites) => {
+  handleTrusted("favorites:get", () => readJson("favorites.json", []));
+  handleTrusted("favorites:set", async (_event, favorites) => {
     const safe = sanitizeFavorites(favorites);
     await writeJson("favorites.json", safe);
     return safe;
   });
-  ipcMain.handle("study:get", () => readStudyData());
-  ipcMain.handle("study:set", async (_event, studyData) => {
+  handleTrusted("study:get", () => readStudyData());
+  handleTrusted("study:set", async (_event, studyData) => {
     const safe = sanitizeStudyData(studyData);
     await writeJson("study.json", safe);
     scheduleAutomaticBackup("study-update");
     return safe;
   });
-  ipcMain.handle("appearance:get-wallpaper", () => getCustomWallpaper());
-  ipcMain.handle("appearance:choose-wallpaper", () => chooseCustomWallpaper());
-  ipcMain.handle("appearance:clear-wallpaper", () => clearCustomWallpaper());
-  ipcMain.handle("templates:get", () => scanTemplateLibrary(false));
-  ipcMain.handle("templates:refresh", () => scanTemplateLibrary(true));
-  ipcMain.handle("templates:choose-folder", () => chooseTemplateRoot());
-  ipcMain.handle("templates:set-category", (_event, relativePath, categoryId) =>
+  handleTrusted("appearance:get-wallpaper", () => getCustomWallpaper());
+  handleTrusted("appearance:choose-wallpaper", () => chooseCustomWallpaper());
+  handleTrusted("appearance:clear-wallpaper", () => clearCustomWallpaper());
+  handleTrusted("templates:get", () => scanTemplateLibrary(false));
+  handleTrusted("templates:refresh", () => scanTemplateLibrary(true));
+  handleTrusted("templates:choose-folder", () => chooseTemplateRoot());
+  handleTrusted("templates:set-category", (_event, relativePath, categoryId) =>
     setTemplateCategory(relativePath, categoryId),
   );
-  ipcMain.handle("templates:set-summary", (_event, relativePath, summary) =>
+  handleTrusted("templates:set-summary", (_event, relativePath, summary) =>
     setTemplateSummary(relativePath, summary),
   );
-  ipcMain.handle("templates:open", (_event, filePath) => openTemplateFile(filePath));
-  ipcMain.handle("shell:open-problem", async (_event, url) => {
+  handleTrusted("templates:open", (_event, filePath) => openTemplateFile(filePath));
+  handleTrusted("shell:open-problem", async (_event, url) => {
     const target = new URL(url);
     if (target.protocol !== "https:" || target.hostname !== "codeforces.com") {
       throw new Error("不安全的题目链接");
     }
     await shell.openExternal(target.toString());
   });
-  ipcMain.on("window:minimize", () => mainWindow?.minimize());
-  ipcMain.on("window:maximize", () => {
+  onTrusted("window:minimize", () => mainWindow?.minimize());
+  onTrusted("window:maximize", () => {
     if (!mainWindow) return;
     mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
   });
-  ipcMain.on("window:close", () => mainWindow?.close());
+  onTrusted("window:close", () => mainWindow?.close());
 
   createWindow();
   app.on("activate", () => {

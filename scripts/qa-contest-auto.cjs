@@ -58,7 +58,7 @@ let app;
   await page.screenshot({
     path: path.join(
       evidenceRoot,
-      "cf-compass-3.4.1-auto-complete.png",
+      "cf-compass-contest-auto-complete.png",
     ),
     fullPage: true,
   });
