@@ -154,8 +154,8 @@ Open [Latest Release](https://github.com/qeffg/cf-compass/releases/latest) and c
 
 ```text
 Windows x64:       CF-Compass-3.12.0-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.12.0-Linux-x64.AppImage
-Linux Debian x64:  CF-Compass-3.12.0-Linux-x64.deb
+Linux x64:         CF-Compass-3.12.0-Linux-x86_64.AppImage
+Linux Debian x64:  CF-Compass-3.12.0-Linux-amd64.deb
 macOS Intel:       CF-Compass-3.12.0-macOS-x64.dmg
 macOS Apple Silicon: CF-Compass-3.12.0-macOS-arm64.dmg
 ```

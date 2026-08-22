@@ -266,8 +266,8 @@ CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**�
 
 ```text
 Windows x64:       CF-Compass-3.12.0-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.12.0-Linux-x64.AppImage
-Linux Debian x64:  CF-Compass-3.12.0-Linux-x64.deb
+Linux x64:         CF-Compass-3.12.0-Linux-x86_64.AppImage
+Linux Debian x64:  CF-Compass-3.12.0-Linux-amd64.deb
 macOS Intel:       CF-Compass-3.12.0-macOS-x64.dmg
 macOS Apple 芯片:  CF-Compass-3.12.0-macOS-arm64.dmg
 ```
