@@ -8,7 +8,10 @@ export const DEFAULT_STUDY_DATA = {
   contestQueue: [],
   plan: null,
   settings: {
+    language: "zh-CN",
     themeVersion: 6,
+    showProblemTags: true,
+    interfaceDensity: "comfortable",
     reviewLimit: 8,
     reviewRatingGap: 0,
     newProblemLimit: 5,

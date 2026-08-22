@@ -4,8 +4,10 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  EyeOff,
   Search,
   Star,
+  Tags,
 } from "lucide-react";
 import { acCountTone, displayTag, formatNumber, ratingTone } from "../lib/stats";
 import { openProblem, problemKey } from "../lib/codeforces";
@@ -18,7 +20,7 @@ const statusOptions = [
   { id: "favorite", label: "已收藏" },
 ];
 
-function ProblemRow({ problem, stats, isFavorite, onToggleFavorite }) {
+function ProblemRow({ problem, stats, isFavorite, onToggleFavorite, showTags }) {
   const key = problemKey(problem);
   const solved = Boolean(stats?.accepted);
   return (
@@ -44,16 +46,21 @@ function ProblemRow({ problem, stats, isFavorite, onToggleFavorite }) {
           {problem.rating || "—"}
         </span>
       </div>
-      <div className="tag-stack">
-        {(problem.tags || []).slice(0, 2).map((tag) => (
-          <span className="table-tag" key={tag}>
-            {displayTag(tag)}
-          </span>
-        ))}
-        {(problem.tags || []).length > 2 ? (
-          <span className="table-tag table-tag--more">+{problem.tags.length - 2}</span>
-        ) : null}
-      </div>
+      {showTags ? (
+        <div
+          className="tag-stack"
+          title={(problem.tags || []).map((tag) => displayTag(tag)).join(" · ")}
+        >
+          {(problem.tags || []).slice(0, 1).map((tag) => (
+            <span className="table-tag table-tag--primary" key={tag}>
+              {displayTag(tag)}
+            </span>
+          ))}
+          {(problem.tags || []).length > 1 ? (
+            <span className="table-tag table-tag--more">+{problem.tags.length - 1}</span>
+          ) : null}
+        </div>
+      ) : null}
       <div className={`solve-state ${solved ? "is-solved" : ""}`}>
         <span>{solved ? <Check size={12} /> : null}</span>
         {solved ? "已通过" : stats?.attempts ? "尝试过" : "未通过"}
@@ -84,6 +91,8 @@ export default function ProblemWorkspace({
   totalPages,
   onPageChange,
   selectedTagLabel,
+  showTags,
+  onToggleTags,
 }) {
   return (
     <main className="problem-workspace">
@@ -127,24 +136,36 @@ export default function ProblemWorkspace({
             </button>
           ))}
         </div>
-        <label className="sort-control">
-          <ArrowDownUp size={14} />
-          <select value={sort} onChange={(event) => onSortChange(event.target.value)}>
-            <option value="ratingAsc">Rating 从低到高</option>
-            <option value="ratingDesc">Rating 从高到低</option>
-            <option value="newest">题号从新到旧</option>
-            <option value="mostSolved">重复 AC 优先</option>
-          </select>
-        </label>
+        <div className="problem-toolbar-actions">
+          <button
+            type="button"
+            className={`tag-visibility-toggle ${showTags ? "" : "is-hidden"}`}
+            aria-pressed={!showTags}
+            title="仅隐藏题目列表中的算法标签，Rating 始终显示"
+            onClick={onToggleTags}
+          >
+            {showTags ? <EyeOff size={14} /> : <Tags size={14} />}
+            {showTags ? "隐藏标签" : "显示标签"}
+          </button>
+          <label className="sort-control">
+            <ArrowDownUp size={14} />
+            <select value={sort} onChange={(event) => onSortChange(event.target.value)}>
+              <option value="ratingAsc">Rating 从低到高</option>
+              <option value="ratingDesc">Rating 从高到低</option>
+              <option value="newest">题号从新到旧</option>
+              <option value="mostSolved">重复 AC 优先</option>
+            </select>
+          </label>
+        </div>
       </div>
 
-      <div className="problem-table" role="table" aria-label="Codeforces 题目列表">
+      <div className={`problem-table ${showTags ? "" : "problem-table--tags-hidden"}`} role="table" aria-label="Codeforces 题目列表">
         <div className="problem-table__header" role="row">
           <span />
           <span>题号</span>
           <span>题目</span>
           <span>Rating</span>
-          <span>标签</span>
+          {showTags ? <span>标签</span> : null}
           <span>状态</span>
           <span>通过次数</span>
         </div>
@@ -157,6 +178,7 @@ export default function ProblemWorkspace({
                 stats={submissionMap.get(problemKey(problem))}
                 isFavorite={favorites.has(problemKey(problem))}
                 onToggleFavorite={onToggleFavorite}
+                showTags={showTags}
               />
             ))
           ) : (

@@ -42,6 +42,13 @@ export async function loadCustomWallpaper() {
   }
 }
 
+export async function loadLocalWallpaperLibrary() {
+  if (window.cfBridge?.getLocalWallpaperLibrary) {
+    return window.cfBridge.getLocalWallpaperLibrary();
+  }
+  return { wallpapers: [], counts: {}, defaultWallpaperId: "" };
+}
+
 export async function chooseCustomWallpaper() {
   if (window.cfBridge?.chooseCustomWallpaper) {
     return window.cfBridge.chooseCustomWallpaper();

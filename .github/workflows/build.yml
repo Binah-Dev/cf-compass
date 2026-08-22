@@ -1,14 +1,18 @@
-name: Build
+name: Build and Release
 
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   verify:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -27,24 +31,79 @@ jobs:
         run: |
           pnpm exec node scripts/test-template-summary-format.mjs
           pnpm exec node scripts/test-carrot.mjs
+          pnpm exec node scripts/test-analytics.mjs
       - name: Build renderer
         run: pnpm verify
-      - name: Build Windows portable app
-        run: pnpm desktop:build
-      - name: Generate SHA-256 checksum
-        shell: pwsh
-        run: |
-          $artifact = Get-ChildItem -LiteralPath release -Filter "CF-Compass-*-portable.exe" |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-          if (-not $artifact) { throw "Windows portable artifact was not produced." }
-          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $artifact.FullName).Hash.ToLowerInvariant()
-          "$hash  $($artifact.Name)" | Set-Content -LiteralPath "$($artifact.FullName).sha256" -Encoding ascii
-      - name: Upload verified Windows artifact
+
+  package:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    needs: verify
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: Windows-x64
+            os: windows-latest
+            command: pnpm exec electron-builder --win portable --x64 --publish never
+          - target: Linux-x64
+            os: ubuntu-latest
+            command: pnpm exec electron-builder --linux AppImage deb --x64 --publish never
+          - target: macOS-x64
+            os: macos-latest
+            command: pnpm exec electron-builder --mac dmg --x64 --publish never
+          - target: macOS-arm64
+            os: macos-latest
+            command: pnpm exec electron-builder --mac dmg --arm64 --publish never
+    runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build renderer
+        run: pnpm build
+      - name: Package ${{ matrix.target }}
+        run: ${{ matrix.command }}
+      - name: Generate individual SHA-256 files
+        run: node scripts/generate-checksums.mjs release
+      - name: Upload ${{ matrix.target }} package
         uses: actions/upload-artifact@v4
         with:
-          name: CF-Compass-Windows-x64
-          path: |
-            release/CF-Compass-*-portable.exe
-            release/CF-Compass-*-portable.exe.sha256
+          name: CF-Compass-${{ matrix.target }}
           if-no-files-found: error
+          path: |
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+            release/*.dmg
+            release/*.sha256
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: CF-Compass-*
+          path: release
+          merge-multiple: true
+      - name: Generate complete checksum manifest
+        run: node scripts/generate-checksums.mjs release --manifest
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --verify-tag --generate-notes --title "CF Compass $GITHUB_REF_NAME"

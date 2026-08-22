@@ -3,7 +3,9 @@ const {
   BrowserWindow,
   dialog,
   ipcMain,
+  net,
   nativeTheme,
+  protocol,
   session,
   shell,
 } = require("electron");
@@ -13,6 +15,12 @@ const { pathToFileURL } = require("node:url");
 
 nativeTheme.themeSource = "dark";
 app.setAppUserModelId("com.cfcompass.desktop");
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "cf-material",
+    privileges: { standard: true, secure: true, supportFetchAPI: true },
+  },
+]);
 
 if (process.env.CF_COMPASS_USER_DATA) {
   app.setPath("userData", path.resolve(process.env.CF_COMPASS_USER_DATA));
@@ -28,7 +36,10 @@ const CONTEST_CENTER_VERSION = 1;
 const CONTEST_CENTER_CACHE_MS = 30 * 60 * 1000;
 const CONTEST_DETAIL_CACHE_MS = 14 * 24 * 60 * 60 * 1000;
 const DEFAULT_SETTINGS = {
+  language: "zh-CN",
   themeVersion: 6,
+  showProblemTags: true,
+  interfaceDensity: "comfortable",
   reviewLimit: 8,
   reviewRatingGap: 0,
   newProblemLimit: 5,
@@ -239,6 +250,59 @@ function customWallpaperMetaPath() {
   return dataPath("custom-wallpaper.json");
 }
 
+function localMaterialDirectory() {
+  return dataPath("material-library");
+}
+
+function safeMaterialRelativePath(value) {
+  const normalized = String(value || "").replaceAll("\\", "/").replace(/^\.\//, "");
+  if (!normalized || normalized.startsWith("/") || normalized.includes("..")) return "";
+  return normalized.slice(0, 500);
+}
+
+function localMaterialUrl(relativePath) {
+  return `cf-material://library/${safeMaterialRelativePath(relativePath)}`;
+}
+
+async function getLocalWallpaperLibrary() {
+  const manifestPath = path.join(localMaterialDirectory(), "index.json");
+  const manifest = await readJsonPath(manifestPath, null);
+  if (!manifest || !Array.isArray(manifest.wallpapers)) {
+    return { wallpapers: [], counts: { curated: 0, student: 0, scenario: 0, custom: 0, total: 0 }, defaultWallpaperId: "" };
+  }
+  const wallpapers = manifest.wallpapers.slice(0, 1000).flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const relativeUrl = safeMaterialRelativePath(item.url);
+    const relativePreview = safeMaterialRelativePath(item.previewUrl || item.url);
+    const id = String(item.id || "").slice(0, 80);
+    if (!id || !relativeUrl || !relativePreview) return [];
+    return [{
+      id,
+      name: String(item.name || id).slice(0, 160),
+      url: localMaterialUrl(relativeUrl),
+      previewUrl: localMaterialUrl(relativePreview),
+      tone: item.tone === "day" ? "day" : "night",
+      credit: String(item.credit || "Local material library").slice(0, 160),
+      category: ["curated", "student", "scenario", "custom"].includes(item.category) ? item.category : "custom",
+      keywords: String(item.keywords || item.name || "").slice(0, 500),
+      resolution: String(item.resolution || "").slice(0, 40),
+    }];
+  });
+  const counts = wallpapers.reduce((result, item) => {
+    result[item.category] = (result[item.category] || 0) + 1;
+    result.total += 1;
+    return result;
+  }, { curated: 0, student: 0, scenario: 0, custom: 0, total: 0 });
+  const requestedDefault = String(manifest.defaultWallpaperId || "").slice(0, 80);
+  return {
+    wallpapers,
+    counts,
+    defaultWallpaperId: wallpapers.some((item) => item.id === requestedDefault)
+      ? requestedDefault
+      : wallpapers[0]?.id || "",
+  };
+}
+
 async function getCustomWallpaper() {
   const meta = await readJsonPath(customWallpaperMetaPath(), null);
   if (!meta?.filename) return null;
@@ -270,11 +334,12 @@ async function getCustomWallpaper() {
 }
 
 async function chooseCustomWallpaper() {
+  const english = (await readUiLanguage()) === "en-US";
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: "选择背景图片",
+    title: english ? "Choose Background Asset" : "选择背景图片",
     properties: ["openFile"],
     filters: [
-      { name: "记忆大厅素材", extensions: ["png", "jpg", "jpeg", "webp", "mp4", "webm"] },
+      { name: english ? "Lobby Assets" : "记忆大厅素材", extensions: ["png", "jpg", "jpeg", "webp", "mp4", "webm"] },
     ],
   });
   if (result.canceled || !result.filePaths[0]) return { canceled: true };
@@ -577,8 +642,9 @@ async function scanTemplateLibrary(force = false) {
 
 async function chooseTemplateRoot() {
   const config = await readTemplateConfig();
+  const english = (await readUiLanguage()) === "en-US";
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: "选择算法模板库文件夹",
+    title: english ? "Choose Algorithm Template Folder" : "选择算法模板库文件夹",
     defaultPath: config.root,
     properties: ["openDirectory"],
   });
@@ -1393,7 +1459,19 @@ function sanitizeStudyData(input) {
     contestQueue,
     plan,
     settings: {
+      language: ["zh-CN", "en-US"].includes(settings.language)
+        ? settings.language
+        : DEFAULT_SETTINGS.language,
       themeVersion: 6,
+      showProblemTags:
+        typeof settings.showProblemTags === "boolean"
+          ? settings.showProblemTags
+          : DEFAULT_SETTINGS.showProblemTags,
+      interfaceDensity: ["compact", "comfortable", "large"].includes(
+        settings.interfaceDensity,
+      )
+        ? settings.interfaceDensity
+        : DEFAULT_SETTINGS.interfaceDensity,
       reviewLimit: clampNumber(settings.reviewLimit, 1, 30, DEFAULT_SETTINGS.reviewLimit),
       reviewRatingGap: [0, 300, 400, 500, 600].includes(Number(settings.reviewRatingGap))
         ? Number(settings.reviewRatingGap)
@@ -1571,6 +1649,14 @@ function sanitizeStudyData(input) {
 
 async function readStudyData() {
   return sanitizeStudyData(await readJson("study.json", DEFAULT_STUDY_DATA));
+}
+
+async function readUiLanguage() {
+  try {
+    return (await readStudyData()).settings.language;
+  } catch {
+    return DEFAULT_SETTINGS.language;
+  }
 }
 
 function sanitizeFavorites(input) {
@@ -1812,10 +1898,11 @@ async function syncHandle(handle) {
 }
 
 async function exportData(snapshot) {
+  const english = (await readUiLanguage()) === "en-US";
   const result = await dialog.showSaveDialog(mainWindow, {
-    title: "导出 CF Compass 数据",
+    title: english ? "Export CF Compass Data" : "导出 CF Compass 数据",
     defaultPath: `CF-Compass-backup-${new Date().toISOString().slice(0, 10)}.json`,
-    filters: [{ name: "JSON 数据", extensions: ["json"] }],
+    filters: [{ name: english ? "JSON Data" : "JSON 数据", extensions: ["json"] }],
   });
   if (result.canceled || !result.filePath) return { canceled: true };
   await writeJsonPath(result.filePath, await collectDataBundle("manual-export", snapshot));
@@ -1844,10 +1931,11 @@ function validateImportBundle(bundle) {
 }
 
 async function importData() {
+  const english = (await readUiLanguage()) === "en-US";
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: "导入 CF Compass 数据",
+    title: english ? "Import CF Compass Data" : "导入 CF Compass 数据",
     properties: ["openFile"],
-    filters: [{ name: "JSON 数据", extensions: ["json"] }],
+    filters: [{ name: english ? "JSON Data" : "JSON 数据", extensions: ["json"] }],
   });
   if (result.canceled || !result.filePaths[0]) return { canceled: true };
   const sourcePath = result.filePaths[0];
@@ -1859,10 +1947,14 @@ async function importData() {
   const imported = validateImportBundle(bundle);
   const confirmation = await dialog.showMessageBox(mainWindow, {
     type: "warning",
-    title: "确认导入数据",
-    message: "导入会替换当前的题库缓存、收藏和学习记录。",
-    detail: "系统会先自动创建一份“导入前备份”，之后可随时恢复。",
-    buttons: ["取消", "确认导入"],
+    title: english ? "Confirm Data Import" : "确认导入数据",
+    message: english
+      ? "Importing will replace the current problemset cache, favorites, and training records."
+      : "导入会替换当前的题库缓存、收藏和学习记录。",
+    detail: english
+      ? "A pre-import backup will be created automatically so you can restore it later."
+      : "系统会先自动创建一份“导入前备份”，之后可随时恢复。",
+    buttons: english ? ["Cancel", "Import"] : ["取消", "确认导入"],
     defaultId: 1,
     cancelId: 0,
     noLink: true,
@@ -1991,6 +2083,18 @@ function onTrusted(channel, listener) {
 }
 
 app.whenReady().then(() => {
+  protocol.handle("cf-material", (request) => {
+    const candidate = safeMaterialRelativePath(
+      decodeURIComponent(new URL(request.url).pathname).replace(/^\/+/, ""),
+    );
+    if (!candidate) return new Response("Not found", { status: 404 });
+    const root = path.resolve(localMaterialDirectory());
+    const target = path.resolve(root, candidate);
+    if (target !== root && !target.startsWith(`${root}${path.sep}`)) {
+      return new Response("Forbidden", { status: 403 });
+    }
+    return net.fetch(pathToFileURL(target).href);
+  });
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
     callback(false);
   });
@@ -2034,6 +2138,7 @@ app.whenReady().then(() => {
     return safe;
   });
   handleTrusted("appearance:get-wallpaper", () => getCustomWallpaper());
+  handleTrusted("appearance:get-local-library", () => getLocalWallpaperLibrary());
   handleTrusted("appearance:choose-wallpaper", () => chooseCustomWallpaper());
   handleTrusted("appearance:clear-wallpaper", () => clearCustomWallpaper());
   handleTrusted("templates:get", () => scanTemplateLibrary(false));

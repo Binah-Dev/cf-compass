@@ -13,7 +13,8 @@
   <a href="https://github.com/qeffg/cf-compass/actions/workflows/build.yml"><img src="https://github.com/qeffg/cf-compass/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
   <a href="https://github.com/qeffg/cf-compass/releases/latest"><img src="https://img.shields.io/github/v/release/qeffg/cf-compass?display_name=tag&sort=semver" alt="Latest release" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-2ea44f.svg" alt="MIT License" /></a>
-  <img src="https://img.shields.io/badge/Platform-Windows-0078D4?logo=windows" alt="Windows" />
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-0078D4" alt="Windows Linux macOS" />
+  <img src="https://img.shields.io/badge/Language-简体中文%20%7C%20English-38BDF8" alt="简体中文与 English" />
   <img src="https://img.shields.io/badge/Electron-React-47848F?logo=electron" alt="Electron and React" />
 </p>
 
@@ -30,7 +31,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/qeffg/cf-compass/releases/latest">⬇ 下载 Windows x64 portable 版</a></strong>
+  <strong><a href="https://github.com/qeffg/cf-compass/releases/latest">⬇ 下载 Windows / Linux / macOS 版本</a></strong>
 </p>
 
 ![CF Compass 题库工作台](./docs/screenshots/dashboard-sky.png)
@@ -63,6 +64,19 @@ flowchart LR
 ```
 
 每个模块都不是一座孤岛：今日题单会参考你的能力画像，错题会进入复习队列，比赛中没解决的问题可以继续补题，而新的结果又会反过来修正后续训练方向。
+
+## 简体中文与 English 双语界面
+
+CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**。打开左下角的 **外观设置 → 界面语言**，选择语言后立即生效；选择结果保存在本机，重新启动软件后仍会沿用。
+
+- 中文仍是默认界面，不改变现有用户的使用习惯。
+- 题库、今日训练、复习库与时间轴、赛事中心、赛事复盘、模板库、数据中心、笔记弹窗及系统文件选择窗口均纳入同一套语言层。
+- 日期、数字、动态计数、状态提示、搜索框和无障碍标签会随界面语言切换。
+- Codeforces 官方题名、本地模板文件名、模板题意和用户笔记保持原文，软件不会擅自机器翻译用户内容。
+
+![CF Compass English interface](./docs/screenshots/dashboard-en.png)
+
+<p align="center"><sub>English 界面 · 使用虚构演示账号，不包含本机路径或私人训练数据</sub></p>
 
 ## 核心功能
 
@@ -201,6 +215,17 @@ flowchart LR
 
 第一次使用、迁移电脑和误操作恢复方法见 [数据中心完整指南](./docs/DATA_CENTER_GUIDE.md)。
 
+### 8. 训练分析：把进步画成一张可以探索的地图
+
+个人数据中心支持生涯、近一年、近三个月、近一个月、近两周和自定义日期范围。四张核心指标卡、Codeforces Rating 曲线、算法通过率排行与每日 Accepted 节奏共用同一时间窗口：
+
+- Rating 图按照 Codeforces 段位着色，节点可查看比赛、变化和排名。
+- 鼠标滚轮围绕指针位置放缩时间范围，也可用底部双手柄精确选取。
+- 算法通过率按真实提交计算并从高到低排行，全部算法可在面板内滚动查看。
+- 首次通过、总提交、Accepted 比例和活跃天数不会混用不同时间口径。
+
+这不是一张静态成绩单，而是一块训练仪表盘：既能看长期趋势，也能把镜头拉近到最近两周寻找突破口。
+
 ## 适合哪些人
 
 - 想系统提升、却经常在“今天刷什么”上消耗精力的人。
@@ -235,15 +260,33 @@ flowchart LR
 
 ## 快速开始
 
-### 直接下载 Windows 版本
+### 下载桌面版本
 
-打开 [Latest Release](https://github.com/qeffg/cf-compass/releases/latest)，下载：
+打开 [Latest Release](https://github.com/qeffg/cf-compass/releases/latest)，按设备下载：
 
 ```text
-CF-Compass-3.11.5-portable.exe
+Windows x64:       CF-Compass-3.12.0-Windows-x64-portable.exe
+Linux x64:         CF-Compass-3.12.0-Linux-x64.AppImage
+Linux Debian x64:  CF-Compass-3.12.0-Linux-x64.deb
+macOS Intel:       CF-Compass-3.12.0-macOS-x64.dmg
+macOS Apple 芯片:  CF-Compass-3.12.0-macOS-arm64.dmg
 ```
 
-portable 版无需安装，双击即可运行。Release 同时提供 `.sha256` 校验文件，方便确认下载完整性。
+Windows portable 版无需安装，双击即可运行；Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。macOS 构建目前没有 Apple Developer 签名，首次打开时可能需要在“隐私与安全性”中确认来源。
+
+每个安装包旁都有同名 `.sha256`，Release 还提供汇总文件 `SHA256SUMS.txt`。例如 Windows 可在 PowerShell 中运行：
+
+```powershell
+Get-FileHash -Algorithm SHA256 .\CF-Compass-3.12.0-Windows-x64-portable.exe
+```
+
+Linux 或 macOS 可运行：
+
+```bash
+sha256sum -c SHA256SUMS.txt --ignore-missing
+```
+
+macOS 也可使用 `shasum -a 256 <文件名>`，将结果与对应 `.sha256` 文件核对。
 
 当前公开构建未购买商业代码签名证书，因此 Windows SmartScreen 可能显示“未知发布者”。请只从本仓库 Release 下载，并在运行前核对 SHA-256；这不影响应用功能。
 
@@ -251,7 +294,7 @@ portable 版无需安装，双击即可运行。Release 同时提供 `.sha256` �
 
 ### 环境要求
 
-- Windows 10/11
+- Windows、Linux 或 macOS
 - Node.js 22（CI 使用版本）
 - pnpm 11.19.0（已在 `package.json` 中锁定）
 - Git
@@ -283,11 +326,17 @@ pnpm desktop:pack
 
 # 生成 Windows portable 程序
 pnpm desktop:build
+
+# 生成 Linux AppImage 与 deb
+pnpm desktop:build:linux
+
+# 生成 macOS Intel 与 Apple 芯片 dmg（需要 macOS）
+pnpm desktop:build:mac
 ```
 
-构建产物位于 `release/`，不会提交到 Git。正式 Release 同时提供 Windows x64 portable 程序、SHA-256 校验文件以及 GitHub 自动生成的源码包。
+构建产物位于 `release/`，不会提交到 Git。正式 Release 提供 Windows x64、Linux x64、macOS Intel 与 macOS Apple 芯片包，并附独立 SHA-256 和总校验清单。
 
-主分支和 Pull Request 会在 GitHub Actions 的 Windows 环境中自动安装依赖、检查生产依赖安全性、运行重点回归测试，并真实构建可下载的 Windows portable 程序及 SHA-256 校验文件。
+主分支和 Pull Request 会自动安装依赖、检查生产依赖安全性并运行重点回归测试；版本标签会在 GitHub Actions 的 Windows、Linux 与 macOS 环境中分别构建真实安装包，全部成功后才创建 Release。
 
 ## 技术组成
 
@@ -297,7 +346,7 @@ pnpm desktop:build
 | 用户界面 | React + Vite，负责训练工作台与交互。 |
 | 数据来源 | Codeforces 公开 API 与用户选择的本地模板目录。 |
 | 本地能力 | JSON 数据、备份、导入导出和模板摘要。 |
-| 持续验证 | GitHub Actions Windows 构建与重点回归测试。 |
+| 持续验证 | GitHub Actions 三平台构建、重点回归测试与 SHA-256 校验。 |
 
 <details>
 <summary><strong>查看项目目录</strong></summary>

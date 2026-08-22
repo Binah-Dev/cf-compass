@@ -100,7 +100,7 @@ function SummaryContent({ value }) {
 function SummaryReader({ value }) {
   const sections = useMemo(() => parseTemplateSummary(value), [value]);
   return (
-    <article className="template-summary-dialog__reader">
+    <article className="template-summary-dialog__reader" data-i18n-preserve>
       {sections.map((section, index) => (
         <section key={`${section.heading}-${index}`}>
           <h3>{section.heading}</h3>
@@ -393,7 +393,7 @@ export default function TemplateLibrary({ onToast }) {
                 <span className="template-category-card__body">
                   <strong>{category.label}</strong>
                   <small>{CATEGORY_DESCRIPTIONS[category.id] || "本地算法源码模板"}</small>
-                  <span>
+                  <span data-i18n-preserve>
                     {category.items.length
                       ? category.items.slice(0, 3).map((item) => item.title).join(" · ")
                       : "暂无模板，等待收录"}
@@ -434,10 +434,10 @@ export default function TemplateLibrary({ onToast }) {
                     <span className="template-card__language">{item.language}</span>
                   </div>
                   <button type="button" className="template-card__title" onClick={() => handleOpen(item)}>
-                    <span>{item.title}</span>
+                    <span data-i18n-preserve>{item.title}</span>
                     <ExternalLink size={16} />
                   </button>
-                  <p className="template-card__path" title={item.relativePath}>{item.relativePath}</p>
+                  <p className="template-card__path" title={item.relativePath} data-i18n-preserve>{item.relativePath}</p>
                   <button
                     type="button"
                     className={`template-card__summary-button ${item.summary ? "has-content" : ""}`}
@@ -512,8 +512,8 @@ export default function TemplateLibrary({ onToast }) {
               <span className="template-summary-dialog__icon"><FileText size={23} /></span>
               <div>
                 <span>题目大意</span>
-                <h2 id="template-summary-title">{selectedSummaryItem.title}</h2>
-                <p>{selectedSummaryItem.relativePath}</p>
+                <h2 id="template-summary-title" data-i18n-preserve>{selectedSummaryItem.title}</h2>
+                <p data-i18n-preserve>{selectedSummaryItem.relativePath}</p>
               </div>
               <button type="button" onClick={closeSummaryDialog} aria-label="关闭题目大意">
                 <X size={20} />

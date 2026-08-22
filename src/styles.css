@@ -1209,6 +1209,11 @@ select:focus-visible {
   white-space: nowrap;
 }
 
+.table-tag--primary {
+  max-width: 124px;
+  flex: 0 1 auto;
+}
+
 .table-tag--more {
   flex: 0 0 auto;
   color: #4e6578;

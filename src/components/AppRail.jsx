@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   BookOpenText,
   CalendarRange,
   CalendarCheck2,
@@ -16,6 +17,7 @@ const navItems = [
   { id: "library", label: "题库", Icon: BookOpenText },
   { id: "today", label: "今日训练", Icon: CalendarCheck2 },
   { id: "review", label: "复习库", Icon: History },
+  { id: "analytics", label: "训练分析", Icon: BarChart3 },
   { id: "contests", label: "赛事复盘", Icon: Trophy },
   { id: "contest-center", label: "赛事中心", Icon: CalendarRange },
   { id: "templates", label: "模板库", Icon: FileCode2 },

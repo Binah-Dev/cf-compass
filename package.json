@@ -1,6 +1,6 @@
 {
   "name": "cf-compass",
-  "version": "3.11.5",
+  "version": "3.12.0",
   "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": "CF Compass",
@@ -24,7 +24,11 @@
     "preview": "vite preview --host 127.0.0.1",
     "verify": "vite build",
     "desktop:pack": "vite build && electron-builder --dir",
-    "desktop:build": "vite build && electron-builder --win portable"
+    "desktop:build": "vite build && electron-builder --win portable --x64 --publish never",
+    "desktop:build:linux": "vite build && electron-builder --linux AppImage deb --x64 --publish never",
+    "desktop:build:mac": "vite build && electron-builder --mac dmg --x64 --arm64 --publish never",
+    "qa:i18n": "node scripts/qa-i18n.cjs",
+    "test:analytics": "node scripts/test-analytics.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -37,18 +41,18 @@
     "cross-env": "^7.0.3",
     "electron": "43.4.0",
     "electron-builder": "26.15.3",
+    "playwright-core": "^1.62.1",
     "vite": "^6.0.5",
     "wait-on": "^8.0.1"
   },
   "build": {
     "appId": "com.cfcompass.desktop",
     "productName": "CF Compass",
-    "electronDist": "node_modules/electron/dist",
     "asar": true,
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "build/icon.ico",
+      "build/icon.*",
       "package.json"
     ],
     "directories": {
@@ -65,7 +69,33 @@
           ]
         }
       ],
-      "artifactName": "CF-Compass-${version}-portable.${ext}"
+      "artifactName": "CF-Compass-${version}-Windows-${arch}-portable.${ext}"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Education",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "CF-Compass-${version}-Linux-${arch}.${ext}"
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.education",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "artifactName": "CF-Compass-${version}-macOS-${arch}.${ext}"
     }
   }
 }

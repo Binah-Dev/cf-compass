@@ -7,6 +7,7 @@ import {
   ScanLine,
   UserRound,
 } from "lucide-react";
+import { getCurrentLocale } from "../i18n";
 import { ratingTone } from "../lib/stats";
 
 export default function TopBar({
@@ -26,7 +27,7 @@ export default function TopBar({
   const syncLabel = syncing
     ? "正在同步…"
     : syncedAt
-      ? `上次同步 ${new Date(syncedAt).toLocaleString("zh-CN", {
+      ? `上次同步 ${new Date(syncedAt).toLocaleString(getCurrentLocale(), {
           month: "numeric",
           day: "numeric",
           hour: "2-digit",

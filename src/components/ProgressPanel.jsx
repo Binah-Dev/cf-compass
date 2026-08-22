@@ -2,15 +2,17 @@ import {
   ArrowUpRight,
   CalendarDays,
   CheckCircle2,
-  Flame,
   Medal,
   Repeat2,
   Target,
   Trophy,
 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  buildHeatmap,
   formatNumber,
   formatPercent,
+  getHeatmapYears,
   ratingTone,
   relativeTime,
 } from "../lib/stats";
@@ -28,12 +30,41 @@ export default function ProgressPanel({
   user,
   ratingStanding,
   overview,
-  heatmap,
+  submissions,
   recentActivity,
 }) {
   const currentRatingTone = ratingTone(user?.rating);
   const isEliteRatingStanding =
     ratingStanding?.position && Number(ratingStanding.topPercent) < 0.1;
+  const heatmapYears = useMemo(() => getHeatmapYears(submissions), [submissions]);
+  const [heatmapYear, setHeatmapYear] = useState(
+    () => heatmapYears.at(-1) || new Date().getFullYear(),
+  );
+  const [hoveredHeatCell, setHoveredHeatCell] = useState(null);
+  const heatmapScrollRef = useRef(null);
+  const heatmapYearStripRef = useRef(null);
+  const heatmap = useMemo(
+    () => buildHeatmap(submissions, heatmapYear),
+    [submissions, heatmapYear],
+  );
+
+  useEffect(() => {
+    if (heatmapYears.length && !heatmapYears.includes(heatmapYear)) {
+      setHeatmapYear(heatmapYears.at(-1));
+    }
+  }, [heatmapYear, heatmapYears]);
+
+  useEffect(() => {
+    const frame = heatmapScrollRef.current;
+    if (frame) frame.scrollLeft = frame.scrollWidth;
+    const selectedYear = heatmapYearStripRef.current?.querySelector('[aria-selected="true"]');
+    selectedYear?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [heatmapYear]);
+
+  function selectHeatmapYear(year) {
+    setHoveredHeatCell(null);
+    setHeatmapYear(year);
+  }
 
   return (
     <aside
@@ -143,28 +174,60 @@ export default function ProgressPanel({
       </section>
 
       <section className="heatmap-block">
-        <div className="panel-subheading">
-          <div>
-            <Flame size={15} />
-            <strong>最近 16 周</strong>
+        <div className="heatmap-summary">
+          <span><strong>{overview.monthAc}</strong> 次 AC / 本月</span>
+        </div>
+        {heatmapYears.length > 1 ? (
+          <div className="heatmap-year-strip" ref={heatmapYearStripRef} aria-label="选择热力图年份">
+            {heatmapYears.map((year) => (
+              <button
+                type="button"
+                aria-selected={year === heatmapYear}
+                className={year === heatmapYear ? "is-active" : ""}
+                key={year}
+                onClick={() => selectHeatmapYear(year)}
+              >{year}</button>
+            ))}
           </div>
-          <span>{overview.monthAc} 次 AC / 本月</span>
+        ) : null}
+        <div
+          className="heatmap-scroll"
+          ref={heatmapScrollRef}
+          onMouseLeave={() => setHoveredHeatCell(null)}
+        >
+          <div className="heatmap-canvas">
+            <div className="heatmap-months" aria-hidden="true">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
+                <span key={month}>{month}月</span>
+              ))}
+            </div>
+            <div className="heatmap-frame">
+              <div className="heatmap" role="grid" aria-label={`${heatmapYear} 年首次通过题目热力图`}>
+                {heatmap.map((cell) => (
+                  <span
+                    key={cell.key}
+                    role="gridcell"
+                    className={`heat-cell level-${cell.level} ${cell.future ? "is-future" : ""} ${cell.blank ? "is-blank" : ""}`}
+                    aria-label={cell.blank ? undefined : `${cell.key}，首次通过 ${cell.count} 道题`}
+                    onMouseEnter={() => !cell.blank && setHoveredHeatCell(cell)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="heatmap">
-          {heatmap.map((cell) => (
-            <span
-              key={cell.key}
-              className={`heat-cell level-${cell.level} ${cell.future ? "is-future" : ""}`}
-              title={`${cell.key} · ${cell.count} 次 AC`}
-            />
-          ))}
-        </div>
+        {hoveredHeatCell ? (
+          <div className="heatmap-tooltip" role="tooltip">
+            <strong>{hoveredHeatCell.key}</strong>
+            <span>首次通过 {hoveredHeatCell.count} 道题</span>
+          </div>
+        ) : null}
         <div className="heatmap-legend">
-          <span>少</span>
-          {[0, 1, 2, 3, 4].map((level) => (
-            <i className={`heat-cell level-${level}`} key={level} />
+          {["0", "1", "2", "3+"].map((label, level) => (
+            <span className="heatmap-legend__item" key={label}>
+              <i className={`heat-cell level-${level}`} />{label}
+            </span>
           ))}
-          <span>多</span>
         </div>
       </section>
 

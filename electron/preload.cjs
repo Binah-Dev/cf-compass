@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld("cfBridge", {
   getStudyData: () => ipcRenderer.invoke("study:get"),
   setStudyData: (studyData) => ipcRenderer.invoke("study:set", studyData),
   getCustomWallpaper: () => ipcRenderer.invoke("appearance:get-wallpaper"),
+  getLocalWallpaperLibrary: () => ipcRenderer.invoke("appearance:get-local-library"),
   chooseCustomWallpaper: () => ipcRenderer.invoke("appearance:choose-wallpaper"),
   clearCustomWallpaper: () => ipcRenderer.invoke("appearance:clear-wallpaper"),
   getTemplateLibrary: () => ipcRenderer.invoke("templates:get"),

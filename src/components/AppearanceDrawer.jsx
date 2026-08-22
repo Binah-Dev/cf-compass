@@ -1,27 +1,68 @@
 import {
   Check,
+  Clock3,
   Eye,
+  FolderOpen,
+  Heart,
+  Image as ImageIcon,
   ImagePlus,
+  Languages,
   LocateFixed,
   Palette,
   RotateCcw,
-  Trash2,
+  Search,
+  Shuffle,
+  Type,
+  Video,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import {
+  BUILT_IN_WALLPAPERS,
+  DEFAULT_WALLPAPER_ID,
+  WALLPAPER_LIBRARY_COUNTS,
+} from "../data/wallpapers";
 
 const appearanceDefaults = {
-  wallpaperEnabled: false,
-  wallpaperId: "",
+  wallpaperEnabled: Boolean(DEFAULT_WALLPAPER_ID),
+  wallpaperId: DEFAULT_WALLPAPER_ID,
   wallpaperClarity: 100,
   wallpaperOpacity: 92,
   wallpaperBrightness: 100,
   wallpaperScale: 100,
   wallpaperPosition: "center center",
   panelOpacity: 72,
+  wallpaperFavorites: DEFAULT_WALLPAPER_ID ? [DEFAULT_WALLPAPER_ID] : [],
+  wallpaperLocked: true,
+  randomWallpaperOnPageChange: false,
+  wallpaperAutoRotateMinutes: 0,
+  usePageWallpapers: false,
+  pageWallpapers: {},
   accentTheme: "sky",
+  interfaceDensity: "comfortable",
   reduceMotion: false,
 };
+
+const WALLPAPER_PAGE_SIZE = 36;
+
+const wallpaperCategories = [
+  { id: "all", label: "全部", countKey: "total" },
+  { id: "curated", label: "精选", countKey: "curated" },
+  { id: "student", label: "学生大厅", countKey: "student" },
+  { id: "scenario", label: "剧情原图", countKey: "scenario" },
+  { id: "custom", label: "角色素材", countKey: "custom" },
+];
+
+const autoRotateOptions = [
+  [0, "关闭"],
+  [1, "每 1 分钟"],
+  [5, "每 5 分钟"],
+  [10, "每 10 分钟"],
+  [15, "每 15 分钟"],
+  [30, "每 30 分钟"],
+  [60, "每 1 小时"],
+  [120, "每 2 小时"],
+];
 
 const visibilityPresets = [
   {
@@ -93,13 +134,44 @@ export default function AppearanceDrawer({
   onCommit,
   onChooseCustom,
   onClearCustom,
+  activePage,
+  wallpapers = BUILT_IN_WALLPAPERS,
+  wallpaperCounts = WALLPAPER_LIBRARY_COUNTS,
+  defaultWallpaperId = DEFAULT_WALLPAPER_ID,
   onClose,
 }) {
   const [draft, setDraft] = useState(() => ({ ...appearanceDefaults, ...settings }));
+  const [wallpaperSearch, setWallpaperSearch] = useState("");
+  const [wallpaperCategory, setWallpaperCategory] = useState("all");
+  const [visibleWallpaperLimit, setVisibleWallpaperLimit] = useState(WALLPAPER_PAGE_SIZE);
+  const deferredWallpaperSearch = useDeferredValue(wallpaperSearch.trim().toLowerCase());
+  const activeWallpaperId = draft.usePageWallpapers
+    ? draft.pageWallpapers?.[activePage] || draft.wallpaperId
+    : draft.wallpaperId;
+  const selectedWallpaper = useMemo(
+    () => wallpapers.find((item) => item.id === activeWallpaperId),
+    [activeWallpaperId, wallpapers],
+  );
+  const filteredWallpapers = useMemo(() => {
+    const query = deferredWallpaperSearch;
+    return wallpapers.filter((wallpaper) => {
+      const category = wallpaper.category || "curated";
+      if (wallpaperCategory !== "all" && category !== wallpaperCategory) return false;
+      if (!query) return true;
+      return `${wallpaper.name} ${wallpaper.credit || ""} ${wallpaper.keywords || ""} ${wallpaper.resolution || ""}`
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [deferredWallpaperSearch, wallpaperCategory, wallpapers]);
+  const visibleWallpapers = filteredWallpapers.slice(0, visibleWallpaperLimit);
 
   useEffect(() => {
     setDraft({ ...appearanceDefaults, ...settings });
   }, [settings]);
+
+  useEffect(() => {
+    setVisibleWallpaperLimit(WALLPAPER_PAGE_SIZE);
+  }, [deferredWallpaperSearch, wallpaperCategory]);
 
   function updateAccent(accentTheme) {
     updateAppearance({ accentTheme });
@@ -117,9 +189,53 @@ export default function AppearanceDrawer({
     }
   }
 
-  async function clearCustomWallpaper() {
-    const result = await onClearCustom?.();
-    if (result?.cleared !== false) {
+  function selectWallpaper(wallpaperId) {
+    const patch = { wallpaperEnabled: true };
+    if (draft.usePageWallpapers) {
+      patch.pageWallpapers = {
+        ...(draft.pageWallpapers || {}),
+        [activePage]: wallpaperId,
+      };
+    } else {
+      patch.wallpaperId = wallpaperId;
+    }
+    updateAppearance(patch);
+  }
+
+  function toggleWallpaperFavorite() {
+    const favorites = new Set(draft.wallpaperFavorites || []);
+    favorites.has(activeWallpaperId)
+      ? favorites.delete(activeWallpaperId)
+      : favorites.add(activeWallpaperId);
+    updateAppearance({ wallpaperFavorites: [...favorites] });
+  }
+
+  function randomWallpaper() {
+    const favoriteIds = (draft.wallpaperFavorites || []).filter((id) =>
+      wallpapers.some((item) => item.id === id),
+    );
+    const pool = favoriteIds.length
+      ? wallpapers.filter((item) => favoriteIds.includes(item.id))
+      : filteredWallpapers;
+    const alternatives = pool.filter((item) => item.id !== activeWallpaperId);
+    const next = alternatives[Math.floor(Math.random() * alternatives.length)] || pool[0];
+    if (next) selectWallpaper(next.id);
+  }
+
+  async function restoreLobbyTheme() {
+    await onClearCustom?.();
+    if (defaultWallpaperId) {
+      updateAppearance({
+        wallpaperEnabled: true,
+        wallpaperId: defaultWallpaperId,
+        wallpaperClarity: 100,
+        wallpaperOpacity: 92,
+        wallpaperBrightness: 100,
+        wallpaperScale: 100,
+        wallpaperPosition: "center center",
+        panelOpacity: 72,
+      });
+    } else {
       updateAppearance({ wallpaperEnabled: false, wallpaperId: "" });
     }
   }
@@ -136,6 +252,11 @@ export default function AppearanceDrawer({
   const activeVisibilityPreset = visibilityPresets.find(({ values }) =>
     Object.entries(values).every(([key, value]) => draft[key] === value),
   )?.id;
+  const previewUrl = activeWallpaperId === "custom"
+    ? customWallpaper?.dataUrl || customWallpaper?.url
+    : selectedWallpaper?.previewUrl || selectedWallpaper?.url;
+  const previewIsVideo = activeWallpaperId === "custom" && customWallpaper?.mediaType === "video";
+  const isFavorite = (draft.wallpaperFavorites || []).includes(activeWallpaperId);
 
   return (
     <div className="appearance-backdrop" role="presentation" onMouseDown={finish}>
@@ -156,44 +277,72 @@ export default function AppearanceDrawer({
         <div className="appearance-drawer__body">
           <section className="appearance-section">
             <div className="appearance-section__title">
-              <span><ImagePlus size={15} />本地人物与背景</span>
-              <small>仅保存在本机，不随项目上传</small>
+              <span><ImageIcon size={15} />背景图片</span>
+              {selectedWallpaper?.credit
+                ? <small data-i18n-preserve>{selectedWallpaper.credit}</small>
+                : <small>本地素材 · 不随项目上传</small>}
             </div>
 
-            {customWallpaper ? (
-              customWallpaper.mediaType === "video" ? (
-                <div className="wallpaper-preview wallpaper-preview--video">
-                  <video src={customWallpaper.url} muted loop autoPlay playsInline />
-                  <span>{customWallpaper.name || "本地动态素材"}</span>
-                </div>
-              ) : (
-                <div
-                  className="wallpaper-preview"
-                  style={{
-                    backgroundImage: `url("${customWallpaper.dataUrl || customWallpaper.url}")`,
-                  }}
-                >
-                  <span>{customWallpaper.name || "本地图片"}</span>
-                </div>
-              )
+            {previewIsVideo ? (
+              <div className="wallpaper-preview wallpaper-preview--video">
+                <video src={previewUrl} muted loop autoPlay playsInline />
+                <span><Video size={14} />动态预览</span>
+              </div>
             ) : (
-              <div className="wallpaper-preview wallpaper-preview--empty">
-                <ImagePlus size={28} />
-                <span>尚未导入本地素材</span>
+              <div
+                className={`wallpaper-preview ${previewUrl ? "" : "wallpaper-preview--empty"}`}
+                style={{ backgroundImage: previewUrl ? `url("${previewUrl}")` : undefined }}
+              >
+                {previewUrl ? <span><Eye size={14} />实时预览</span> : <><ImagePlus size={28} /><span>尚未导入本地素材包</span></>}
               </div>
             )}
 
             <div className="wallpaper-actions">
               <button type="button" onClick={chooseCustomWallpaper}>
-                <ImagePlus size={14} />{customWallpaper ? "更换素材" : "导入本地素材"}
+                <FolderOpen size={14} />导入大厅画面
               </button>
-              <button type="button" onClick={clearCustomWallpaper} disabled={!customWallpaper}>
-                <Trash2 size={14} />移除素材
+              <button type="button" onClick={restoreLobbyTheme} disabled={!defaultWallpaperId && !customWallpaper}>
+                <RotateCcw size={14} />恢复大厅主题
               </button>
             </div>
             <p className="wallpaper-library__hint">
-              支持 PNG、JPG、WebP、MP4 和 WebM。请从原作者或官方渠道取得素材，并遵守对应许可。
+              本机附加素材 {wallpaperCounts.total || 0} 张；图片不进入 GitHub 安装包，请遵守原素材许可。
             </p>
+            {wallpapers.length ? (
+              <>
+                <div className="wallpaper-tools">
+                  <label><Search size={13} /><input value={wallpaperSearch} onChange={(event) => setWallpaperSearch(event.target.value)} placeholder="搜索学生或场景" aria-label="搜索大厅背景" /></label>
+                  <button type="button" className={isFavorite ? "is-active" : ""} onClick={toggleWallpaperFavorite} title={isFavorite ? "取消收藏当前背景" : "收藏当前背景"}><Heart size={14} fill={isFavorite ? "currentColor" : "none"} /></button>
+                  <button type="button" onClick={randomWallpaper} title="从收藏中随机"><Shuffle size={14} /></button>
+                </div>
+                <div className="wallpaper-category-tabs" role="tablist" aria-label="大厅素材分类">
+                  {wallpaperCategories.map((category) => (
+                    <button key={category.id} type="button" role="tab" aria-selected={wallpaperCategory === category.id} className={wallpaperCategory === category.id ? "is-active" : ""} onClick={() => setWallpaperCategory(category.id)}>
+                      <span>{category.label}</span><small>{wallpaperCounts[category.countKey] || 0}</small>
+                    </button>
+                  ))}
+                </div>
+                <div className="wallpaper-library">
+                  {visibleWallpapers.map((wallpaper) => (
+                    <button key={wallpaper.id} type="button" data-i18n-preserve className={activeWallpaperId === wallpaper.id ? "is-active" : ""} onClick={() => selectWallpaper(wallpaper.id)} title={wallpaper.name}>
+                      <img src={wallpaper.previewUrl || wallpaper.url} alt="" loading="lazy" decoding="async" />
+                      <span>{wallpaper.name}</span>
+                      {activeWallpaperId === wallpaper.id ? <Check size={13} /> : null}
+                    </button>
+                  ))}
+                  {customWallpaper?.dataUrl || customWallpaper?.url ? (
+                    <button type="button" className={activeWallpaperId === "custom" ? "is-active" : ""} onClick={() => selectWallpaper("custom")} title={customWallpaper.name || "本地图片"}>
+                      {customWallpaper.mediaType === "video" ? <span className="wallpaper-library__video"><Video size={16} /></span> : <img src={customWallpaper.dataUrl || customWallpaper.url} alt="" />}
+                      <span>我的大厅</span>{activeWallpaperId === "custom" ? <Check size={13} /> : null}
+                    </button>
+                  ) : null}
+                </div>
+                <div className="wallpaper-library__footer">
+                  <span>显示 {Math.min(visibleWallpapers.length, filteredWallpapers.length)} / {filteredWallpapers.length} 张</span>
+                  {visibleWallpapers.length < filteredWallpapers.length ? <button type="button" onClick={() => setVisibleWallpaperLimit((current) => current + WALLPAPER_PAGE_SIZE)}>加载更多</button> : null}
+                </div>
+              </>
+            ) : null}
           </section>
 
           <section className="appearance-section">
@@ -271,6 +420,85 @@ export default function AppearanceDrawer({
               hint="暂停动态背景并减少界面动画"
               onChange={(reduceMotion) => updateAppearance({ reduceMotion })}
             />
+            <Toggle
+              checked={draft.wallpaperLocked}
+              label="锁定当前背景"
+              hint="关闭后切换页面不会自动轮换"
+              onChange={(wallpaperLocked) => updateAppearance({ wallpaperLocked })}
+            />
+            <Toggle
+              checked={draft.randomWallpaperOnPageChange}
+              label="切页随机轮换"
+              hint="优先从收藏的大厅中随机选择"
+              onChange={(randomWallpaperOnPageChange) => updateAppearance({ randomWallpaperOnPageChange })}
+            />
+            <div className="appearance-select-row">
+              <span><Clock3 size={14} /><strong>自动轮换间隔</strong><small>到达间隔后优先从收藏中选择下一张</small></span>
+              <select value={draft.wallpaperAutoRotateMinutes || 0} onChange={(event) => updateAppearance({ wallpaperAutoRotateMinutes: Number(event.target.value) })}>
+                {autoRotateOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </div>
+            <Toggle
+              checked={draft.usePageWallpapers}
+              label="每页独立背景"
+              hint="当前选择会记录这个页面的专属大厅"
+              onChange={(usePageWallpapers) => updateAppearance({ usePageWallpapers })}
+            />
+          </section>
+
+          <section className="appearance-section">
+            <div className="appearance-section__title">
+              <span><Languages size={15} />界面语言</span>
+              <small>选择软件显示语言，立即生效</small>
+            </div>
+            <div className="language-picker" role="group" aria-label="界面语言">
+              <button
+                type="button"
+                className={(draft.language || "zh-CN") === "zh-CN" ? "is-active" : ""}
+                aria-pressed={(draft.language || "zh-CN") === "zh-CN"}
+                onClick={() => updateAppearance({ language: "zh-CN" })}
+              >
+                <strong>简体中文</strong>
+                <small>中文</small>
+              </button>
+              <button
+                type="button"
+                className={draft.language === "en-US" ? "is-active" : ""}
+                aria-pressed={draft.language === "en-US"}
+                onClick={() => updateAppearance({ language: "en-US" })}
+              >
+                <strong>English</strong>
+                <small>English</small>
+              </button>
+            </div>
+          </section>
+
+          <section className="appearance-section">
+            <div className="appearance-section__title">
+              <span><Type size={15} />界面与字体</span>
+              <small>调整信息密度，同时守住可读性底线</small>
+            </div>
+            <div className="density-picker" role="group" aria-label="界面密度">
+              {[
+                ["compact", "紧凑", "适合小屏与高信息量"],
+                ["comfortable", "舒适", "正文 14 px，推荐"],
+                ["large", "大字", "更大的文字与行距"],
+              ].map(([id, label, hint]) => (
+                <button
+                  type="button"
+                  key={id}
+                  className={(draft.interfaceDensity || "comfortable") === id ? "is-active" : ""}
+                  aria-pressed={(draft.interfaceDensity || "comfortable") === id}
+                  onClick={() => updateAppearance({ interfaceDensity: id })}
+                >
+                  <strong>{label}</strong>
+                  <small>{hint}</small>
+                </button>
+              ))}
+            </div>
+            <p className="appearance-readable-note">
+              功能文字不会低于 12 px；长标题保持省略显示，悬停可查看全文。
+            </p>
           </section>
 
           <section className="appearance-section">

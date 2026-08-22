@@ -1,5 +1,6 @@
 import { problemKey } from "./codeforces";
 import { normalizeTag } from "./stats";
+import { getCurrentLocale } from "../i18n";
 
 function localDateParts(timestamp) {
   const date = new Date(timestamp * 1000);
@@ -78,7 +79,7 @@ export function describeReviewDay(timestamp) {
   const delta = Math.round((today - target) / 86400000);
   if (delta === 0) return "今天";
   if (delta === 1) return "昨天";
-  return target.toLocaleDateString("zh-CN", { weekday: "short" });
+  return target.toLocaleDateString(getCurrentLocale(), { weekday: "short" });
 }
 
 export function groupReviewTimeline(items) {

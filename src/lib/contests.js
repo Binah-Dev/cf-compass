@@ -1,4 +1,5 @@
 import { problemKey } from "./codeforces";
+import { getCurrentLocale } from "../i18n";
 
 export const CONTEST_FILTERS = [
   { id: "all", label: "全部" },
@@ -39,7 +40,7 @@ export function formatPerformance(value) {
 
 export function formatContestDate(timestamp) {
   if (!timestamp) return "日期未知";
-  return new Date(timestamp * 1000).toLocaleDateString("zh-CN", {
+  return new Date(timestamp * 1000).toLocaleDateString(getCurrentLocale(), {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

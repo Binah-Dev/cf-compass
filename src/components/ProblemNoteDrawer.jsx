@@ -1,6 +1,7 @@
 import { Check, ExternalLink, NotebookPen, Plus, Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { openProblem, problemKey } from "../lib/codeforces";
+import { getCurrentLocale } from "../i18n";
 import { displayTag } from "../lib/stats";
 
 const mistakeOptions = ["思路偏差", "边界遗漏", "复杂度误判", "实现错误", "公式推导", "读题失误"];
@@ -132,7 +133,7 @@ export default function ProblemNoteDrawer({ problem, studyData, onClose, onSave 
           </section>
         </div>
         <footer className="note-drawer__footer">
-          <span>{saved?.updatedAt ? `上次保存 ${new Date(saved.updatedAt).toLocaleString("zh-CN")}` : "尚未保存"}</span>
+          <span>{saved?.updatedAt ? `上次保存 ${new Date(saved.updatedAt).toLocaleString(getCurrentLocale())}` : "尚未保存"}</span>
           <button type="button" className="primary-button" onClick={submit}>
             <Save size={15} /> 保存笔记
           </button>

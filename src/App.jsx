@@ -18,11 +18,13 @@ import Taxonomy from "./components/Taxonomy";
 import TitleBar from "./components/TitleBar";
 import TopBar from "./components/TopBar";
 import WorkbenchLayout from "./components/WorkbenchLayout";
-import { BUILT_IN_WALLPAPERS, getWallpaper } from "./data/wallpapers";
+import { useI18n } from "./i18n";
+import { BUILT_IN_WALLPAPERS, DEFAULT_WALLPAPER_ID, WALLPAPER_LIBRARY_COUNTS } from "./data/wallpapers";
 import {
   chooseCustomWallpaper,
   clearCustomWallpaper,
   loadCustomWallpaper,
+  loadLocalWallpaperLibrary,
 } from "./lib/appearance";
 import {
   loadFavorites,
@@ -40,7 +42,6 @@ import {
   saveStudyData,
 } from "./lib/study";
 import {
-  buildHeatmap,
   buildSubmissionMap,
   buildTagCounts,
   displayTag,
@@ -57,28 +58,28 @@ const ProblemNoteDrawer = lazy(() => import("./components/ProblemNoteDrawer"));
 const ReviewLibrary = lazy(() => import("./components/ReviewLibrary"));
 const TemplateLibrary = lazy(() => import("./components/TemplateLibrary"));
 const TodayTraining = lazy(() => import("./components/TodayTraining"));
+const TrainingAnalytics = lazy(() => import("./components/TrainingAnalytics"));
 
 const PAGE_SIZE = 14;
 const DEFAULT_RATING_RANGE = [800, 3500];
 const DEFAULT_PANEL_ORDER = ["taxonomy", "problems", "progress"];
 const PANEL_LAYOUT_KEY = "cf-compass-panel-layout-v1";
-const WALLPAPER_IDS = BUILT_IN_WALLPAPERS.map((wallpaper) => wallpaper.id);
-const WALLPAPER_ID_SET = new Set(WALLPAPER_IDS);
-
-function chooseNextWallpaperId(settings, currentId) {
+function chooseNextWallpaperId(settings, currentId, wallpapers) {
+  const wallpaperIds = wallpapers.map((wallpaper) => wallpaper.id);
+  const wallpaperIdSet = new Set(wallpaperIds);
   const favoriteIds = (settings.wallpaperFavorites || []).filter((id) =>
-    WALLPAPER_ID_SET.has(id),
+    wallpaperIdSet.has(id),
   );
-  const pool = favoriteIds.length ? favoriteIds : WALLPAPER_IDS;
+  const pool = favoriteIds.length ? favoriteIds : wallpaperIds;
   const alternatives = pool.filter((id) => id !== currentId);
   return alternatives[Math.floor(Math.random() * alternatives.length)] || pool[0];
 }
 
-function applyRotatedWallpaper(settings, pageId) {
+function applyRotatedWallpaper(settings, pageId, wallpapers) {
   const currentId = settings.usePageWallpapers
     ? settings.pageWallpapers?.[pageId] || settings.wallpaperId
     : settings.wallpaperId;
-  const nextId = chooseNextWallpaperId(settings, currentId);
+  const nextId = chooseNextWallpaperId(settings, currentId, wallpapers);
   if (!nextId || nextId === currentId) return settings;
   return settings.usePageWallpapers
     ? {
@@ -99,6 +100,7 @@ const pageMeta = {
   contests: ["赛事复盘", "有效参加的 Rated 比赛与表现分记录"],
   "contest-center": ["赛事中心", "浏览全部 Codeforces 场次，找到最适合现在的下一场"],
   templates: ["模板库", "自动整理本地算法模板，点击即达 VS Code"],
+  analytics: ["训练分析", "用真实数据看见长期进步与下一步突破口"],
   data: ["数据中心", "可靠同步、迁移并保护你的训练记录"],
 };
 
@@ -126,6 +128,7 @@ function FeatureFallback() {
 }
 
 export default function App() {
+  const { setLocale } = useI18n();
   const [data, setData] = useState(null);
   const [studyData, setStudyData] = useState(null);
   const [dataStatus, setDataStatus] = useState(null);
@@ -145,6 +148,15 @@ export default function App() {
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [immersive, setImmersive] = useState(false);
   const [customWallpaper, setCustomWallpaper] = useState(null);
+  const [localWallpaperLibrary, setLocalWallpaperLibrary] = useState(() => ({
+    wallpapers: [],
+    counts: {},
+    defaultWallpaperId: "",
+  }));
+  const availableWallpapers = useMemo(
+    () => [...BUILT_IN_WALLPAPERS, ...(localWallpaperLibrary.wallpapers || [])],
+    [localWallpaperLibrary.wallpapers],
+  );
   const syncingRef = useRef(false);
   const lastAutoAttemptRef = useRef(0);
   const studyDataRef = useRef(null);
@@ -164,16 +176,19 @@ export default function App() {
       setHandle(initialData.handle || initialData.user?.handle || "");
       setFavorites(new Set(initialFavorites));
       setStudyData(initialStudy);
+      setLocale(initialStudy.settings?.language || "zh-CN");
     });
 
     const loadSecondaryData = () => {
       Promise.all([
         getDataCenterStatus().catch(() => null),
         loadCustomWallpaper().catch(() => null),
-      ]).then(([initialStatus, initialWallpaper]) => {
+        loadLocalWallpaperLibrary().catch(() => null),
+      ]).then(([initialStatus, initialWallpaper, initialLibrary]) => {
         if (!alive) return;
         setDataStatus(initialStatus);
         setCustomWallpaper(initialWallpaper);
+        if (initialLibrary) setLocalWallpaperLibrary(initialLibrary);
       });
     };
     const idleId =
@@ -274,7 +289,7 @@ export default function App() {
       if (document.visibilityState === "hidden") return;
       const currentStudy = studyDataRef.current;
       if (!currentStudy) return;
-      const nextSettings = applyRotatedWallpaper(currentStudy.settings, activeNav);
+      const nextSettings = applyRotatedWallpaper(currentStudy.settings, activeNav, availableWallpapers);
       if (nextSettings === currentStudy.settings) return;
       persistStudy({ ...currentStudy, settings: nextSettings });
     }, minutes * 60 * 1000);
@@ -284,6 +299,7 @@ export default function App() {
     studyData?.settings?.wallpaperAutoRotateMinutes,
     studyData?.settings?.wallpaperEnabled,
     studyData?.settings?.wallpaperLocked,
+    availableWallpapers,
   ]);
 
   const problems = data?.problems || [];
@@ -294,7 +310,6 @@ export default function App() {
     () => getOverview(problems, submissions, submissionMap),
     [problems, submissions, submissionMap],
   );
-  const heatmap = useMemo(() => buildHeatmap(submissions), [submissions]);
   const recentActivity = useMemo(
     () => getRecentActivity(problems, submissions),
     [problems, submissions],
@@ -404,7 +419,7 @@ export default function App() {
       appearanceSettings?.randomWallpaperOnPageChange &&
       !appearanceSettings?.wallpaperLocked
     ) {
-      const nextSettings = applyRotatedWallpaper(appearanceSettings, target);
+      const nextSettings = applyRotatedWallpaper(appearanceSettings, target, availableWallpapers);
       if (nextSettings !== appearanceSettings) {
         persistStudy({ ...studyData, settings: nextSettings });
       }
@@ -430,6 +445,7 @@ export default function App() {
   }
 
   function previewAppearance(patch) {
+    if (patch.language) setLocale(patch.language);
     setStudyData((current) => ({
       ...current,
       settings: { ...current.settings, ...patch },
@@ -495,6 +511,7 @@ export default function App() {
       setHandle(result.cache.handle || result.cache.user?.handle || "");
       setFavorites(new Set(result.favorites));
       setStudyData(result.study);
+      setLocale(result.study.settings?.language || "zh-CN");
       await refreshStatus().catch(() => undefined);
       setToast({ type: "success", message: "数据已安全导入，导入前快照也已保留" });
     } catch (error) {
@@ -530,7 +547,7 @@ export default function App() {
   const activeWallpaperId = appearance.usePageWallpapers
     ? appearance.pageWallpapers?.[activeNav] || appearance.wallpaperId
     : appearance.wallpaperId;
-  const builtInWallpaper = getWallpaper(activeWallpaperId);
+  const builtInWallpaper = availableWallpapers.find((item) => item.id === activeWallpaperId);
   const wallpaperUrl =
     activeWallpaperId === "custom"
       ? customWallpaper?.dataUrl || customWallpaper?.url
@@ -557,7 +574,7 @@ export default function App() {
     <div
       className={`app-shell academy-theme accent-${appearance.accentTheme || "sky"} ${
         appearance.reduceMotion ? "reduce-motion" : ""
-      } ${immersive ? "is-immersive" : ""}`}
+      } ${immersive ? "is-immersive" : ""} density-${appearance.interfaceDensity || "comfortable"}`}
       style={appStyle}
     >
       {isVideoWallpaper ? (
@@ -666,6 +683,8 @@ export default function App() {
           />
         ) : activeNav === "templates" ? (
           <TemplateLibrary onToast={showToast} />
+        ) : activeNav === "analytics" ? (
+          <TrainingAnalytics data={data} />
         ) : activeNav === "data" ? (
           <DataCenter
             status={dataStatus}
@@ -716,16 +735,31 @@ export default function App() {
                   page={safePage}
                   totalPages={totalPages}
                   onPageChange={setPage}
-                  selectedTagLabel={selectedTag === "all" ? "所有题目" : displayTag(selectedTag)}
-                />
+                   selectedTagLabel={selectedTag === "all" ? "所有题目" : displayTag(selectedTag)}
+                   showTags={studyData.settings.showProblemTags !== false}
+                   onToggleTags={() =>
+                     persistStudy(
+                       {
+                         ...studyData,
+                         settings: {
+                           ...studyData.settings,
+                           showProblemTags: studyData.settings.showProblemTags === false,
+                         },
+                       },
+                       studyData.settings.showProblemTags === false
+                         ? "题目标签已显示"
+                         : "题目标签已隐藏，Rating 保持显示",
+                     )
+                   }
+                 />
               ),
               progress: (
                 <ProgressPanel
                   user={data.user}
                   ratingStanding={data.ratingStanding}
-                  overview={overview}
-                  heatmap={heatmap}
-                  recentActivity={recentActivity}
+                   overview={overview}
+                   submissions={submissions}
+                   recentActivity={recentActivity}
                 />
               ),
             }}
@@ -748,6 +782,9 @@ export default function App() {
           <AppearanceDrawer
             settings={studyData.settings}
             customWallpaper={customWallpaper}
+            wallpapers={availableWallpapers}
+            wallpaperCounts={{ ...WALLPAPER_LIBRARY_COUNTS, ...(localWallpaperLibrary.counts || {}), total: availableWallpapers.length }}
+            defaultWallpaperId={localWallpaperLibrary.defaultWallpaperId || DEFAULT_WALLPAPER_ID}
             onPreview={previewAppearance}
             onCommit={saveAppearance}
             onChooseCustom={handleChooseCustomWallpaper}

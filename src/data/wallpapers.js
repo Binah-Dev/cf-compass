@@ -2,8 +2,8 @@ export const CURATED_WALLPAPERS = [];
 export const BUILT_IN_WALLPAPERS = [];
 export const WALLPAPER_LIBRARY_COUNTS = {
   curated: 0,
-  students: 0,
-  scenarios: 0,
+  student: 0,
+  scenario: 0,
   custom: 0,
   total: 0,
 };

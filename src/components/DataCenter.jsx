@@ -11,10 +11,11 @@ import {
   ShieldCheck,
   Upload,
 } from "lucide-react";
+import { getCurrentLocale } from "../i18n";
 
 function formatDate(value) {
   if (!value) return "尚无记录";
-  return new Date(value).toLocaleString("zh-CN", {
+  return new Date(value).toLocaleString(getCurrentLocale(), {
     month: "numeric",
     day: "numeric",
     hour: "2-digit",

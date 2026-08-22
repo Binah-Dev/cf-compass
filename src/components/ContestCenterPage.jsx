@@ -25,6 +25,7 @@ import {
   useState,
 } from "react";
 import { openProblem, problemKey } from "../lib/codeforces";
+import { getCurrentLocale } from "../i18n";
 import {
   formatContestCenterDate,
   formatContestCenterDuration,
@@ -194,7 +195,7 @@ function ContestRow({
 }) {
   const [phaseLabel, phaseTone] = phaseMeta(contest);
   const participantText = detail?.participantCount
-    ? Number(detail.participantCount).toLocaleString("zh-CN")
+    ? Number(detail.participantCount).toLocaleString(getCurrentLocale())
     : "—";
   const progressText = participated
     ? problemCount
@@ -431,10 +432,10 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
   return (
     <section className="contest-center-page">
       <div className="contest-center-stats">
-        <StatCard icon={Trophy} tone="sky" label="官方场次" value={stats.total.toLocaleString("zh-CN")} detail="全量 contest.list" />
-        <StatCard icon={Sparkles} tone="mint" label="适合当前水平" value={stats.suitable.toLocaleString("zh-CN")} detail={`按 Rating ${context.rating} 匹配`} />
-        <StatCard icon={CheckCircle2} tone="violet" label="我参加过" value={stats.participated.toLocaleString("zh-CN")} detail="Rated 与正式参赛" />
-        <StatCard icon={Flame} tone="amber" label="待补题场次" value={stats.upsolve.toLocaleString("zh-CN")} detail="优先补齐训练缺口" />
+        <StatCard icon={Trophy} tone="sky" label="官方场次" value={stats.total.toLocaleString(getCurrentLocale())} detail="全量 contest.list" />
+        <StatCard icon={Sparkles} tone="mint" label="适合当前水平" value={stats.suitable.toLocaleString(getCurrentLocale())} detail={`按 Rating ${context.rating} 匹配`} />
+        <StatCard icon={CheckCircle2} tone="violet" label="我参加过" value={stats.participated.toLocaleString(getCurrentLocale())} detail="Rated 与正式参赛" />
+        <StatCard icon={Flame} tone="amber" label="待补题场次" value={stats.upsolve.toLocaleString(getCurrentLocale())} detail="优先补齐训练缺口" />
       </div>
 
       <div className="contest-center-shell">
@@ -446,7 +447,7 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
           </div>
           <div className="contest-center-sync">
             <span><span className="status-dot" />{center?.stale ? "使用本地缓存" : "已连接官方场次列表"}</span>
-            <small>更新于 {center?.syncedAt ? new Date(center.syncedAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}</small>
+            <small>更新于 {center?.syncedAt ? new Date(center.syncedAt).toLocaleString(getCurrentLocale(), { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}</small>
             <button type="button" onClick={() => refresh(true)} disabled={refreshing}><RefreshCw size={16} />{refreshing ? "更新中" : "更新场次"}</button>
           </div>
         </header>
@@ -498,7 +499,7 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
           )}
         </div>
         <footer className="contest-center-pagination">
-          <span>找到 <strong>{filtered.length.toLocaleString("zh-CN")}</strong> 场 · 每页 {PAGE_SIZE} 场</span>
+          <span>找到 <strong>{filtered.length.toLocaleString(getCurrentLocale())}</strong> 场 · 每页 {PAGE_SIZE} 场</span>
           <div>
             <button type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}><ChevronLeft size={17} /></button>
             <strong>{page}</strong><span>/ {pageCount}</span>

@@ -13,7 +13,8 @@
   <a href="https://github.com/qeffg/cf-compass/actions/workflows/build.yml"><img src="https://github.com/qeffg/cf-compass/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
   <a href="https://github.com/qeffg/cf-compass/releases/latest"><img src="https://img.shields.io/github/v/release/qeffg/cf-compass?display_name=tag&sort=semver" alt="Latest release" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-2ea44f.svg" alt="MIT License" /></a>
-  <img src="https://img.shields.io/badge/Platform-Windows-0078D4?logo=windows" alt="Windows" />
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-0078D4" alt="Windows Linux macOS" />
+  <img src="https://img.shields.io/badge/Language-简体中文%20%7C%20English-38BDF8" alt="Simplified Chinese and English" />
 </p>
 
 <p align="center">
@@ -21,7 +22,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/qeffg/cf-compass/releases/latest">Download the one-click Windows x64 portable app</a></strong>
+  <strong><a href="https://github.com/qeffg/cf-compass/releases/latest">Download for Windows, Linux, or macOS</a></strong>
 </p>
 
 ![CF Compass problem dashboard](./docs/screenshots/dashboard-sky.png)
@@ -43,6 +44,19 @@ flowchart LR
 ```
 
 Your data stays local. CF Compass does not ask for a Codeforces password, submit code for you, or require another cloud account.
+
+## Simplified Chinese and English UI
+
+CF Compass now provides a complete **简体中文 / English interface switch**. Open **Appearance → Interface Language** from the lower-left rail and choose a language. The change is immediate, stored locally, and retained after restarting the app.
+
+- Simplified Chinese remains the default, preserving the existing experience.
+- The problem workspace, daily training, review library and timeline, Contest Center, Contest Replay, Template Library, Data Center, note drawer, and native file dialogs share the same language setting.
+- Dates, numbers, dynamic counters, status messages, search fields, and accessibility labels follow the selected locale.
+- Official Codeforces problem names, local template filenames, template summaries, and user notes remain in their original language; CF Compass never machine-translates user-authored content without permission.
+
+![CF Compass English interface](./docs/screenshots/dashboard-en.png)
+
+<p align="center"><sub>English UI with fictional demo data and no private device paths</sub></p>
 
 ## Features
 
@@ -114,6 +128,10 @@ Each template can carry a compact readable reference: problem idea, input, outpu
 
 See the [Data Center guide](./docs/DATA_CENTER_GUIDE.md) for first sync, migration, restore, cache, and backup details. The guide is currently in Chinese; contributions for an English translation are welcome.
 
+### Training analytics — explore progress at every scale
+
+Switch between all time, one year, three months, one month, two weeks, or a custom date range. Summary metrics, the Codeforces Rating chart, algorithm acceptance ranking, and daily Accepted rhythm all follow the same window. Rating points expose contest changes and ranks; scroll over the chart to zoom around the pointer, or use the navigator handles for precise selection. The complete algorithm ranking remains vertically scrollable instead of hiding lower entries.
+
 ## Three original themes
 
 ![CF Compass theme picker](./docs/screenshots/theme-picker.png)
@@ -130,21 +148,27 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 
 ## Quick start
 
-### Windows — one file, double-click to run
+### Desktop downloads
 
-Open [Latest Release](https://github.com/qeffg/cf-compass/releases/latest) and download:
+Open [Latest Release](https://github.com/qeffg/cf-compass/releases/latest) and choose the package for your device:
 
 ```text
-CF-Compass-3.11.5-portable.exe
+Windows x64:       CF-Compass-3.12.0-Windows-x64-portable.exe
+Linux x64:         CF-Compass-3.12.0-Linux-x64.AppImage
+Linux Debian x64:  CF-Compass-3.12.0-Linux-x64.deb
+macOS Intel:       CF-Compass-3.12.0-macOS-x64.dmg
+macOS Apple Silicon: CF-Compass-3.12.0-macOS-arm64.dmg
 ```
 
-No installer wizard is required. A matching `.sha256` file is included for integrity verification.
+The Windows portable build requires no installer wizard. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. The macOS builds are currently unsigned, so the first launch may require approval under Privacy & Security.
+
+Every package has a matching `.sha256` file and the Release includes `SHA256SUMS.txt`. Verify on Windows with `Get-FileHash -Algorithm SHA256 <file>`, on Linux with `sha256sum -c SHA256SUMS.txt --ignore-missing`, or on macOS with `shasum -a 256 <file>`.
 
 The public build is currently unsigned because the project does not own a commercial code-signing certificate. Windows SmartScreen may therefore show “Unknown publisher.” Download only from this repository and verify SHA-256 before running.
 
 ### Run from source
 
-Requirements: Windows 10/11, Node.js 22, pnpm 11.19.0, and Git.
+Requirements: Windows, Linux, or macOS; Node.js 22; pnpm 11.19.0; and Git.
 
 ```powershell
 git clone https://github.com/qeffg/cf-compass.git
@@ -162,9 +186,11 @@ Enter a Codeforces handle after launch to sync its public data.
 pnpm verify         # production renderer build
 pnpm desktop:pack   # unpacked Windows application
 pnpm desktop:build  # one-file Windows portable executable
+pnpm desktop:build:linux  # Linux AppImage and deb
+pnpm desktop:build:mac    # macOS Intel and Apple Silicon dmg; run on macOS
 ```
 
-GitHub Actions installs dependencies, audits production packages, runs focused regression tests, builds the renderer, packages the real Windows application, and uploads the executable with its SHA-256 checksum.
+GitHub Actions installs dependencies, audits production packages, runs focused regression tests, and builds real packages on Windows, Linux, and macOS. A tagged build becomes a Release only after every platform succeeds, with per-file SHA-256 checksums and a complete manifest.
 
 ## Privacy and open-source boundary
 

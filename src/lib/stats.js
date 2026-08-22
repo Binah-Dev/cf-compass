@@ -1,4 +1,5 @@
 import { problemKey } from "./codeforces";
+import { getCurrentLocale } from "../i18n";
 
 export const tagNames = {
   "2-sat": "2-SAT",
@@ -163,32 +164,71 @@ function localDayKey(timestamp) {
   return `${year}-${month}-${day}`;
 }
 
-export function buildHeatmap(submissions, weeks = 16) {
-  const counts = new Map();
+function submissionProblemKey(submission) {
+  const problem = submission?.problem || {};
+  return `${problem.contestId || submission?.contestId || ""}-${problem.index || ""}`;
+}
+
+function firstAcceptedSubmissions(submissions) {
+  const firstByProblem = new Map();
   for (const submission of submissions || []) {
-    if (submission.verdict !== "OK") continue;
+    if (submission?.verdict !== "OK") continue;
+    const timestamp = Number(submission.creationTimeSeconds) || 0;
+    const key = submissionProblemKey(submission);
+    if (!timestamp || key === "-") continue;
+    const current = firstByProblem.get(key);
+    if (!current || timestamp < current.creationTimeSeconds) {
+      firstByProblem.set(key, submission);
+    }
+  }
+  return [...firstByProblem.values()];
+}
+
+export function getHeatmapYears(submissions) {
+  const currentYear = new Date().getFullYear();
+  const years = new Set([currentYear]);
+  for (const submission of firstAcceptedSubmissions(submissions)) {
+    years.add(new Date(submission.creationTimeSeconds * 1000).getFullYear());
+  }
+  return [...years].sort((a, b) => a - b);
+}
+
+export function buildHeatmap(submissions, selectedYear = new Date().getFullYear()) {
+  const year = Number(selectedYear) || new Date().getFullYear();
+  const counts = new Map();
+  for (const submission of firstAcceptedSubmissions(submissions)) {
     const key = localDayKey(submission.creationTimeSeconds);
+    if (Number(key.slice(0, 4)) !== year) continue;
     counts.set(key, (counts.get(key) || 0) + 1);
   }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const mondayOffset = (today.getDay() + 6) % 7;
-  const start = new Date(today);
-  start.setDate(today.getDate() - mondayOffset - (weeks - 1) * 7);
-
+  const firstDay = new Date(year, 0, 1);
+  const lastDay = new Date(year, 11, 31);
+  const leadingBlanks = (firstDay.getDay() + 6) % 7;
+  const totalDays = Math.round((lastDay - firstDay) / 86400000) + 1;
+  const totalCells = Math.ceil((leadingBlanks + totalDays) / 7) * 7;
   const cells = [];
-  for (let index = 0; index < weeks * 7; index += 1) {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
+
+  for (let index = 0; index < totalCells; index += 1) {
+    const dayOffset = index - leadingBlanks;
+    if (dayOffset < 0 || dayOffset >= totalDays) {
+      cells.push({ key: `blank-${year}-${index}`, blank: true, level: 0, count: 0 });
+      continue;
+    }
+    const date = new Date(year, 0, 1 + dayOffset);
     const timestamp = Math.floor(date.getTime() / 1000);
     const key = localDayKey(timestamp);
     const count = counts.get(key) || 0;
     cells.push({
       key,
       count,
-      level: count === 0 ? 0 : count === 1 ? 1 : count <= 3 ? 2 : count <= 6 ? 3 : 4,
+      level: count === 0 ? 0 : count === 1 ? 1 : count === 2 ? 2 : 3,
       future: date > today,
+      blank: false,
+      month: date.getMonth(),
+      day: date.getDate(),
     });
   }
   return cells;
@@ -215,7 +255,7 @@ export function getRecentActivity(problems, submissions, limit = 5) {
 }
 
 export function formatNumber(value) {
-  return new Intl.NumberFormat("zh-CN").format(value || 0);
+  return new Intl.NumberFormat(getCurrentLocale()).format(value || 0);
 }
 
 export function relativeTime(timestamp) {
@@ -228,7 +268,7 @@ export function relativeTime(timestamp) {
   if (hours < 24) return `${hours} 小时前`;
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days} 天前`;
-  return new Date(timestamp * 1000).toLocaleDateString("zh-CN", {
+  return new Date(timestamp * 1000).toLocaleDateString(getCurrentLocale(), {
     month: "short",
     day: "numeric",
   });
