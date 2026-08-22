@@ -1,0 +1,35 @@
+name: Sync Release Notes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/releases/v*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update matching GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          found=0
+          for notes in docs/releases/v*.md; do
+            [ -e "$notes" ] || continue
+            tag="$(basename "$notes" .md)"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release edit "$tag" --title "CF Compass $tag" --notes-file "$notes"
+              echo "Updated $tag from $notes"
+              found=1
+            fi
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "No matching published Release was found."
+          fi
