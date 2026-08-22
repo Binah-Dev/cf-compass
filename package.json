@@ -43,7 +43,7 @@
     "electron-builder": "26.15.3",
     "playwright-core": "^1.62.1",
     "vite": "^6.0.5",
-    "wait-on": "^8.0.1"
+    "wait-on": "^9.1.0"
   },
   "build": {
     "appId": "com.cfcompass.desktop",
