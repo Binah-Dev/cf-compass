@@ -3075,13 +3075,16 @@ select:focus-visible {
   margin-top: 8px;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow: hidden;
+  overflow: visible;
   color: #818c9b;
   font-size: 10px;
 }
 
 .training-meta > span {
+  flex: 0 0 auto;
+  max-width: 100%;
   white-space: nowrap;
 }
 

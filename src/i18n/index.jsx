@@ -13,11 +13,21 @@ export function normalizeLanguage(value) {
   return SUPPORTED_LANGUAGES.includes(value) ? value : "zh-CN";
 }
 
-export function getCurrentLocale() {
+export function getSystemDefaultLanguage() {
   try {
-    return normalizeLanguage(localStorage.getItem(LANGUAGE_STORAGE_KEY));
+    const language = navigator.languages?.[0] || navigator.language || "";
+    return /^zh(?:-|$)/i.test(language) ? "zh-CN" : "en-US";
   } catch {
     return "zh-CN";
+  }
+}
+
+export function getCurrentLocale() {
+  try {
+    const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    return saved ? normalizeLanguage(saved) : getSystemDefaultLanguage();
+  } catch {
+    return getSystemDefaultLanguage();
   }
 }
 

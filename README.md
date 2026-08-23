@@ -69,7 +69,7 @@ flowchart LR
 
 CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**。打开左下角的 **外观设置 → 界面语言**，选择语言后立即生效；选择结果保存在本机，重新启动软件后仍会沿用。
 
-- 中文仍是默认界面，不改变现有用户的使用习惯。
+- 首次启动会跟随系统语言：中文系统默认简体中文，其他系统默认 English；已经保存过的语言选择不会被覆盖。
 - 题库、今日训练、复习库与时间轴、赛事中心、赛事复盘、模板库、数据中心、笔记弹窗及系统文件选择窗口均纳入同一套语言层。
 - 日期、数字、动态计数、状态提示、搜索框和无障碍标签会随界面语言切换。
 - Codeforces 官方题名、本地模板文件名、模板题意和用户笔记保持原文，软件不会擅自机器翻译用户内容。
@@ -265,11 +265,11 @@ CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**�
 打开 [Latest Release](https://github.com/qeffg/cf-compass/releases/latest)，按设备下载：
 
 ```text
-Windows x64:       CF-Compass-3.12.1-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.12.1-Linux-x86_64.AppImage
-Linux Debian x64:  CF-Compass-3.12.1-Linux-amd64.deb
-macOS Intel:       CF-Compass-3.12.1-macOS-x64.dmg
-macOS Apple 芯片:  CF-Compass-3.12.1-macOS-arm64.dmg
+Windows x64:       CF-Compass-3.12.2-Windows-x64-portable.exe
+Linux x64:         CF-Compass-3.12.2-Linux-x86_64.AppImage
+Linux Debian x64:  CF-Compass-3.12.2-Linux-amd64.deb
+macOS Intel:       CF-Compass-3.12.2-macOS-x64.dmg
+macOS Apple 芯片:  CF-Compass-3.12.2-macOS-arm64.dmg
 ```
 
 Windows portable 版无需安装，双击即可运行；Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
@@ -277,7 +277,7 @@ Windows portable 版无需安装，双击即可运行；Linux 可选择 AppImage
 每个安装包旁都有同名 `.sha256`，Release 还提供汇总文件 `SHA256SUMS.txt`。例如 Windows 可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\CF-Compass-3.12.1-Windows-x64-portable.exe
+Get-FileHash -Algorithm SHA256 .\CF-Compass-3.12.2-Windows-x64-portable.exe
 ```
 
 Linux 或 macOS 可运行：

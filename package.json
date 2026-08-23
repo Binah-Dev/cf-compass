@@ -1,7 +1,7 @@
 {
   "name": "cf-compass",
   "desktopName": "cf-compass.desktop",
-  "version": "3.12.1",
+  "version": "3.12.2",
   "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": {
@@ -32,6 +32,7 @@
     "desktop:build:linux": "vite build && electron-builder --linux AppImage deb --x64 --publish never",
     "desktop:build:mac": "vite build && electron-builder --mac dmg --x64 --arm64 --publish never",
     "qa:i18n": "node scripts/qa-i18n.cjs",
+    "qa:i18n:first-launch": "node scripts/qa-i18n-first-launch.cjs",
     "test:analytics": "node scripts/test-analytics.mjs"
   },
   "dependencies": {

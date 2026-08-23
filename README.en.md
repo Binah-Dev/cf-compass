@@ -49,7 +49,7 @@ Your data stays local. CF Compass does not ask for a Codeforces password, submit
 
 CF Compass now provides a complete **简体中文 / English interface switch**. Open **Appearance → Interface Language** from the lower-left rail and choose a language. The change is immediate, stored locally, and retained after restarting the app.
 
-- Simplified Chinese remains the default, preserving the existing experience.
+- On first launch, CF Compass follows the system language: Chinese systems start in Simplified Chinese and all other systems start in English. A previously saved choice is never overwritten.
 - The problem workspace, daily training, review library and timeline, Contest Center, Contest Replay, Template Library, Data Center, note drawer, and native file dialogs share the same language setting.
 - Dates, numbers, dynamic counters, status messages, search fields, and accessibility labels follow the selected locale.
 - Official Codeforces problem names, local template filenames, template summaries, and user notes remain in their original language; CF Compass never machine-translates user-authored content without permission.
@@ -153,11 +153,11 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 Open [Latest Release](https://github.com/qeffg/cf-compass/releases/latest) and choose the package for your device:
 
 ```text
-Windows x64:       CF-Compass-3.12.1-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.12.1-Linux-x86_64.AppImage
-Linux Debian x64:  CF-Compass-3.12.1-Linux-amd64.deb
-macOS Intel:       CF-Compass-3.12.1-macOS-x64.dmg
-macOS Apple Silicon: CF-Compass-3.12.1-macOS-arm64.dmg
+Windows x64:       CF-Compass-3.12.2-Windows-x64-portable.exe
+Linux x64:         CF-Compass-3.12.2-Linux-x86_64.AppImage
+Linux Debian x64:  CF-Compass-3.12.2-Linux-amd64.deb
+macOS Intel:       CF-Compass-3.12.2-macOS-x64.dmg
+macOS Apple Silicon: CF-Compass-3.12.2-macOS-arm64.dmg
 ```
 
 The Windows portable build requires no installer wizard. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.

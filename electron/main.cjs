@@ -80,6 +80,24 @@ const DEFAULT_STUDY_DATA = {
   settings: DEFAULT_SETTINGS,
 };
 
+function getSystemDefaultLanguage() {
+  try {
+    return /^zh(?:-|$)/i.test(app.getLocale()) ? "zh-CN" : "en-US";
+  } catch {
+    return "zh-CN";
+  }
+}
+
+function createFirstLaunchStudyData() {
+  return {
+    ...DEFAULT_STUDY_DATA,
+    settings: {
+      ...DEFAULT_SETTINGS,
+      language: getSystemDefaultLanguage(),
+    },
+  };
+}
+
 let mainWindow;
 let apiQueue = Promise.resolve();
 let lastApiCallAt = 0;
@@ -1648,7 +1666,13 @@ function sanitizeStudyData(input) {
 }
 
 async function readStudyData() {
-  return sanitizeStudyData(await readJson("study.json", DEFAULT_STUDY_DATA));
+  try {
+    const source = JSON.parse(await fs.readFile(dataPath("study.json"), "utf8"));
+    return sanitizeStudyData(source);
+  } catch (error) {
+    const fallback = error?.code === "ENOENT" ? createFirstLaunchStudyData() : DEFAULT_STUDY_DATA;
+    return sanitizeStudyData(fallback);
+  }
 }
 
 async function readUiLanguage() {
