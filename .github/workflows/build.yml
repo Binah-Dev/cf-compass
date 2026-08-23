@@ -36,7 +36,7 @@ jobs:
         run: pnpm verify
 
   package:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[package-test]'))
     needs: verify
     timeout-minutes: 45
     strategy:
@@ -50,10 +50,12 @@ jobs:
             os: ubuntu-latest
             command: pnpm exec electron-builder --linux AppImage deb --x64 --publish never
           - target: macOS-x64
-            os: macos-latest
+            os: macos-15-intel
+            runner_arch: x86_64
             command: pnpm exec electron-builder --mac dmg --x64 --publish never
           - target: macOS-arm64
             os: macos-latest
+            runner_arch: arm64
             command: pnpm exec electron-builder --mac dmg --arm64 --publish never
     runs-on: ${{ matrix.os }}
     env:
@@ -73,6 +75,42 @@ jobs:
         run: pnpm build
       - name: Package ${{ matrix.target }}
         run: ${{ matrix.command }}
+      - name: Verify macOS application signature
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          actual_arch="$(uname -m)"
+          if [ "$actual_arch" != "${{ matrix.runner_arch }}" ]; then
+            echo "Expected a native ${{ matrix.runner_arch }} runner, got $actual_arch."
+            exit 1
+          fi
+          app="$(find release -type d -name '*.app' -print -quit)"
+          if [ -z "$app" ]; then
+            echo "No packaged macOS application was found."
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=2 "$app"
+          signature="$(codesign -dv --verbose=4 "$app" 2>&1)"
+          echo "$signature"
+          echo "$signature" | grep -q 'Signature=adhoc'
+      - name: Smoke test packaged macOS application
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          app="$(find release -type d -name '*.app' -print -quit)"
+          executable="$app/Contents/MacOS/CF Compass"
+          log="$(mktemp)"
+          ELECTRON_ENABLE_LOGGING=1 "$executable" --disable-gpu >"$log" 2>&1 &
+          pid=$!
+          sleep 10
+          if ! kill -0 "$pid" 2>/dev/null; then
+            cat "$log"
+            wait "$pid"
+            exit 1
+          fi
+          kill "$pid"
+          wait "$pid" || true
+          cat "$log"
       - name: Generate individual SHA-256 files
         run: node scripts/generate-checksums.mjs release
       - name: Upload ${{ matrix.target }} package
@@ -94,6 +132,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -106,4 +145,32 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/* --verify-tag --generate-notes --title "CF Compass $GITHUB_REF_NAME"
+        run: |
+          notes="docs/releases/$GITHUB_REF_NAME.md"
+          if [ -f "$notes" ]; then
+            gh release create "$GITHUB_REF_NAME" release/* --verify-tag --notes-file "$notes" --title "CF Compass $GITHUB_REF_NAME"
+          else
+            gh release create "$GITHUB_REF_NAME" release/* --verify-tag --generate-notes --title "CF Compass $GITHUB_REF_NAME"
+          fi
+      - name: Download and verify published packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir release-verification
+          gh release download "$GITHUB_REF_NAME" --dir release-verification
+          cd release-verification
+          sha256sum -c SHA256SUMS.txt
+      - name: Close issues resolved by this release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          issues="docs/releases/$GITHUB_REF_NAME.issues"
+          [ -f "$issues" ] || exit 0
+          while IFS= read -r issue; do
+            case "$issue" in
+              ''|'#'*) continue ;;
+            esac
+            release_url="https://github.com/${{ github.repository }}/releases/tag/$GITHUB_REF_NAME"
+            gh issue comment "$issue" --body "已在 [$GITHUB_REF_NAME]($release_url) 中修复并重新发布。对应安装包已由原生 GitHub Actions 环境构建，且通过签名完整性检查与 SHA-256 校验。感谢反馈！"
+            gh issue close "$issue" --reason completed
+          done < "$issues"

@@ -153,16 +153,18 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 Open [Latest Release](https://github.com/qeffg/cf-compass/releases/latest) and choose the package for your device:
 
 ```text
-Windows x64:       CF-Compass-3.12.0-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.12.0-Linux-x86_64.AppImage
-Linux Debian x64:  CF-Compass-3.12.0-Linux-amd64.deb
-macOS Intel:       CF-Compass-3.12.0-macOS-x64.dmg
-macOS Apple Silicon: CF-Compass-3.12.0-macOS-arm64.dmg
+Windows x64:       CF-Compass-3.12.1-Windows-x64-portable.exe
+Linux x64:         CF-Compass-3.12.1-Linux-x86_64.AppImage
+Linux Debian x64:  CF-Compass-3.12.1-Linux-amd64.deb
+macOS Intel:       CF-Compass-3.12.1-macOS-x64.dmg
+macOS Apple Silicon: CF-Compass-3.12.1-macOS-arm64.dmg
 ```
 
-The Windows portable build requires no installer wizard. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. The macOS builds are currently unsigned, so the first launch may require approval under Privacy & Security.
+The Windows portable build requires no installer wizard. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
 
 Every package has a matching `.sha256` file and the Release includes `SHA256SUMS.txt`. Verify on Windows with `Get-FileHash -Algorithm SHA256 <file>`, on Linux with `sha256sum -c SHA256SUMS.txt --ignore-missing`, or on macOS with `shasum -a 256 <file>`.
+
+If macOS still reports the verified, unnotarized app as damaged, copy it to `/Applications` and run `xattr -dr com.apple.quarantine "/Applications/CF Compass.app"`. Only remove quarantine after downloading from this repository and confirming the SHA-256 checksum.
 
 The public build is currently unsigned because the project does not own a commercial code-signing certificate. Windows SmartScreen may therefore show “Unknown publisher.” Download only from this repository and verify SHA-256 before running.
 
