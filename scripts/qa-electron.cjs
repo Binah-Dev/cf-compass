@@ -56,6 +56,10 @@ let app;
     },
   });
   const page = await app.firstWindow();
+  // Hosted Windows runners expose a narrow virtual desktop, where the responsive
+  // layout intentionally hides the progress card. Pin this desktop QA to the
+  // full three-column viewport it is designed to exercise.
+  await page.setViewportSize({ width: 1920, height: 1080 });
   page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(`console: ${message.text()}`);
