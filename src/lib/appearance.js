@@ -56,6 +56,13 @@ export async function chooseCustomWallpaper() {
   return chooseBrowserImage();
 }
 
+export async function updateCustomWallpaperMetadata(metadata) {
+  if (window.cfBridge?.updateCustomWallpaperMetadata) {
+    return window.cfBridge.updateCustomWallpaperMetadata(metadata);
+  }
+  return null;
+}
+
 export async function clearCustomWallpaper() {
   if (window.cfBridge?.clearCustomWallpaper) {
     return window.cfBridge.clearCustomWallpaper();

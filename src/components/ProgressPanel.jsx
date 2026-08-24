@@ -57,8 +57,16 @@ export default function ProgressPanel({
   useEffect(() => {
     const frame = heatmapScrollRef.current;
     if (frame) frame.scrollLeft = frame.scrollWidth;
-    const selectedYear = heatmapYearStripRef.current?.querySelector('[aria-selected="true"]');
-    selectedYear?.scrollIntoView({ block: "nearest", inline: "center" });
+    const yearStrip = heatmapYearStripRef.current;
+    const selectedYear = yearStrip?.querySelector('[aria-selected="true"]');
+    if (yearStrip && selectedYear) {
+      // scrollIntoView also scrolls the document viewport. After a first sync adds
+      // the multi-year strip, that can shift the whole desktop UI and hide the rail.
+      yearStrip.scrollLeft = Math.max(
+        0,
+        selectedYear.offsetLeft - (yearStrip.clientWidth - selectedYear.offsetWidth) / 2,
+      );
+    }
   }, [heatmapYear]);
 
   function selectHeatmapYear(year) {

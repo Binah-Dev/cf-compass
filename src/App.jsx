@@ -18,6 +18,7 @@ import Taxonomy from "./components/Taxonomy";
 import TitleBar from "./components/TitleBar";
 import TopBar from "./components/TopBar";
 import WorkbenchLayout from "./components/WorkbenchLayout";
+import WallpaperStage from "./components/WallpaperStage";
 import { useI18n } from "./i18n";
 import { BUILT_IN_WALLPAPERS, DEFAULT_WALLPAPER_ID, WALLPAPER_LIBRARY_COUNTS } from "./data/wallpapers";
 import {
@@ -25,6 +26,7 @@ import {
   clearCustomWallpaper,
   loadCustomWallpaper,
   loadLocalWallpaperLibrary,
+  updateCustomWallpaperMetadata,
 } from "./lib/appearance";
 import {
   loadFavorites,
@@ -152,10 +154,15 @@ export default function App() {
     wallpapers: [],
     counts: {},
     defaultWallpaperId: "",
+    rejectedWallpaperIds: [],
   }));
   const availableWallpapers = useMemo(
     () => [...BUILT_IN_WALLPAPERS, ...(localWallpaperLibrary.wallpapers || [])],
     [localWallpaperLibrary.wallpapers],
+  );
+  const wallpaperById = useMemo(
+    () => new Map(availableWallpapers.map((wallpaper) => [wallpaper.id, wallpaper])),
+    [availableWallpapers],
   );
   const syncingRef = useRef(false);
   const lastAutoAttemptRef = useRef(0);
@@ -166,19 +173,7 @@ export default function App() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([
-      loadInitialData(),
-      loadFavorites(),
-      loadStudyData(),
-    ]).then(([initialData, initialFavorites, initialStudy]) => {
-      if (!alive) return;
-      setData(initialData);
-      setHandle(initialData.handle || initialData.user?.handle || "");
-      setFavorites(new Set(initialFavorites));
-      setStudyData(initialStudy);
-      setLocale(initialStudy.settings?.language || "zh-CN");
-    });
-
+    let secondaryIdleId = null;
     const loadSecondaryData = () => {
       Promise.all([
         getDataCenterStatus().catch(() => null),
@@ -191,16 +186,31 @@ export default function App() {
         if (initialLibrary) setLocalWallpaperLibrary(initialLibrary);
       });
     };
-    const idleId =
-      typeof window.requestIdleCallback === "function"
-        ? window.requestIdleCallback(loadSecondaryData, { timeout: 1200 })
-        : window.setTimeout(loadSecondaryData, 350);
+    const scheduleSecondaryData = () => {
+      secondaryIdleId = typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback(loadSecondaryData, { timeout: 600 })
+        : window.setTimeout(loadSecondaryData, 180);
+    };
+    Promise.all([
+      loadInitialData(),
+      loadFavorites(),
+      loadStudyData(),
+    ]).then(([initialData, initialFavorites, initialStudy]) => {
+      if (!alive) return;
+      setData(initialData);
+      setHandle(initialData.handle || initialData.user?.handle || "");
+      setFavorites(new Set(initialFavorites));
+      setStudyData(initialStudy);
+      setLocale(initialStudy.settings?.language || "zh-CN");
+      scheduleSecondaryData();
+    });
     return () => {
       alive = false;
+      if (secondaryIdleId === null) return;
       if (typeof window.cancelIdleCallback === "function") {
-        window.cancelIdleCallback(idleId);
+        window.cancelIdleCallback(secondaryIdleId);
       } else {
-        window.clearTimeout(idleId);
+        window.clearTimeout(secondaryIdleId);
       }
     };
   }, []);
@@ -208,6 +218,31 @@ export default function App() {
   useEffect(() => {
     studyDataRef.current = studyData;
   }, [studyData]);
+
+  useEffect(() => {
+    const rejectedIds = localWallpaperLibrary.rejectedWallpaperIds || [];
+    if (!studyData || !rejectedIds.length) return;
+    const settings = studyData.settings || {};
+    const selectedId = settings.usePageWallpapers
+      ? settings.pageWallpapers?.[activeNav] || settings.wallpaperId
+      : settings.wallpaperId;
+    if (!rejectedIds.includes(selectedId)) return;
+    const fallbackId = localWallpaperLibrary.defaultWallpaperId || DEFAULT_WALLPAPER_ID;
+    const nextSettings = settings.usePageWallpapers
+      ? {
+        ...settings,
+        pageWallpapers: { ...(settings.pageWallpapers || {}), [activeNav]: fallbackId },
+      }
+      : { ...settings, wallpaperId: fallbackId };
+    persistStudy({ ...studyData, settings: nextSettings });
+    showToast("info", "已自动避开一张不完整的大厅素材");
+  }, [
+    activeNav,
+    localWallpaperLibrary.defaultWallpaperId,
+    localWallpaperLibrary.rejectedWallpaperIds,
+    showToast,
+    studyData,
+  ]);
 
   useEffect(() => {
     function onKeyDown(event) {
@@ -483,6 +518,15 @@ export default function App() {
     }
   }
 
+  const handleCustomWallpaperMetadata = useCallback(async (metadata) => {
+    try {
+      const updated = await updateCustomWallpaperMetadata(metadata);
+      if (updated) setCustomWallpaper(updated);
+    } catch {
+      // Playback must continue even when optional metadata persistence fails.
+    }
+  }, []);
+
   function saveProblemNote(key, note) {
     persistStudy(
       { ...studyData, notes: { ...studyData.notes, [key]: note } },
@@ -547,16 +591,15 @@ export default function App() {
   const activeWallpaperId = appearance.usePageWallpapers
     ? appearance.pageWallpapers?.[activeNav] || appearance.wallpaperId
     : appearance.wallpaperId;
-  const builtInWallpaper = availableWallpapers.find((item) => item.id === activeWallpaperId);
-  const wallpaperUrl =
-    activeWallpaperId === "custom"
-      ? customWallpaper?.dataUrl || customWallpaper?.url
-      : builtInWallpaper?.url;
-  const isVideoWallpaper =
-    activeWallpaperId === "custom" && customWallpaper?.mediaType === "video";
+  const builtInWallpaper = wallpaperById.get(activeWallpaperId);
+  const activeWallpaper = activeWallpaperId === "custom" ? customWallpaper : builtInWallpaper;
+  const wallpaperUrl = activeWallpaper?.dataUrl || activeWallpaper?.url;
+  const wallpaperFit = ["smart", "cover", "contain"].includes(appearance.wallpaperFit)
+    ? appearance.wallpaperFit
+    : "smart";
   const appStyle = {
     "--wallpaper-opacity": (appearance.wallpaperOpacity ?? 92) / 100,
-    "--wallpaper-backdrop-opacity": ((appearance.wallpaperOpacity ?? 92) / 100) * 0.42,
+    "--wallpaper-backdrop-opacity": ((appearance.wallpaperOpacity ?? 92) / 100) * 0.9,
     "--wallpaper-blur": `${Math.max(0, (100 - (appearance.wallpaperClarity ?? 100)) * 0.14)}px`,
     "--wallpaper-brightness": `${appearance.wallpaperBrightness ?? 100}%`,
     "--wallpaper-scale": (appearance.wallpaperScale ?? 100) / 100,
@@ -564,7 +607,7 @@ export default function App() {
     "--panel-opacity": (appearance.panelOpacity ?? 72) / 100,
   };
   const handleWallpaperError = (event) => {
-    const previewUrl = builtInWallpaper?.previewUrl;
+    const previewUrl = activeWallpaper?.previewUrl;
     if (previewUrl && !event.currentTarget.src.endsWith(previewUrl.replace("./", ""))) {
       event.currentTarget.src = previewUrl;
     }
@@ -574,49 +617,18 @@ export default function App() {
     <div
       className={`app-shell academy-theme accent-${appearance.accentTheme || "sky"} ${
         appearance.reduceMotion ? "reduce-motion" : ""
-      } ${immersive ? "is-immersive" : ""} density-${appearance.interfaceDensity || "comfortable"}`}
+      } ${immersive ? "is-immersive" : ""} wallpaper-fit-${wallpaperFit} density-${appearance.interfaceDensity || "comfortable"}`}
       style={appStyle}
     >
-      {isVideoWallpaper ? (
-        <video
-          key={`${wallpaperUrl}-${appearance.reduceMotion ? "paused" : "playing"}`}
-          className={`app-wallpaper app-wallpaper--video ${
-            appearance.wallpaperEnabled && wallpaperUrl ? "is-visible" : ""
-          }`}
-          src={wallpaperUrl}
-          autoPlay={!appearance.reduceMotion}
-          loop
-          muted
-          playsInline
-          aria-hidden="true"
-        />
-      ) : (
-        <>
-          <img
-            className={`app-wallpaper app-wallpaper--backdrop ${
-              appearance.wallpaperEnabled && wallpaperUrl ? "is-visible" : ""
-            }`}
-            src={wallpaperUrl || undefined}
-            alt=""
-            aria-hidden="true"
-            decoding="async"
-            draggable={false}
-            onError={handleWallpaperError}
-          />
-          <img
-            className={`app-wallpaper app-wallpaper--image ${
-              appearance.wallpaperEnabled && wallpaperUrl ? "is-visible" : ""
-            }`}
-            src={wallpaperUrl || undefined}
-            alt=""
-            aria-hidden="true"
-            decoding="async"
-            fetchPriority="high"
-            draggable={false}
-            onError={handleWallpaperError}
-          />
-        </>
-      )}
+      <WallpaperStage
+        enabled={appearance.wallpaperEnabled && Boolean(wallpaperUrl)}
+        wallpaper={activeWallpaper}
+        reduceMotion={appearance.reduceMotion}
+        pauseWhenUnfocused={appearance.pauseWallpaperWhenUnfocused !== false}
+        playbackRate={appearance.wallpaperVideoPlaybackRate || 100}
+        onError={handleWallpaperError}
+        onMetadata={activeWallpaperId === "custom" ? handleCustomWallpaperMetadata : undefined}
+      />
       <div className="academy-grid" aria-hidden="true" />
       <TitleBar />
       <AppRail

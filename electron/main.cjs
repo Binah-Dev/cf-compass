@@ -4,6 +4,7 @@ const {
   dialog,
   ipcMain,
   net,
+  nativeImage,
   nativeTheme,
   protocol,
   session,
@@ -12,6 +13,11 @@ const {
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
+const { createWallpaperService } = require("./services/wallpaper-service.cjs");
+const {
+  createMaterialLibraryService,
+  safeMaterialRelativePath,
+} = require("./services/material-library-service.cjs");
 
 nativeTheme.themeSource = "dark";
 app.setAppUserModelId("com.cfcompass.desktop");
@@ -37,7 +43,7 @@ const CONTEST_CENTER_CACHE_MS = 30 * 60 * 1000;
 const CONTEST_DETAIL_CACHE_MS = 14 * 24 * 60 * 60 * 1000;
 const DEFAULT_SETTINGS = {
   language: "zh-CN",
-  themeVersion: 6,
+  themeVersion: 7,
   showProblemTags: true,
   interfaceDensity: "comfortable",
   reviewLimit: 8,
@@ -61,6 +67,9 @@ const DEFAULT_SETTINGS = {
   wallpaperBrightness: 100,
   wallpaperScale: 100,
   wallpaperPosition: "center center",
+  wallpaperFit: "smart",
+  wallpaperVideoPlaybackRate: 100,
+  pauseWallpaperWhenUnfocused: true,
   panelOpacity: 72,
   wallpaperFavorites: [],
   wallpaperLocked: true,
@@ -264,139 +273,16 @@ function backupDirectory() {
   return dataPath("backups");
 }
 
-function customWallpaperMetaPath() {
-  return dataPath("custom-wallpaper.json");
-}
-
 function localMaterialDirectory() {
   return dataPath("material-library");
-}
-
-function safeMaterialRelativePath(value) {
-  const normalized = String(value || "").replaceAll("\\", "/").replace(/^\.\//, "");
-  if (!normalized || normalized.startsWith("/") || normalized.includes("..")) return "";
-  return normalized.slice(0, 500);
 }
 
 function localMaterialUrl(relativePath) {
   return `cf-material://library/${safeMaterialRelativePath(relativePath)}`;
 }
 
-async function getLocalWallpaperLibrary() {
-  const manifestPath = path.join(localMaterialDirectory(), "index.json");
-  const manifest = await readJsonPath(manifestPath, null);
-  if (!manifest || !Array.isArray(manifest.wallpapers)) {
-    return { wallpapers: [], counts: { curated: 0, student: 0, scenario: 0, custom: 0, total: 0 }, defaultWallpaperId: "" };
-  }
-  const wallpapers = manifest.wallpapers.slice(0, 1000).flatMap((item) => {
-    if (!item || typeof item !== "object") return [];
-    const relativeUrl = safeMaterialRelativePath(item.url);
-    const relativePreview = safeMaterialRelativePath(item.previewUrl || item.url);
-    const id = String(item.id || "").slice(0, 80);
-    if (!id || !relativeUrl || !relativePreview) return [];
-    return [{
-      id,
-      name: String(item.name || id).slice(0, 160),
-      url: localMaterialUrl(relativeUrl),
-      previewUrl: localMaterialUrl(relativePreview),
-      tone: item.tone === "day" ? "day" : "night",
-      credit: String(item.credit || "Local material library").slice(0, 160),
-      category: ["curated", "student", "scenario", "custom"].includes(item.category) ? item.category : "custom",
-      keywords: String(item.keywords || item.name || "").slice(0, 500),
-      resolution: String(item.resolution || "").slice(0, 40),
-    }];
-  });
-  const counts = wallpapers.reduce((result, item) => {
-    result[item.category] = (result[item.category] || 0) + 1;
-    result.total += 1;
-    return result;
-  }, { curated: 0, student: 0, scenario: 0, custom: 0, total: 0 });
-  const requestedDefault = String(manifest.defaultWallpaperId || "").slice(0, 80);
-  return {
-    wallpapers,
-    counts,
-    defaultWallpaperId: wallpapers.some((item) => item.id === requestedDefault)
-      ? requestedDefault
-      : wallpapers[0]?.id || "",
-  };
-}
-
-async function getCustomWallpaper() {
-  const meta = await readJsonPath(customWallpaperMetaPath(), null);
-  if (!meta?.filename) return null;
-  const safeName = path.basename(String(meta.filename));
-  const target = dataPath(safeName);
-  try {
-    const extension = path.extname(safeName).toLowerCase();
-    if ([".mp4", ".webm"].includes(extension)) {
-      return {
-        url: pathToFileURL(target).href,
-        name: String(meta.name || safeName).slice(0, 160),
-        mediaType: "video",
-      };
-    }
-    const buffer = await fs.readFile(target);
-    const mime = extension === ".png"
-      ? "image/png"
-      : extension === ".webp"
-        ? "image/webp"
-        : "image/jpeg";
-    return {
-      dataUrl: `data:${mime};base64,${buffer.toString("base64")}`,
-      name: String(meta.name || safeName).slice(0, 160),
-      mediaType: "image",
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function chooseCustomWallpaper() {
-  const english = (await readUiLanguage()) === "en-US";
-  const result = await dialog.showOpenDialog(mainWindow, {
-    title: english ? "Choose Background Asset" : "选择背景图片",
-    properties: ["openFile"],
-    filters: [
-      { name: english ? "Lobby Assets" : "记忆大厅素材", extensions: ["png", "jpg", "jpeg", "webp", "mp4", "webm"] },
-    ],
-  });
-  if (result.canceled || !result.filePaths[0]) return { canceled: true };
-  const source = result.filePaths[0];
-  const stats = await fs.stat(source);
-  const extension = path.extname(source).toLowerCase();
-  const isVideo = [".mp4", ".webm"].includes(extension);
-  const maximumSize = isVideo ? 500 * 1024 * 1024 : 40 * 1024 * 1024;
-  if (stats.size > maximumSize) {
-    throw new Error(isVideo ? "动态大厅不能超过 500 MB" : "大厅图片不能超过 40 MB");
-  }
-  if (![".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm"].includes(extension)) {
-    throw new Error("支持 PNG、JPG、WebP、MP4 和 WebM");
-  }
-  const filename = `custom-wallpaper${extension === ".jpeg" ? ".jpg" : extension}`;
-  const target = dataPath(filename);
-  await fs.copyFile(source, target);
-  await writeJsonPath(customWallpaperMetaPath(), {
-    filename,
-    name: path.basename(source),
-    mediaType: isVideo ? "video" : "image",
-    updatedAt: new Date().toISOString(),
-  });
-  return { canceled: false, ...(await getCustomWallpaper()) };
-}
-
-async function clearCustomWallpaper() {
-  const allowedNames = [
-    "custom-wallpaper.png",
-    "custom-wallpaper.jpg",
-    "custom-wallpaper.webp",
-    "custom-wallpaper.mp4",
-    "custom-wallpaper.webm",
-  ];
-  await Promise.all(
-    allowedNames.map((filename) => fs.rm(dataPath(filename), { force: true }).catch(() => undefined)),
-  );
-  await fs.rm(customWallpaperMetaPath(), { force: true }).catch(() => undefined);
-  return { cleared: true };
+function localMaterialPreviewUrl(relativePath) {
+  return `cf-material://preview/${safeMaterialRelativePath(relativePath)}`;
 }
 
 async function readJson(filename, fallback) {
@@ -417,14 +303,30 @@ async function readJsonPath(target, fallback) {
   }
 }
 
-async function writeJsonPath(target, value) {
+async function writeJsonPath(target, value, { pretty = true } = {}) {
   await fs.mkdir(path.dirname(target), { recursive: true });
-  await fs.writeFile(target, JSON.stringify(value, null, 2), "utf8");
+  await fs.writeFile(target, JSON.stringify(value, null, pretty ? 2 : 0), "utf8");
 }
 
-async function writeJson(filename, value) {
-  await writeJsonPath(dataPath(filename), value);
+async function writeJson(filename, value, options) {
+  await writeJsonPath(dataPath(filename), value, options);
 }
+
+const wallpaperService = createWallpaperService({
+  dialog,
+  nativeImage,
+  resolveDataPath: dataPath,
+  getWindow: () => mainWindow,
+  getUiLanguage: readUiLanguage,
+  readJsonPath,
+  writeJsonPath,
+});
+const materialLibraryService = createMaterialLibraryService({
+  resolveDirectory: localMaterialDirectory,
+  toUrl: localMaterialUrl,
+  toPreviewUrl: localMaterialPreviewUrl,
+  nativeImage,
+});
 
 function templateConfigPath() {
   return dataPath("template-library.json");
@@ -1480,7 +1382,7 @@ function sanitizeStudyData(input) {
       language: ["zh-CN", "en-US"].includes(settings.language)
         ? settings.language
         : DEFAULT_SETTINGS.language,
-      themeVersion: 6,
+      themeVersion: 7,
       showProblemTags:
         typeof settings.showProblemTags === "boolean"
           ? settings.showProblemTags
@@ -1612,6 +1514,19 @@ function sanitizeStudyData(input) {
           ].includes(settings.wallpaperPosition)
           ? settings.wallpaperPosition
           : DEFAULT_SETTINGS.wallpaperPosition,
+      wallpaperFit: ["smart", "cover", "contain"].includes(settings.wallpaperFit)
+        ? settings.wallpaperFit
+        : DEFAULT_SETTINGS.wallpaperFit,
+      wallpaperVideoPlaybackRate: clampNumber(
+        settings.wallpaperVideoPlaybackRate,
+        50,
+        150,
+        DEFAULT_SETTINGS.wallpaperVideoPlaybackRate,
+      ),
+      pauseWallpaperWhenUnfocused:
+        typeof settings.pauseWallpaperWhenUnfocused === "boolean"
+          ? settings.pauseWallpaperWhenUnfocused
+          : DEFAULT_SETTINGS.pauseWallpaperWhenUnfocused,
       panelOpacity: clampNumber(
         needsRecollectionTheme
           ? DEFAULT_SETTINGS.panelOpacity
@@ -1907,7 +1822,7 @@ async function syncHandle(handle) {
       latestSubmissionId: submissionResult.submissions[0]?.id || null,
     },
   };
-  await writeJson("cache.json", payload);
+  await writeJson("cache.json", payload, { pretty: false });
   await refreshContestReplayIndex();
   void startContestReplayAutoCalculation();
   void loadContestCenter(false).catch(() => undefined);
@@ -1986,7 +1901,7 @@ async function importData() {
   if (confirmation.response !== 1) return { canceled: true };
   await createAutomaticBackup("before-import", true);
   await Promise.all([
-    writeJson("cache.json", imported.cache),
+    writeJson("cache.json", imported.cache, { pretty: false }),
     writeJson("favorites.json", imported.favorites),
     writeJson("study.json", imported.study),
     writeJson("contest-replay.json", imported.contestReplay),
@@ -2107,16 +2022,16 @@ function onTrusted(channel, listener) {
 }
 
 app.whenReady().then(() => {
-  protocol.handle("cf-material", (request) => {
+  protocol.handle("cf-material", async (request) => {
+    const requestUrl = new URL(request.url);
     const candidate = safeMaterialRelativePath(
-      decodeURIComponent(new URL(request.url).pathname).replace(/^\/+/, ""),
+      decodeURIComponent(requestUrl.pathname).replace(/^\/+/, ""),
     );
     if (!candidate) return new Response("Not found", { status: 404 });
-    const root = path.resolve(localMaterialDirectory());
-    const target = path.resolve(root, candidate);
-    if (target !== root && !target.startsWith(`${root}${path.sep}`)) {
-      return new Response("Forbidden", { status: 403 });
-    }
+    const target = await materialLibraryService.resolveAsset(candidate, {
+      preview: requestUrl.hostname === "preview",
+    });
+    if (!target) return new Response("Not found", { status: 404 });
     return net.fetch(pathToFileURL(target).href);
   });
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
@@ -2161,10 +2076,13 @@ app.whenReady().then(() => {
     scheduleAutomaticBackup("study-update");
     return safe;
   });
-  handleTrusted("appearance:get-wallpaper", () => getCustomWallpaper());
-  handleTrusted("appearance:get-local-library", () => getLocalWallpaperLibrary());
-  handleTrusted("appearance:choose-wallpaper", () => chooseCustomWallpaper());
-  handleTrusted("appearance:clear-wallpaper", () => clearCustomWallpaper());
+  handleTrusted("appearance:get-wallpaper", () => wallpaperService.get());
+  handleTrusted("appearance:get-local-library", () => materialLibraryService.get());
+  handleTrusted("appearance:choose-wallpaper", () => wallpaperService.choose());
+  handleTrusted("appearance:update-wallpaper-metadata", (_event, metadata) =>
+    wallpaperService.updateMetadata(metadata),
+  );
+  handleTrusted("appearance:clear-wallpaper", () => wallpaperService.clear());
   handleTrusted("templates:get", () => scanTemplateLibrary(false));
   handleTrusted("templates:refresh", () => scanTemplateLibrary(true));
   handleTrusted("templates:choose-folder", () => chooseTemplateRoot());

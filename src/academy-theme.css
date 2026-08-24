@@ -96,7 +96,7 @@ select:focus-visible {
   width: calc(100% - 68px);
   height: calc(100% - 34px);
   opacity: 0;
-  background-color: #07111f;
+  background-color: transparent;
   filter: blur(var(--wallpaper-blur, 0)) brightness(var(--wallpaper-brightness, 100%))
     saturate(1.08) contrast(1.02);
   transform: scale(var(--wallpaper-scale, 1.12));
@@ -129,6 +129,32 @@ select:focus-visible {
 .app-wallpaper--image {
   object-fit: contain;
   object-position: var(--wallpaper-position, center center);
+}
+
+.wallpaper-fit-cover .app-wallpaper--image,
+.wallpaper-fit-cover .app-wallpaper--video,
+.wallpaper-fit-smart .app-wallpaper--video {
+  object-fit: cover;
+}
+
+.wallpaper-fit-smart .app-wallpaper--image,
+.wallpaper-fit-contain .app-wallpaper--image,
+.wallpaper-fit-contain .app-wallpaper--video {
+  object-fit: contain;
+}
+
+.wallpaper-fit-smart .app-wallpaper--image[data-smart-fit="cover"] {
+  object-fit: cover;
+}
+
+.wallpaper-fit-cover .app-wallpaper--backdrop.is-visible,
+.wallpaper-fit-contain .app-wallpaper--backdrop.is-visible {
+  opacity: 0;
+}
+
+.wallpaper-fit-contain .app-wallpaper--image,
+.wallpaper-fit-contain .app-wallpaper--video {
+  background: #07111f;
 }
 
 .academy-theme::before {
@@ -1288,6 +1314,39 @@ html[lang="en-US"] .titlebar__brand::after {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
+.wallpaper-preview__backdrop,
+.wallpaper-preview__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-position: center;
+}
+
+.wallpaper-preview__backdrop {
+  object-fit: cover;
+  filter: blur(10px) brightness(0.72) saturate(1.12);
+  transform: scale(1.08);
+}
+
+.wallpaper-preview__image {
+  object-fit: contain;
+}
+
+.wallpaper-preview--cover .wallpaper-preview__image {
+  object-fit: cover;
+}
+
+.wallpaper-preview--cover .wallpaper-preview__backdrop,
+.wallpaper-preview--contain .wallpaper-preview__backdrop {
+  display: none;
+}
+
+.wallpaper-preview--contain .wallpaper-preview__image {
+  background: #07111f;
+}
+
 .wallpaper-preview::after {
   content: "";
   position: absolute;
@@ -1307,6 +1366,12 @@ html[lang="en-US"] .titlebar__brand::after {
   font-size: 11px;
   font-weight: 680;
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.38);
+}
+
+.wallpaper-preview > span em {
+  color: inherit;
+  font: inherit;
+  font-style: normal;
 }
 
 .wallpaper-preview--empty {
@@ -1426,6 +1491,45 @@ html[lang="en-US"] .titlebar__brand::after {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
+}
+
+.wallpaper-fit-picker {
+  margin-top: 11px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.wallpaper-fit-picker button {
+  min-width: 0;
+  min-height: 72px;
+  padding: 9px 8px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  color: #9cb5c8;
+  border: 1px solid rgba(109, 178, 223, 0.2);
+  border-radius: 9px 3px 9px 9px;
+  background: rgba(12, 31, 50, 0.82);
+  text-align: left;
+}
+
+.wallpaper-fit-picker button:hover,
+.wallpaper-fit-picker button.is-active {
+  color: #effaff;
+  border-color: var(--accent);
+  background: rgba(37, 111, 155, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(88, 199, 255, 0.1);
+}
+
+.wallpaper-fit-picker strong {
+  font-size: 12px;
+}
+
+.wallpaper-fit-picker small {
+  color: #7898ae;
+  font-size: 10px;
+  line-height: 1.35;
 }
 
 .visibility-presets button {
@@ -3034,9 +3138,7 @@ html[lang="en-US"] .titlebar__brand::after {
 }
 
 .app-wallpaper--video {
-  object-fit: contain;
   object-position: var(--wallpaper-position, center center);
-  background: #07111f;
 }
 
 .app-content,
@@ -3073,7 +3175,7 @@ html[lang="en-US"] .titlebar__brand::after {
 
 .academy-theme.is-immersive .app-wallpaper--image,
 .academy-theme.is-immersive .app-wallpaper--video {
-  transform: none;
+  transform: scale(var(--wallpaper-scale, 1));
 }
 
 .academy-theme.is-immersive .app-wallpaper--backdrop {
@@ -3124,6 +3226,11 @@ html[lang="en-US"] .titlebar__brand::after {
   height: 100%;
   display: block;
   object-fit: cover;
+}
+
+.wallpaper-preview--video.wallpaper-preview--contain video {
+  object-fit: contain;
+  background: #07111f;
 }
 
 .wallpaper-tools {

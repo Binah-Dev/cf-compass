@@ -236,12 +236,25 @@ export function buildHeatmap(submissions, selectedYear = new Date().getFullYear(
 
 export function getRecentActivity(problems, submissions, limit = 5) {
   const lookup = new Map((problems || []).map((problem) => [problemKey(problem), problem]));
+  const source = submissions || [];
+  let newestFirst = true;
+  for (let index = 1; index < source.length; index += 1) {
+    if (
+      (source[index - 1]?.creationTimeSeconds || 0) <
+      (source[index]?.creationTimeSeconds || 0)
+    ) {
+      newestFirst = false;
+      break;
+    }
+  }
+  const ordered = newestFirst
+    ? source
+    : [...source].sort(
+      (a, b) => (b.creationTimeSeconds || 0) - (a.creationTimeSeconds || 0),
+    );
   const seen = new Set();
   const result = [];
-  const sorted = [...(submissions || [])].sort(
-    (a, b) => (b.creationTimeSeconds || 0) - (a.creationTimeSeconds || 0),
-  );
-  for (const submission of sorted) {
+  for (const submission of ordered) {
     if (submission.verdict !== "OK") continue;
     const key = `${submission.problem?.contestId || submission.contestId}-${submission.problem?.index}`;
     if (seen.has(key)) continue;
@@ -254,8 +267,14 @@ export function getRecentActivity(problems, submissions, limit = 5) {
   return result;
 }
 
+const numberFormatters = new Map();
+
 export function formatNumber(value) {
-  return new Intl.NumberFormat(getCurrentLocale()).format(value || 0);
+  const locale = getCurrentLocale();
+  if (!numberFormatters.has(locale)) {
+    numberFormatters.set(locale, new Intl.NumberFormat(locale));
+  }
+  return numberFormatters.get(locale).format(value || 0);
 }
 
 export function relativeTime(timestamp) {

@@ -1,7 +1,7 @@
 {
   "name": "cf-compass",
   "desktopName": "cf-compass.desktop",
-  "version": "3.12.2",
+  "version": "3.13.0-alpha.1",
   "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": {
@@ -33,7 +33,13 @@
     "desktop:build:mac": "vite build && electron-builder --mac dmg --x64 --arm64 --publish never",
     "qa:i18n": "node scripts/qa-i18n.cjs",
     "qa:i18n:first-launch": "node scripts/qa-i18n-first-launch.cjs",
-    "test:analytics": "node scripts/test-analytics.mjs"
+    "qa:layout": "node scripts/qa-issue-13-layout.cjs",
+    "qa:materials": "node scripts/qa-material-quarantine.cjs",
+    "qa:wallpaper": "node scripts/qa-wallpaper-engine.cjs",
+    "benchmark:startup": "node scripts/benchmark-startup.cjs",
+    "test:analytics": "node scripts/test-analytics.mjs",
+    "test:materials": "node scripts/test-material-library.cjs",
+    "test:performance": "node scripts/test-performance.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

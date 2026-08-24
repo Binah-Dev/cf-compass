@@ -31,6 +31,9 @@ const appearanceDefaults = {
   wallpaperBrightness: 100,
   wallpaperScale: 100,
   wallpaperPosition: "center center",
+  wallpaperFit: "smart",
+  wallpaperVideoPlaybackRate: 100,
+  pauseWallpaperWhenUnfocused: true,
   panelOpacity: 72,
   wallpaperFavorites: DEFAULT_WALLPAPER_ID ? [DEFAULT_WALLPAPER_ID] : [],
   wallpaperLocked: true,
@@ -105,6 +108,12 @@ const positions = [
   ["right bottom", "右下"],
 ];
 
+const fitModes = [
+  ["smart", "智能填充", "完整主体＋柔化延展，无黑边"],
+  ["cover", "全屏裁切", "铺满窗口，可能裁掉画面边缘"],
+  ["contain", "完整显示", "保留全部画面，允许深色留边"],
+];
+
 const accents = [
   { id: "sky", label: "天空蓝", color: "#2f86f6", hint: "清澈、专注" },
   { id: "mint", label: "薄荷绿", color: "#43c7a1", hint: "柔和、舒缓" },
@@ -143,6 +152,7 @@ export default function AppearanceDrawer({
   const [draft, setDraft] = useState(() => ({ ...appearanceDefaults, ...settings }));
   const [wallpaperSearch, setWallpaperSearch] = useState("");
   const [wallpaperCategory, setWallpaperCategory] = useState("all");
+  const [importingWallpaper, setImportingWallpaper] = useState(false);
   const [visibleWallpaperLimit, setVisibleWallpaperLimit] = useState(WALLPAPER_PAGE_SIZE);
   const deferredWallpaperSearch = useDeferredValue(wallpaperSearch.trim().toLowerCase());
   const activeWallpaperId = draft.usePageWallpapers
@@ -183,9 +193,14 @@ export default function AppearanceDrawer({
   }
 
   async function chooseCustomWallpaper() {
-    const result = await onChooseCustom?.();
-    if (!result?.canceled && (result?.dataUrl || result?.url)) {
-      updateAppearance({ wallpaperEnabled: true, wallpaperId: "custom" });
+    setImportingWallpaper(true);
+    try {
+      const result = await onChooseCustom?.();
+      if (!result?.canceled && (result?.dataUrl || result?.url)) {
+        updateAppearance({ wallpaperEnabled: true, wallpaperId: "custom" });
+      }
+    } finally {
+      setImportingWallpaper(false);
     }
   }
 
@@ -233,6 +248,9 @@ export default function AppearanceDrawer({
         wallpaperBrightness: 100,
         wallpaperScale: 100,
         wallpaperPosition: "center center",
+        wallpaperFit: "smart",
+        wallpaperVideoPlaybackRate: 100,
+        pauseWallpaperWhenUnfocused: true,
         panelOpacity: 72,
       });
     } else {
@@ -252,10 +270,12 @@ export default function AppearanceDrawer({
   const activeVisibilityPreset = visibilityPresets.find(({ values }) =>
     Object.entries(values).every(([key, value]) => draft[key] === value),
   )?.id;
-  const previewUrl = activeWallpaperId === "custom"
-    ? customWallpaper?.dataUrl || customWallpaper?.url
-    : selectedWallpaper?.previewUrl || selectedWallpaper?.url;
-  const previewIsVideo = activeWallpaperId === "custom" && customWallpaper?.mediaType === "video";
+  const activeWallpaper = activeWallpaperId === "custom" ? customWallpaper : selectedWallpaper;
+  const previewUrl = activeWallpaper?.previewUrl || activeWallpaper?.dataUrl || activeWallpaper?.url;
+  const previewIsVideo = activeWallpaper?.mediaType === "video";
+  const wallpaperResolution = activeWallpaper?.width && activeWallpaper?.height
+    ? `${activeWallpaper.width} × ${activeWallpaper.height}`
+    : activeWallpaper?.resolution || "";
   const isFavorite = (draft.wallpaperFavorites || []).includes(activeWallpaperId);
 
   return (
@@ -284,29 +304,34 @@ export default function AppearanceDrawer({
             </div>
 
             {previewIsVideo ? (
-              <div className="wallpaper-preview wallpaper-preview--video">
-                <video src={previewUrl} muted loop autoPlay playsInline />
-                <span><Video size={14} />动态预览</span>
+              <div className={`wallpaper-preview wallpaper-preview--video wallpaper-preview--${draft.wallpaperFit || "smart"}`}>
+                <video src={activeWallpaper?.url || previewUrl} muted loop autoPlay={!draft.reduceMotion} playsInline preload="metadata" />
+                <span><Video size={14} /><em>动态预览</em>{wallpaperResolution ? ` · ${wallpaperResolution}` : ""}</span>
               </div>
             ) : (
               <div
-                className={`wallpaper-preview ${previewUrl ? "" : "wallpaper-preview--empty"}`}
-                style={{ backgroundImage: previewUrl ? `url("${previewUrl}")` : undefined }}
+                className={`wallpaper-preview wallpaper-preview--${draft.wallpaperFit || "smart"} ${previewUrl ? "" : "wallpaper-preview--empty"}`}
               >
-                {previewUrl ? <span><Eye size={14} />实时预览</span> : <><ImagePlus size={28} /><span>尚未导入本地素材包</span></>}
+                {previewUrl ? <>
+                  <img className="wallpaper-preview__backdrop" src={previewUrl} alt="" />
+                  <img className="wallpaper-preview__image" src={previewUrl} alt="" />
+                </> : null}
+                {previewUrl ? <span><Eye size={14} /><em>实时预览</em>{wallpaperResolution ? ` · ${wallpaperResolution}` : ""}</span> : <><ImagePlus size={28} /><span>尚未导入本地素材包</span></>}
               </div>
             )}
 
             <div className="wallpaper-actions">
-              <button type="button" onClick={chooseCustomWallpaper}>
-                <FolderOpen size={14} />导入大厅画面
+              <button type="button" onClick={chooseCustomWallpaper} disabled={importingWallpaper}>
+                <FolderOpen size={14} />{importingWallpaper ? "正在优化素材…" : "导入大厅画面"}
               </button>
               <button type="button" onClick={restoreLobbyTheme} disabled={!defaultWallpaperId && !customWallpaper}>
                 <RotateCcw size={14} />恢复大厅主题
               </button>
             </div>
             <p className="wallpaper-library__hint">
-              本机附加素材 {wallpaperCounts.total || 0} 张；图片不进入 GitHub 安装包，请遵守原素材许可。
+              本机可用素材 {wallpaperCounts.total || 0} 张
+              {wallpaperCounts.rejected ? `，已隔离 ${wallpaperCounts.rejected} 张不完整素材` : ""}；
+              图片不进入 GitHub 安装包，请遵守原素材许可。
             </p>
             {wallpapers.length ? (
               <>
@@ -332,7 +357,7 @@ export default function AppearanceDrawer({
                   ))}
                   {customWallpaper?.dataUrl || customWallpaper?.url ? (
                     <button type="button" className={activeWallpaperId === "custom" ? "is-active" : ""} onClick={() => selectWallpaper("custom")} title={customWallpaper.name || "本地图片"}>
-                      {customWallpaper.mediaType === "video" ? <span className="wallpaper-library__video"><Video size={16} /></span> : <img src={customWallpaper.dataUrl || customWallpaper.url} alt="" />}
+                      {customWallpaper.mediaType === "video" ? <span className="wallpaper-library__video"><Video size={16} /></span> : <img src={customWallpaper.previewUrl || customWallpaper.dataUrl || customWallpaper.url} alt="" loading="lazy" decoding="async" />}
                       <span>我的大厅</span>{activeWallpaperId === "custom" ? <Check size={13} /> : null}
                     </button>
                   ) : null}
@@ -343,6 +368,27 @@ export default function AppearanceDrawer({
                 </div>
               </>
             ) : null}
+          </section>
+
+          <section className="appearance-section">
+            <div className="appearance-section__title">
+              <span><ImageIcon size={15} />画面适配</span>
+              <small>按素材比例选择无黑边或完整构图</small>
+            </div>
+            <div className="wallpaper-fit-picker" role="group" aria-label="背景适配模式">
+              {fitModes.map(([id, label, hint]) => (
+                <button
+                  type="button"
+                  key={id}
+                  className={(draft.wallpaperFit || "smart") === id ? "is-active" : ""}
+                  aria-pressed={(draft.wallpaperFit || "smart") === id}
+                  onClick={() => updateAppearance({ wallpaperFit: id })}
+                >
+                  <strong>{label}</strong>
+                  <small>{hint}</small>
+                </button>
+              ))}
+            </div>
           </section>
 
           <section className="appearance-section">
@@ -366,6 +412,33 @@ export default function AppearanceDrawer({
               ))}
             </div>
           </section>
+
+          {previewIsVideo ? (
+            <section className="appearance-section appearance-controls">
+              <label className="appearance-slider">
+                <span className="appearance-slider__heading">
+                  <strong>动态播放速度</strong>
+                  <output>{draft.wallpaperVideoPlaybackRate || 100}%</output>
+                </span>
+                <small>适当降低速度可获得更舒缓的大厅效果</small>
+                <input
+                  type="range"
+                  aria-label="动态播放速度"
+                  min="50"
+                  max="150"
+                  value={draft.wallpaperVideoPlaybackRate || 100}
+                  style={{ "--range-progress": `${((draft.wallpaperVideoPlaybackRate || 100) - 50)}%` }}
+                  onChange={(event) => updateAppearance({ wallpaperVideoPlaybackRate: Number(event.target.value) })}
+                />
+              </label>
+              <Toggle
+                checked={draft.pauseWallpaperWhenUnfocused !== false}
+                label="失焦时暂停动态大厅"
+                hint="切到其他窗口或最小化时停止解码，降低功耗"
+                onChange={(pauseWallpaperWhenUnfocused) => updateAppearance({ pauseWallpaperWhenUnfocused })}
+              />
+            </section>
+          ) : null}
 
           <section className="appearance-section appearance-controls">
             {sliderDefinitions.map(([key, label, hint, min, max]) => (

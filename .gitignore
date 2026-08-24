@@ -2,6 +2,8 @@ node_modules/
 .pnpm-store/
 dist/
 release/
+release-candidate/
+release-candidate-*/
 coverage/
 .qa-output/
 .vite/

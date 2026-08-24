@@ -60,6 +60,23 @@ CF Compass 的开源版始终只保留天空蓝、薄荷绿、珊瑚粉三套原
 
 这部分截图只用于解释完整本地素材库的交互设计，不表示开源程序自带图中的角色资源。
 
+### 素材清单的质量声明
+
+完整素材包的 `index.json` 可以主动声明某个文件不是全屏大厅，程序会在素材服务入口将其隔离，不让它进入选择、收藏或自动轮换池：
+
+```json
+{
+  "id": "character-layer-example",
+  "name": "角色拆分图层",
+  "url": "layers/character.webp",
+  "assetRole": "layer",
+  "wallpaperReady": false,
+  "qualityIssue": "incomplete-layered-asset"
+}
+```
+
+`assetRole` 支持 `layer`、`sprite`、`thumbnail`、`transition`。完整背景可省略这些字段；如果旧设置仍选中了已隔离文件，应用会自动切换到素材包的安全默认背景。该机制只过滤索引，不会删除用户的原文件。
+
 ## 三套主题色
 
 - **天空蓝**：默认色，清晰而专注。

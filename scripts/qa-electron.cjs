@@ -1,6 +1,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { _electron: electron } = require(process.env.CF_COMPASS_PLAYWRIGHT || "playwright");
+const { _electron: electron } = require(
+  process.env.CF_COMPASS_PLAYWRIGHT || "playwright-core",
+);
 
 const projectRoot = path.resolve(__dirname, "..");
 const evidenceRoot = process.env.CF_COMPASS_QA_OUTPUT || path.join(projectRoot, ".qa-output");
