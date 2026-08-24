@@ -265,11 +265,11 @@ CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**�
 打开 [Latest Release](https://github.com/qeffg/cf-compass/releases/latest)，按设备下载：
 
 ```text
-Windows x64:       CF-Compass-3.12.2-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.12.2-Linux-x86_64.AppImage
-Linux Debian x64:  CF-Compass-3.12.2-Linux-amd64.deb
-macOS Intel:       CF-Compass-3.12.2-macOS-x64.dmg
-macOS Apple 芯片:  CF-Compass-3.12.2-macOS-arm64.dmg
+Windows x64:       CF-Compass-3.13.0-Windows-x64-portable.exe
+Linux x64:         CF-Compass-3.13.0-Linux-x86_64.AppImage
+Linux Debian x64:  CF-Compass-3.13.0-Linux-amd64.deb
+macOS Intel:       CF-Compass-3.13.0-macOS-x64.dmg
+macOS Apple 芯片:  CF-Compass-3.13.0-macOS-arm64.dmg
 ```
 
 Windows portable 版无需安装，双击即可运行；Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
@@ -277,7 +277,7 @@ Windows portable 版无需安装，双击即可运行；Linux 可选择 AppImage
 每个安装包旁都有同名 `.sha256`，Release 还提供汇总文件 `SHA256SUMS.txt`。例如 Windows 可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\CF-Compass-3.12.2-Windows-x64-portable.exe
+Get-FileHash -Algorithm SHA256 .\CF-Compass-3.13.0-Windows-x64-portable.exe
 ```
 
 Linux 或 macOS 可运行：

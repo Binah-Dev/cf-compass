@@ -153,11 +153,11 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 Open [Latest Release](https://github.com/qeffg/cf-compass/releases/latest) and choose the package for your device:
 
 ```text
-Windows x64:       CF-Compass-3.12.2-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.12.2-Linux-x86_64.AppImage
-Linux Debian x64:  CF-Compass-3.12.2-Linux-amd64.deb
-macOS Intel:       CF-Compass-3.12.2-macOS-x64.dmg
-macOS Apple Silicon: CF-Compass-3.12.2-macOS-arm64.dmg
+Windows x64:       CF-Compass-3.13.0-Windows-x64-portable.exe
+Linux x64:         CF-Compass-3.13.0-Linux-x86_64.AppImage
+Linux Debian x64:  CF-Compass-3.13.0-Linux-amd64.deb
+macOS Intel:       CF-Compass-3.13.0-macOS-x64.dmg
+macOS Apple Silicon: CF-Compass-3.13.0-macOS-arm64.dmg
 ```
 
 The Windows portable build requires no installer wizard. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
