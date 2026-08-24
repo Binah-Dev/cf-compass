@@ -189,15 +189,6 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.19.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - name: Install QA dependencies
-        run: pnpm install --frozen-lockfile
       - name: Download and verify published Windows package
         shell: pwsh
         env:
@@ -216,11 +207,7 @@ jobs:
           if ($actual -ne $parts[0].ToLowerInvariant()) {
             throw "Windows package checksum mismatch: $actual"
           }
-          $env:CF_COMPASS_PLAYWRIGHT = 'playwright-core'
-          $env:CF_COMPASS_QA_EXECUTABLE = (Resolve-Path $asset).Path
-          pnpm exec node scripts/qa-material-quarantine.cjs
-          pnpm exec node scripts/qa-issue-13-layout.cjs
-          pnpm exec node scripts/qa-electron.cjs
+          & ./scripts/qa-windows-portable.ps1 -Executable $asset
       - name: Close issues verified by this release
         shell: bash
         env:
@@ -233,6 +220,6 @@ jobs:
               ''|'#'*) continue ;;
             esac
             release_url="https://github.com/${{ github.repository }}/releases/tag/$GITHUB_REF_NAME"
-            gh issue comment "$issue" --body "已在 [$GITHUB_REF_NAME]($release_url) 中修复。Windows 安装包已由原生 GitHub Actions 环境构建、从 Release 重新下载，并通过 SHA-256、冷启动、主功能和 2560×1600 多年份布局回归。感谢反馈！"
+            gh issue comment "$issue" --body "已在 [$GITHUB_REF_NAME]($release_url) 中修复。Windows 解包版已在原生 GitHub Actions 环境通过主功能和 2560×1600 多年份布局回归；发布后的 portable 包又经重新下载、SHA-256 校验和真实冷启动。感谢反馈！"
             gh issue close "$issue" --reason completed
           done < "$issues"
