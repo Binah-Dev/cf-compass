@@ -34,6 +34,10 @@
   <strong><a href="https://github.com/qeffg/cf-compass/releases/latest">⬇ 下载 Windows / Linux / macOS 版本</a></strong>
 </p>
 
+<p align="center">
+  <a href="https://codeforces.com/blog/entry/156222">💬 在 Codeforces 阅读介绍并参与讨论</a>
+</p>
+
 ![CF Compass 题库工作台](./docs/screenshots/dashboard-sky.png)
 
 <p align="center"><sub>题库工作台 · 天空蓝主题 · 仓库内置虚构演示数据</sub></p>

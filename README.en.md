@@ -25,6 +25,10 @@
   <strong><a href="https://github.com/qeffg/cf-compass/releases/latest">Download for Windows, Linux, or macOS</a></strong>
 </p>
 
+<p align="center">
+  <a href="https://codeforces.com/blog/entry/156222">💬 Read the introduction and join the discussion on Codeforces</a>
+</p>
+
 ![CF Compass problem dashboard](./docs/screenshots/dashboard-sky.png)
 
 ## Why CF Compass?
