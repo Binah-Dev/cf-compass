@@ -40,6 +40,8 @@ export default function ReviewLibrary({
   studyData,
   onToggleFavorite,
   onOpenNote,
+  plannedKeys,
+  onAddToPlan,
 }) {
   const [viewMode, setViewMode] = useState("list");
   const [search, setSearch] = useState("");
@@ -272,13 +274,15 @@ export default function ReviewLibrary({
         </div>
 
         {viewMode === "timeline" ? (
-          <ReviewTimeline items={timelineItems} onOpenNote={onOpenNote} />
+          <ReviewTimeline items={timelineItems} onOpenNote={onOpenNote} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} />
         ) : (
           <ReviewProblemList
             items={visibleItems}
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
             onOpenNote={onOpenNote}
+            plannedKeys={plannedKeys}
+            onAddToPlan={onAddToPlan}
             page={safePage}
             totalPages={totalPages}
             totalFiltered={filteredItems.length}

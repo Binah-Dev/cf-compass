@@ -275,6 +275,70 @@ select:focus-visible {
   transform: translateX(0);
 }
 
+.rail-button.is-dragging {
+  opacity: 0.38;
+  transform: scale(0.9);
+}
+
+.rail-context-menu {
+  position: fixed;
+  z-index: 1000;
+  width: 210px;
+  padding: 6px;
+  border: 1px solid rgba(147, 171, 196, 0.22);
+  border-radius: 7px;
+  color: #d9e1ea;
+  background: #181b20;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.42);
+}
+
+.rail-context-menu__title,
+.rail-context-menu__hint {
+  padding: 7px 9px;
+  color: #84909d;
+  font-size: 11px;
+}
+
+.rail-context-menu__title {
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(147, 171, 196, 0.13);
+}
+
+.rail-context-menu__hint {
+  margin-top: 4px;
+  border-top: 1px solid rgba(147, 171, 196, 0.13);
+}
+
+.rail-context-menu button {
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background: transparent;
+  font-size: 12px;
+  text-align: left;
+}
+
+.rail-context-menu button:hover:not(:disabled) {
+  background: #2a2d35;
+}
+
+.rail-context-menu button:disabled {
+  opacity: 0.72;
+}
+
+.rail-context-menu__check {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+}
+
 .app-content {
   position: absolute;
   inset: 32px 0 0 68px;
@@ -1039,7 +1103,7 @@ select:focus-visible {
 .problem-table__header,
 .problem-row {
   display: grid;
-  grid-template-columns: 30px 70px minmax(190px, 1.7fr) 64px minmax(160px, 1.15fr) 78px 64px;
+  grid-template-columns: 58px 70px minmax(190px, 1.7fr) 64px minmax(160px, 1.15fr) 78px 64px;
   align-items: center;
   column-gap: 6px;
 }
@@ -1369,7 +1433,7 @@ select:focus-visible {
 .review-row {
   display: grid;
   grid-template-columns:
-    52px 65px minmax(160px, 1.45fr) 62px minmax(125px, 0.95fr)
+    84px 65px minmax(160px, 1.45fr) 62px minmax(125px, 0.95fr)
     92px 92px 61px;
   align-items: center;
   column-gap: 6px;
@@ -1558,7 +1622,7 @@ select:focus-visible {
   display: grid;
   grid-template-columns:
     20px 56px minmax(125px, 1.25fr) 54px minmax(100px, 0.8fr)
-    112px 112px 58px 28px;
+    112px 112px 58px 28px 28px;
   align-items: center;
   gap: 6px;
   color: #8f99a8;
@@ -4140,7 +4204,10 @@ select:focus-visible {
   gap: 7px;
 }
 
+.contest-problem-wrap { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 28px; align-items: center; gap: 4px; }
+
 .contest-problem {
+  width: 100%;
   min-width: 0;
   height: 46px;
   padding: 0 9px;
@@ -5161,7 +5228,14 @@ select:focus-visible {
   flex-direction: column;
 }
 
-.recent-list button {
+.recent-problem-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 4px;
+}
+
+.recent-list .recent-problem-actions > button:first-child {
   min-height: 44px;
   padding: 4px 2px;
   border: 0;
@@ -5175,7 +5249,7 @@ select:focus-visible {
   text-align: left;
 }
 
-.recent-list button:hover {
+.recent-list .recent-problem-actions > button:first-child:hover {
   color: var(--cyan);
 }
 

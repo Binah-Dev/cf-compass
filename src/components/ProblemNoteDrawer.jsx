@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { openProblem, problemKey } from "../lib/codeforces";
 import { getCurrentLocale } from "../i18n";
 import { displayTag } from "../lib/stats";
+import PlanQueueButton from "./PlanQueueButton";
 
 const mistakeOptions = ["思路偏差", "边界遗漏", "复杂度误判", "实现错误", "公式推导", "读题失误"];
 
-export default function ProblemNoteDrawer({ problem, studyData, onClose, onSave }) {
+export default function ProblemNoteDrawer({ problem, studyData, onClose, onSave, plannedKeys, onAddToPlan }) {
   const key = problem ? problemKey(problem) : "";
   const saved = studyData.notes?.[key];
   const [draft, setDraft] = useState({
@@ -69,6 +70,7 @@ export default function ProblemNoteDrawer({ problem, studyData, onClose, onSave 
             <button type="button" onClick={() => openProblem(problem)}>
               打开题目 <ExternalLink size={13} />
             </button>
+            <PlanQueueButton problem={problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} />
           </div>
 
           <section className="note-section">

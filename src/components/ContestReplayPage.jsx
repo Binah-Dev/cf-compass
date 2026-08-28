@@ -42,6 +42,7 @@ import {
 } from "../lib/contests";
 import { formatNumber, formatPercent, ratingTone } from "../lib/stats";
 import { RatingScore } from "./RatingDisplay";
+import PlanQueueButton from "./PlanQueueButton";
 
 const SORT_OPTIONS = [
   { id: "newest", label: "比赛时间（新 → 旧）" },
@@ -130,6 +131,8 @@ function ProblemTable({
   queuedProblems,
   onToggleQueue,
   onOpenNote,
+  plannedKeys,
+  onAddToPlan,
 }) {
   return (
     <section className="contest-problem-table" aria-label={`${contest.contestName} 比赛题目`}>
@@ -180,6 +183,7 @@ function ProblemTable({
                   <NotebookPen size={13} />
                   笔记
                 </button>
+                <PlanQueueButton problem={problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} />
               </div>
             </article>
           );
@@ -194,6 +198,8 @@ function ContestDetail({
   queuedProblems,
   onToggleQueue,
   onOpenNote,
+  plannedKeys,
+  onAddToPlan,
 }) {
   return (
     <div className="contest-detail">
@@ -234,6 +240,8 @@ function ContestDetail({
         queuedProblems={queuedProblems}
         onToggleQueue={onToggleQueue}
         onOpenNote={onOpenNote}
+        plannedKeys={plannedKeys}
+        onAddToPlan={onAddToPlan}
       />
       <footer className="contest-detail-source">
         <span>表现分由 Carrot Plus 算法计算，通常与精确值相差 0～4 分。</span>
@@ -252,6 +260,8 @@ function ContestRow({
   onRetry,
   onToggleQueue,
   onOpenNote,
+  plannedKeys,
+  onAddToPlan,
 }) {
   const tone = performanceTone(contest.performance);
   const ready = contest.status === "ready";
@@ -317,6 +327,8 @@ function ContestRow({
             queuedProblems={queuedProblems}
             onToggleQueue={onToggleQueue}
             onOpenNote={onOpenNote}
+            plannedKeys={plannedKeys}
+            onAddToPlan={onAddToPlan}
           />
         ) : (
           <div className="contest-detail-loading">
@@ -348,6 +360,8 @@ export default function ContestReplayPage({
   onStudyChange,
   onOpenNote,
   onToast,
+  plannedKeys,
+  onAddToPlan,
 }) {
   const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -671,6 +685,8 @@ export default function ContestReplayPage({
                 onRetry={() => retryContest(contest)}
                 onToggleQueue={toggleQueue}
                 onOpenNote={onOpenNote}
+                plannedKeys={plannedKeys}
+                onAddToPlan={onAddToPlan}
               />
             ))
           ) : (

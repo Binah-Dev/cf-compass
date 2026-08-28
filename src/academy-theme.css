@@ -4711,7 +4711,7 @@ body {
 
 .problem-table--tags-hidden .problem-table__header,
 .problem-table--tags-hidden .problem-row {
-  grid-template-columns: 30px 70px minmax(260px, 1.9fr) 72px 92px 70px;
+  grid-template-columns: 58px 70px minmax(260px, 1.9fr) 72px 92px 70px;
 }
 
 .heatmap-block {

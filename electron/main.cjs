@@ -18,6 +18,7 @@ const {
   createMaterialLibraryService,
   safeMaterialRelativePath,
 } = require("./services/material-library-service.cjs");
+const { createStudyPlanService, sanitizeStudyPlan } = require("./services/study-plan-service.cjs");
 
 nativeTheme.themeSource = "dark";
 app.setAppUserModelId("com.cfcompass.desktop");
@@ -115,6 +116,7 @@ const contestCalculationTasks = new Map();
 let contestAutoCalculationPromise = null;
 let automaticBackupTimer = null;
 let templateLibraryCache = null;
+let studyPlanService = null;
 
 const TEMPLATE_SOURCE_EXTENSIONS = new Set([
   ".cpp",
@@ -312,6 +314,17 @@ async function writeJson(filename, value, options) {
   await writeJsonPath(dataPath(filename), value, options);
 }
 
+function getStudyPlanService() {
+  if (!studyPlanService) {
+    studyPlanService = createStudyPlanService({
+      readJson,
+      writeJson,
+      onChanged: () => scheduleAutomaticBackup("plan-update"),
+    });
+  }
+  return studyPlanService;
+}
+
 const wallpaperService = createWallpaperService({
   dialog,
   nativeImage,
@@ -332,47 +345,82 @@ function templateConfigPath() {
   return dataPath("template-library.json");
 }
 
+function templateConfigBackupPath() {
+  return dataPath("template-library.json.bak");
+}
+
+function templateRootKey(root) {
+  const normalized = path.resolve(root).replace(/\\/g, "/");
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
 function defaultTemplateRoot() {
   return path.join(app.getPath("desktop"), "OJ", "Template Library");
 }
 
 async function readTemplateConfig() {
-  const saved = await readJsonPath(templateConfigPath(), {});
+  let saved = await readJsonPath(templateConfigPath(), null);
+  if (!saved || typeof saved !== "object") {
+    saved = await readJsonPath(templateConfigBackupPath(), {});
+  }
+  const root = typeof saved?.root === "string" && saved.root.trim()
+    ? path.resolve(saved.root)
+    : defaultTemplateRoot();
+  const profiles = saved?.profiles && typeof saved.profiles === "object"
+    ? { ...saved.profiles }
+    : {};
+  const profile = profiles[templateRootKey(root)];
   return {
-    root: typeof saved?.root === "string" && saved.root.trim()
-      ? path.resolve(saved.root)
-      : defaultTemplateRoot(),
+    root,
     overrides:
-      saved?.overrides && typeof saved.overrides === "object"
-        ? { ...saved.overrides }
+      profile?.overrides && typeof profile.overrides === "object"
+        ? { ...profile.overrides }
+        : saved?.overrides && typeof saved.overrides === "object"
+          ? { ...saved.overrides }
         : {},
     summaries:
-      saved?.summaries && typeof saved.summaries === "object"
-        ? { ...saved.summaries }
+      profile?.summaries && typeof profile.summaries === "object"
+        ? { ...profile.summaries }
+        : saved?.summaries && typeof saved.summaries === "object"
+          ? { ...saved.summaries }
         : {},
+    profiles,
   };
 }
 
 async function saveTemplateConfig(config) {
+  const root = path.resolve(config.root);
+  const overrides = Object.fromEntries(
+    Object.entries(config.overrides || {})
+      .filter(([, category]) => TEMPLATE_CATEGORY_IDS.has(category))
+      .slice(0, 5000),
+  );
+  const summaries = Object.fromEntries(
+    Object.entries(config.summaries || {})
+      .filter(([, summary]) => typeof summary === "string" && summary.trim())
+      .map(([relativePath, summary]) => [
+        normalizeRelativePath(relativePath),
+        summary.replace(/\r\n/g, "\n").trim().slice(0, 1200),
+      ])
+      .slice(0, 5000),
+  );
+  const profiles = { ...(config.profiles || {}) };
+  profiles[templateRootKey(root)] = { root, overrides, summaries };
   const safe = {
-    root: path.resolve(config.root),
-    overrides: Object.fromEntries(
-      Object.entries(config.overrides || {})
-        .filter(([, category]) => TEMPLATE_CATEGORY_IDS.has(category))
-        .slice(0, 5000),
-    ),
-    summaries: Object.fromEntries(
-      Object.entries(config.summaries || {})
-        .filter(([, summary]) => typeof summary === "string" && summary.trim())
-        .map(([relativePath, summary]) => [
-          normalizeRelativePath(relativePath),
-          summary.replace(/\r\n/g, "\n").trim().slice(0, 1200),
-        ])
-        .slice(0, 5000),
-    ),
+    root,
+    overrides,
+    summaries,
+    profiles: Object.fromEntries(Object.entries(profiles).slice(-20)),
     updatedAt: new Date().toISOString(),
   };
-  await writeJsonPath(templateConfigPath(), safe);
+  const target = templateConfigPath();
+  const temporary = `${target}.tmp`;
+  await writeJsonPath(temporary, safe);
+  await fs.rename(temporary, target).catch(async () => {
+    await fs.copyFile(temporary, target);
+    await fs.unlink(temporary).catch(() => undefined);
+  });
+  await fs.copyFile(target, templateConfigBackupPath());
   return safe;
 }
 
@@ -569,7 +617,15 @@ async function chooseTemplateRoot() {
     properties: ["openDirectory"],
   });
   if (result.canceled || !result.filePaths[0]) return { canceled: true };
-  await saveTemplateConfig({ root: result.filePaths[0], overrides: {}, summaries: {} });
+  const nextRoot = path.resolve(result.filePaths[0]);
+  const savedProfile = config.profiles?.[templateRootKey(nextRoot)];
+  const sameRoot = templateRootKey(nextRoot) === templateRootKey(config.root);
+  await saveTemplateConfig({
+    root: nextRoot,
+    overrides: sameRoot ? config.overrides : savedProfile?.overrides || {},
+    summaries: sameRoot ? config.summaries : savedProfile?.summaries || {},
+    profiles: config.profiles,
+  });
   templateLibraryCache = null;
   return { canceled: false, library: await scanTemplateLibrary(true) };
 }
@@ -1674,6 +1730,7 @@ async function collectDataBundle(reason = "manual", snapshot = null) {
       favorites: snapshotFavorites || sanitizeFavorites(await readJson("favorites.json", [])),
       study: snapshotStudy || (await readStudyData()),
       contestReplay: validContestReplay(contestReplay) ? contestReplay : null,
+      studyPlan: sanitizeStudyPlan(await readJson("study-plan.json", { version: 1, items: [] })),
     },
   };
 }
@@ -1866,6 +1923,7 @@ function validateImportBundle(bundle) {
     contestReplay: validContestReplay(bundle.data.contestReplay)
       ? bundle.data.contestReplay
       : emptyContestReplay(bundle.data.cache.handle),
+    studyPlan: sanitizeStudyPlan(bundle.data.studyPlan || bundle.data.agentTodo),
   };
 }
 
@@ -1905,6 +1963,7 @@ async function importData() {
     writeJson("favorites.json", imported.favorites),
     writeJson("study.json", imported.study),
     writeJson("contest-replay.json", imported.contestReplay),
+    writeJson("study-plan.json", imported.studyPlan),
   ]);
   await appendActivity(
     "手动导入",
@@ -1916,6 +1975,7 @@ async function importData() {
     cache: imported.cache,
     favorites: imported.favorites,
     study: imported.study,
+    studyPlan: imported.studyPlan,
   };
 }
 
@@ -2076,6 +2136,11 @@ app.whenReady().then(() => {
     scheduleAutomaticBackup("study-update");
     return safe;
   });
+  handleTrusted("plan:get", () => getStudyPlanService().getQueue());
+  handleTrusted("plan:add", (_event, problemKey) => getStudyPlanService().addProblem(problemKey));
+  handleTrusted("plan:status", (_event, itemId, status) => getStudyPlanService().setStatus(itemId, status));
+  handleTrusted("plan:remove", (_event, itemId) => getStudyPlanService().remove(itemId));
+  handleTrusted("plan:reorder", (_event, itemIds) => getStudyPlanService().reorder(itemIds));
   handleTrusted("appearance:get-wallpaper", () => wallpaperService.get());
   handleTrusted("appearance:get-local-library", () => materialLibraryService.get());
   handleTrusted("appearance:choose-wallpaper", () => wallpaperService.choose());

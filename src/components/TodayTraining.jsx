@@ -31,6 +31,7 @@ import {
 } from "../lib/planning";
 import { acCountTone, displayTag, ratingTone } from "../lib/stats";
 import { RatingScore } from "./RatingDisplay";
+import PlanQueueButton from "./PlanQueueButton";
 
 const gradeButtons = [
   { id: "again", label: "重来", hint: "1 天", tone: "red" },
@@ -72,6 +73,8 @@ export default function TodayTraining({
   studyData,
   onStudyChange,
   onOpenNote,
+  plannedKeys,
+  onAddToPlan,
 }) {
   const problems = data.problems || [];
   const problemLookup = useMemo(
@@ -318,6 +321,7 @@ export default function TodayTraining({
                   >
                     <NotebookPen size={15} />
                   </button>
+                  <PlanQueueButton problem={item.problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} />
                   <div className="review-grade" aria-label="复习反馈">
                     {gradeButtons.map((grade) => (
                       <button
@@ -530,6 +534,7 @@ export default function TodayTraining({
                           <span className={`rating rating--${ratingTone(item.problem.rating)}`}>
                             {item.problem.rating}
                           </span>
+                          <PlanQueueButton problem={item.problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
                           <button
                             type="button"
                             className={`complete-button ${

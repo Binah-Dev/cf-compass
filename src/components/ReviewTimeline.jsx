@@ -5,8 +5,9 @@ import {
   groupReviewTimeline,
 } from "../lib/review";
 import { acCountTone, displayTag, ratingTone } from "../lib/stats";
+import PlanQueueButton from "./PlanQueueButton";
 
-function TimelineEvent({ item, onOpenNote }) {
+function TimelineEvent({ item, onOpenNote, plannedKeys, onAddToPlan }) {
   const { problem, stats } = item;
   return (
     <article className="timeline-event">
@@ -45,11 +46,12 @@ function TimelineEvent({ item, onOpenNote }) {
       <button type="button" className="timeline-note-button" aria-label={`编辑 ${problem.name} 的笔记`} onClick={() => onOpenNote(problem)}>
         <NotebookPen size={14} />
       </button>
+      <PlanQueueButton problem={problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
     </article>
   );
 }
 
-export default function ReviewTimeline({ items, onOpenNote }) {
+export default function ReviewTimeline({ items, onOpenNote, plannedKeys, onAddToPlan }) {
   const groups = groupReviewTimeline(items);
 
   if (!groups.length) {
@@ -78,7 +80,7 @@ export default function ReviewTimeline({ items, onOpenNote }) {
               </span>
               <div className="timeline-day__events">
                 {day.items.map((item) => (
-                  <TimelineEvent key={item.key} item={item} onOpenNote={onOpenNote} />
+                  <TimelineEvent key={item.key} item={item} onOpenNote={onOpenNote} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} />
                 ))}
               </div>
             </div>
