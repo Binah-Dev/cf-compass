@@ -79,30 +79,6 @@
 .plan-spin { animation: plan-spin 0.8s linear infinite; }
 @keyframes plan-spin { to { transform: rotate(360deg); } }
 
-.study-plan-float { position: fixed; z-index: 45; top: 112px; right: 22px; width: min(430px, calc(100vw - 110px)); height: min(460px, calc(100vh - 145px)); min-width: 350px; min-height: 280px; max-width: min(680px, calc(100vw - 90px)); max-height: calc(100vh - 125px); overflow: hidden; resize: both; display: flex; flex-direction: column; border: 1px solid rgba(94, 204, 164, 0.3); border-radius: 15px; color: #dceef7; background: rgba(7, 24, 37, 0.96); box-shadow: 0 24px 65px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(109, 229, 187, 0.04); backdrop-filter: blur(18px); }
-.study-plan-float > header { min-height: 48px; padding: 0 11px 0 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(103, 196, 229, 0.13); background: linear-gradient(90deg, rgba(47, 151, 117, 0.18), transparent); }
-.study-plan-float > header > div { display: flex; align-items: center; gap: 8px; }
-.study-plan-float > header span { width: 27px; height: 27px; display: grid; place-items: center; color: #74e1ba; border-radius: 8px; background: rgba(65, 190, 145, 0.14); }
-.study-plan-float > header strong { font-size: 12px; }
-.study-plan-float > header small { min-width: 20px; padding: 2px 6px; color: #77dcb9; border-radius: 99px; background: rgba(77, 189, 149, 0.12); font-size: 9px; text-align: center; }
-.study-plan-float > header > button { width: 30px; height: 30px; display: grid; place-items: center; color: #7892a2; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
-.study-plan-float > header > button:hover { color: #f2fbff; background: rgba(116, 156, 179, 0.13); }
-.study-plan-float__list { min-height: 72px; padding: 8px; overflow: auto; display: grid; align-content: start; gap: 5px; }
-.study-plan-float__list article { min-height: 56px; display: grid; grid-template-columns: 48px minmax(0, 1fr) 36px 36px; align-items: stretch; border: 1px solid rgba(105, 182, 228, 0.1); border-radius: 10px; background: rgba(18, 45, 62, 0.68); transition: 130ms ease; }
-.study-plan-float__list article:hover { border-color: rgba(103, 219, 177, 0.23); background: rgba(24, 57, 73, 0.85); }
-.study-plan-float__list article.is-dragging { opacity: 0.38; transform: scale(0.98); }
-.study-plan-float__order { display: flex; align-items: center; justify-content: center; gap: 2px; color: #55788d; border-right: 1px solid rgba(105, 182, 228, 0.09); cursor: grab; }
-.study-plan-float__order b { color: #74ddb8; font-size: 12px; }
-.study-plan-float__problem { min-width: 0; padding: 8px 10px; display: grid; gap: 3px; border: 0; color: inherit; background: transparent; text-align: left; cursor: pointer; }
-.study-plan-float__problem strong { overflow: hidden; color: #d9eaf3; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.study-plan-float__problem small { color: #648498; font-size: 9px; }
-.study-plan-float__done { display: grid; place-items: center; color: #5c7d91; border: 0; border-left: 1px solid rgba(105, 182, 228, 0.09); background: transparent; cursor: pointer; }
-.study-plan-float__done:hover { color: #78e3bd; background: rgba(65, 190, 145, 0.1); }
-.study-plan-float__delete { display: grid; place-items: center; color: #617b8d; border: 0; border-left: 1px solid rgba(105, 182, 228, 0.09); background: transparent; cursor: pointer; }
-.study-plan-float__delete:hover { color: #ff8da5; background: rgba(126, 28, 51, 0.16); }
-.study-plan-float__empty { min-height: 92px; display: grid; place-items: center; align-content: center; gap: 7px; color: #6cd9b2; font-size: 10px; }
-.study-plan-float > footer { padding: 8px 12px; color: #597587; border-top: 1px solid rgba(103, 196, 229, 0.1); font-size: 9px; text-align: center; }
-
 .study-plan-empty { min-height: 260px; flex: 1; display: grid; place-items: center; align-content: center; gap: 9px; text-align: center; }
 .study-plan-empty > span { width: 58px; height: 58px; display: grid; place-items: center; color: #65d6ad; border: 1px solid rgba(76, 207, 160, 0.18); border-radius: 18px; background: rgba(49, 150, 115, 0.12); }
 .study-plan-empty strong { color: #c8dce8; font-size: 14px; }

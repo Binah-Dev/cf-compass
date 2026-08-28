@@ -1622,7 +1622,7 @@ select:focus-visible {
   display: grid;
   grid-template-columns:
     20px 56px minmax(125px, 1.25fr) 54px minmax(100px, 0.8fr)
-    112px 112px 58px 28px 28px;
+    112px 112px 58px 62px;
   align-items: center;
   gap: 6px;
   color: #8f99a8;
@@ -1743,6 +1743,10 @@ select:focus-visible {
 .timeline-event > .timeline-note-button svg {
   opacity: 1;
 }
+
+.timeline-event__actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.timeline-event__actions .timeline-note-button { width: 28px; height: 28px; padding: 0; display: grid; place-items: center; color: #8391a1; border: 0; background: transparent; }
+.timeline-event__actions .timeline-note-button:hover { color: var(--cyan); }
 
 .feature-page {
   min-width: 0;
@@ -3102,6 +3106,8 @@ select:focus-visible {
   min-width: 0;
 }
 
+.review-queue-item__actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+
 .training-problem-name {
   max-width: 100%;
   padding: 0;
@@ -3210,7 +3216,7 @@ select:focus-visible {
   padding: 9px 7px;
   border-bottom: 1px solid #282e37;
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) 52px 32px;
+  grid-template-columns: 26px minmax(0, 1fr) 52px 32px 32px;
   align-items: center;
   gap: 8px;
   transition: 140ms ease;
@@ -5456,7 +5462,7 @@ select:focus-visible {
   }
 
   .timeline-event {
-    grid-template-columns: 20px 56px minmax(140px, 1fr) 54px minmax(100px, 0.7fr) 112px 58px 28px;
+    grid-template-columns: 20px 56px minmax(140px, 1fr) 54px minmax(100px, 0.7fr) 112px 58px 62px;
   }
 
   .timeline-event__time:first-of-type {
@@ -5575,7 +5581,7 @@ select:focus-visible {
 
   .review-list__header,
   .review-row {
-    grid-template-columns: 52px 62px minmax(170px, 1fr) 58px 88px 58px;
+    grid-template-columns: 84px 62px minmax(170px, 1fr) 58px 88px 58px;
   }
 
   .review-list__header > :nth-child(5),

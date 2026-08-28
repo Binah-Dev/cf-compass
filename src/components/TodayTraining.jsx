@@ -313,15 +313,17 @@ export default function TodayTraining({
                       </span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="icon-note-button"
-                    aria-label={`编辑 ${item.problem.name} 的笔记`}
-                    onClick={() => onOpenNote(item.problem)}
-                  >
-                    <NotebookPen size={15} />
-                  </button>
-                  <PlanQueueButton problem={item.problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} />
+                  <div className="review-queue-item__actions">
+                    <button
+                      type="button"
+                      className="icon-note-button"
+                      aria-label={`编辑 ${item.problem.name} 的笔记`}
+                      onClick={() => onOpenNote(item.problem)}
+                    >
+                      <NotebookPen size={15} />
+                    </button>
+                    <PlanQueueButton problem={item.problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
+                  </div>
                   <div className="review-grade" aria-label="复习反馈">
                     {gradeButtons.map((grade) => (
                       <button

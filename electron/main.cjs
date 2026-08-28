@@ -109,6 +109,7 @@ function createFirstLaunchStudyData() {
 }
 
 let mainWindow;
+let studyPlanWindow;
 let apiQueue = Promise.resolve();
 let lastApiCallAt = 0;
 let carrotModulePromise;
@@ -319,10 +320,20 @@ function getStudyPlanService() {
     studyPlanService = createStudyPlanService({
       readJson,
       writeJson,
-      onChanged: () => scheduleAutomaticBackup("plan-update"),
+      onChanged: () => {
+        scheduleAutomaticBackup("plan-update");
+        void broadcastStudyPlan();
+      },
     });
   }
   return studyPlanService;
+}
+
+async function broadcastStudyPlan() {
+  const queue = await getStudyPlanService().getQueue();
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send("plan:changed", queue);
+  }
 }
 
 const wallpaperService = createWallpaperService({
@@ -2040,6 +2051,52 @@ function createWindow() {
   });
 }
 
+function createStudyPlanWindow() {
+  if (studyPlanWindow && !studyPlanWindow.isDestroyed()) {
+    studyPlanWindow.show();
+    studyPlanWindow.focus();
+    return studyPlanWindow;
+  }
+  const mainBounds = mainWindow?.getBounds();
+  studyPlanWindow = new BrowserWindow({
+    width: 480,
+    height: 580,
+    minWidth: 360,
+    minHeight: 320,
+    x: mainBounds ? mainBounds.x + Math.max(40, mainBounds.width - 510) : undefined,
+    y: mainBounds ? mainBounds.y + 82 : undefined,
+    title: "CF Compass · 待做题单",
+    backgroundColor: "#071825",
+    icon: path.join(__dirname, "..", "build", "icon.ico"),
+    show: false,
+    resizable: true,
+    minimizable: true,
+    maximizable: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  studyPlanWindow.setMenuBarVisibility(false);
+  studyPlanWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  studyPlanWindow.webContents.on("will-navigate", (event, url) => {
+    if (!isTrustedRendererUrl(url)) event.preventDefault();
+  });
+  const devUrl = process.env.VITE_DEV_SERVER_URL;
+  if (devUrl) {
+    const target = new URL(devUrl);
+    target.searchParams.set("studyPlanWindow", "1");
+    studyPlanWindow.loadURL(target.toString());
+  } else {
+    studyPlanWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"), { query: { studyPlanWindow: "1" } });
+  }
+  studyPlanWindow.once("ready-to-show", () => studyPlanWindow?.show());
+  studyPlanWindow.on("closed", () => { studyPlanWindow = null; });
+  return studyPlanWindow;
+}
+
 function trustedRendererUrl() {
   return (
     process.env.VITE_DEV_SERVER_URL ||
@@ -2141,6 +2198,10 @@ app.whenReady().then(() => {
   handleTrusted("plan:status", (_event, itemId, status) => getStudyPlanService().setStatus(itemId, status));
   handleTrusted("plan:remove", (_event, itemId) => getStudyPlanService().remove(itemId));
   handleTrusted("plan:reorder", (_event, itemIds) => getStudyPlanService().reorder(itemIds));
+  handleTrusted("plan:window-open", () => {
+    createStudyPlanWindow();
+    return { opened: true };
+  });
   handleTrusted("appearance:get-wallpaper", () => wallpaperService.get());
   handleTrusted("appearance:get-local-library", () => materialLibraryService.get());
   handleTrusted("appearance:choose-wallpaper", () => wallpaperService.choose());

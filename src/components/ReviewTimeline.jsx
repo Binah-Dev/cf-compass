@@ -43,10 +43,10 @@ function TimelineEvent({ item, onOpenNote, plannedKeys, onAddToPlan }) {
       <strong className={`ac-count ac-count--${acCountTone(stats.accepted)}`}>
         AC {stats.accepted} 次
       </strong>
-      <button type="button" className="timeline-note-button" aria-label={`编辑 ${problem.name} 的笔记`} onClick={() => onOpenNote(problem)}>
-        <NotebookPen size={14} />
-      </button>
-      <PlanQueueButton problem={problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
+      <span className="timeline-event__actions">
+        <button type="button" className="timeline-note-button" aria-label={`编辑 ${problem.name} 的笔记`} onClick={() => onOpenNote(problem)}><NotebookPen size={14} /></button>
+        <PlanQueueButton problem={problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
+      </span>
     </article>
   );
 }

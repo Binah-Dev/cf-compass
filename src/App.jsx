@@ -28,7 +28,7 @@ import {
   loadLocalWallpaperLibrary,
   updateCustomWallpaperMetadata,
 } from "./lib/appearance";
-import { addStudyPlanProblem, getStudyPlan, removeStudyPlanItem, reorderStudyPlan, setStudyPlanStatus } from "./lib/study-plan";
+import { addStudyPlanProblem, getStudyPlan, onStudyPlanChanged, openStudyPlanWindow, removeStudyPlanItem, reorderStudyPlan, setStudyPlanStatus } from "./lib/study-plan";
 import {
   loadFavorites,
   loadInitialData,
@@ -218,6 +218,11 @@ export default function App() {
         window.clearTimeout(secondaryIdleId);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    if (!window.cfBridge?.onStudyPlanChanged) return undefined;
+    return onStudyPlanChanged((queue) => setPlanItems(Array.isArray(queue?.items) ? queue.items : []));
   }, []);
 
   useEffect(() => {
@@ -752,6 +757,7 @@ export default function App() {
             onRemove={removePlanItem}
             onReorder={reorderPlanItems}
             onOpenLibrary={() => navigate("library")}
+            onOpenWindow={() => openStudyPlanWindow().catch((error) => setToast({ type: "error", message: error.message || "待做题单窗口打开失败" }))}
           />
         ) : activeNav === "contests" ? (
           <ContestReplayPage

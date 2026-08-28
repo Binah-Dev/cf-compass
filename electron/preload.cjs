@@ -23,6 +23,12 @@ contextBridge.exposeInMainWorld("cfBridge", {
   setStudyPlanStatus: (itemId, status) => ipcRenderer.invoke("plan:status", itemId, status),
   removeStudyPlanItem: (itemId) => ipcRenderer.invoke("plan:remove", itemId),
   reorderStudyPlan: (itemIds) => ipcRenderer.invoke("plan:reorder", itemIds),
+  openStudyPlanWindow: () => ipcRenderer.invoke("plan:window-open"),
+  onStudyPlanChanged: (callback) => {
+    const listener = (_event, queue) => callback(queue);
+    ipcRenderer.on("plan:changed", listener);
+    return () => ipcRenderer.removeListener("plan:changed", listener);
+  },
   getCustomWallpaper: () => ipcRenderer.invoke("appearance:get-wallpaper"),
   getLocalWallpaperLibrary: () => ipcRenderer.invoke("appearance:get-local-library"),
   chooseCustomWallpaper: () => ipcRenderer.invoke("appearance:choose-wallpaper"),

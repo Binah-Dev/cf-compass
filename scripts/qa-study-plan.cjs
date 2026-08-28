@@ -77,48 +77,80 @@ let app;
   await page.getByRole("button", { name: "今日训练", exact: true }).click();
   await page.waitForSelector(".today-page");
   assert.ok(await page.locator(".plan-queue-action").count() > 0, "Today Training problem cards must expose plan actions");
+  assert.equal(await page.locator(".plan-queue-action").first().isVisible(), true, "Today Training plan action must be visibly reachable");
   await page.getByRole("button", { name: "复习库", exact: true }).click();
   await page.waitForSelector(".review-library");
   await page.getByRole("tab", { name: "全部已刷", exact: true }).click();
   assert.ok(await page.locator(".plan-queue-action").count() > 0, "Review problem rows must expose plan actions");
+  await page.getByRole("tab", { name: "时间轴", exact: true }).click();
+  await page.waitForSelector(".timeline-event");
+  assert.equal(await page.locator(".timeline-event .plan-queue-action").first().isVisible(), true, "Review timeline plan action must be visibly reachable");
 
   await page.getByRole("button", { name: "计划题单", exact: true }).click();
   await page.waitForSelector(".study-plan-page");
   assert.equal(await page.locator(".study-plan-item").count(), 2);
   assert.deepEqual(await page.locator(".study-plan-item__order b").allTextContents(), ["1", "2"]);
-  await page.getByRole("complementary", { name: "待刷题悬浮题单" }).waitFor();
-  const floatingGeometry = await page.locator(".study-plan-float").evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const style = getComputedStyle(element);
-    return { top: rect.top, right: innerWidth - rect.right, width: rect.width, height: rect.height, resize: style.resize };
+  const initialIds = await page.locator(".study-plan-item__id").allTextContents();
+  const [planWindow] = await Promise.all([
+    app.waitForEvent("window"),
+    page.getByRole("button", { name: "打开独立题单", exact: true }).click(),
+  ]);
+  await planWindow.waitForSelector(".study-plan-window-shell");
+  assert.equal(await planWindow.locator(".study-plan-window-item").count(), 2, "Independent window must show the complete queue");
+
+  const nativeInitial = await app.evaluate(({ BrowserWindow }) => {
+    const windows = BrowserWindow.getAllWindows();
+    const main = windows.find((window) => !window.webContents.getURL().includes("studyPlanWindow=1"));
+    const plan = windows.find((window) => window.webContents.getURL().includes("studyPlanWindow=1"));
+    return { count: windows.length, main: main.getBounds(), plan: plan.getBounds(), resizable: plan.isResizable() };
   });
-  assert.ok(floatingGeometry.top < 180 && floatingGeometry.right < 50, "Floating plan must open near the upper-right corner");
-  assert.ok(floatingGeometry.width >= 400 && floatingGeometry.height >= 400, "Floating plan must be a practical working size");
-  assert.equal(floatingGeometry.resize, "both", "Floating plan must be user-resizable");
-  const floatingItems = page.locator(".study-plan-float__list article");
-  assert.equal(await floatingItems.count(), 2);
-  await floatingItems.nth(1).dragTo(floatingItems.nth(0));
-  await page.waitForFunction(() => document.querySelector(".study-plan-item__id")?.textContent === "1234-A");
-  assert.deepEqual(await page.locator(".study-plan-item__order b").allTextContents(), ["1", "2"]);
-  await page.screenshot({ path: path.join(outputRoot, "study-plan-floating.png") });
+  assert.equal(nativeInitial.count, 2, "Study plan must be a separate native BrowserWindow");
+  assert.equal(nativeInitial.resizable, true, "Independent study plan window must be edge-resizable");
+  assert.ok(nativeInitial.plan.width >= 440 && nativeInitial.plan.height >= 520, "Independent window must open at a practical size");
+
+  const nativeMoved = await app.evaluate(({ BrowserWindow }) => {
+    const windows = BrowserWindow.getAllWindows();
+    const main = windows.find((window) => !window.webContents.getURL().includes("studyPlanWindow=1"));
+    const plan = windows.find((window) => window.webContents.getURL().includes("studyPlanWindow=1"));
+    const mainBounds = main.getBounds();
+    const before = plan.getBounds();
+    plan.setBounds({ x: mainBounds.x + mainBounds.width + 24, y: mainBounds.y + 60, width: before.width + 70, height: before.height + 50 });
+    return { main: mainBounds, plan: plan.getBounds() };
+  });
+  assert.ok(nativeMoved.plan.x > nativeMoved.main.x + nativeMoved.main.width, "Independent window must be movable outside the main window");
+  assert.ok(nativeMoved.plan.width > nativeInitial.plan.width && nativeMoved.plan.height > nativeInitial.plan.height, "Native window bounds must be resizable");
+
+  const planItems = planWindow.locator(".study-plan-window-item");
+  await planItems.nth(1).dragTo(planItems.nth(0));
+  const reorderedIds = [initialIds[1], initialIds[0]];
+  await page.waitForFunction((expected) => document.querySelector(".study-plan-item__id")?.textContent === expected, reorderedIds[0]);
+  assert.deepEqual(await planWindow.locator(".study-plan-window-order b").allTextContents(), ["1", "2"]);
+  assert.deepEqual(await page.locator(".study-plan-item__id").allTextContents(), reorderedIds, "Child-window reorder must sync to the main page");
+  await planWindow.screenshot({ path: path.join(outputRoot, "study-plan-independent-window.png") });
   await page.screenshot({ path: path.join(outputRoot, "study-plan-pending.png") });
 
-  await page.locator(".study-plan-board").getByRole("button", { name: "完成 1234-A", exact: true }).click();
+  const completedKey = reorderedIds[0];
+  await planWindow.getByRole("button", { name: `完成 ${completedKey}`, exact: true }).click();
+  await planWindow.locator(".study-plan-window-item.is-done").waitFor();
+  assert.equal(await planWindow.locator(".study-plan-window-item").count(), 2, "Completing a problem must keep it in the independent queue");
   await page.locator(".study-plan-item.is-done").waitFor();
-  const decoration = await page.locator(".study-plan-item.is-done .study-plan-item__title").evaluate((element) => getComputedStyle(element).textDecorationLine);
-  assert.match(decoration, /line-through/, "Completed problem title must be crossed out");
-  await page.screenshot({ path: path.join(outputRoot, "study-plan-completed.png") });
+  const childDecoration = await planWindow.locator(".study-plan-window-item.is-done .study-plan-window-problem strong").evaluate((element) => getComputedStyle(element).textDecorationLine);
+  const mainDecoration = await page.locator(".study-plan-item.is-done .study-plan-item__title").evaluate((element) => getComputedStyle(element).textDecorationLine);
+  assert.match(childDecoration, /line-through/, "Completed child-window item must be crossed out");
+  assert.match(mainDecoration, /line-through/, "Completed state must sync and cross out the main-page item");
+  await planWindow.screenshot({ path: path.join(outputRoot, "study-plan-independent-completed.png") });
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "计划题单", exact: true }).click();
-  assert.equal(await page.locator(".study-plan-item__id").first().textContent(), "1234-A", "Dragged order must survive reload");
+  assert.equal(await page.locator(".study-plan-item__id").first().textContent(), completedKey, "Child-window order must survive reload");
   await page.locator(".study-plan-item.is-done").waitFor();
-  assert.equal(await page.getByRole("button", { name: "将 1234-A 恢复为待完成", exact: true }).count(), 1, "Done state must survive reload");
-  await page.locator(".study-plan-board").getByRole("button", { name: "将 1234-A 恢复为待完成", exact: true }).click();
-  await page.locator(".study-plan-board").getByRole("button", { name: "完成 1234-A", exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: `将 ${completedKey} 恢复为待完成`, exact: true }).count(), 1, "Done state must survive reload");
+  await planWindow.getByRole("button", { name: `将 ${completedKey} 恢复为待完成`, exact: true }).click();
+  await page.locator(".study-plan-board").getByRole("button", { name: `完成 ${completedKey}`, exact: true }).waitFor();
 
-  await page.getByRole("button", { name: "从悬浮题单删除 1234-A", exact: true }).click();
-  await page.getByRole("button", { name: "从悬浮题单删除 1234-B", exact: true }).click();
+  for (const key of reorderedIds) {
+    await planWindow.getByRole("button", { name: `从独立题单删除 ${key}`, exact: true }).click();
+  }
   await page.getByText("计划题单还是空的", { exact: true }).waitFor();
   assert.equal(await page.locator(".study-plan-item").count(), 0);
 
@@ -150,14 +182,16 @@ let app;
     planNav: 1,
     completionPersistedAcrossReload: true,
     reorderPersistedAcrossReload: true,
-    floatingGeometry,
+    independentNativeWindow: true,
+    nativeInitial,
+    nativeMoved,
     deletionPersisted: true,
     minimumViewport: fit,
     screenshots: [
       path.join(outputRoot, "problemset-plan-button.png"),
       path.join(outputRoot, "study-plan-pending.png"),
-      path.join(outputRoot, "study-plan-floating.png"),
-      path.join(outputRoot, "study-plan-completed.png"),
+      path.join(outputRoot, "study-plan-independent-window.png"),
+      path.join(outputRoot, "study-plan-independent-completed.png"),
       path.join(outputRoot, "study-plan-minimum-viewport.png"),
     ],
   }, null, 2));
