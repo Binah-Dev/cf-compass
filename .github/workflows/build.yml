@@ -32,6 +32,8 @@ jobs:
           pnpm exec node scripts/test-template-summary-format.mjs
           pnpm exec node scripts/test-carrot.mjs
           pnpm exec node scripts/test-analytics.mjs
+          pnpm exec node scripts/test-ai-service.cjs
+          pnpm exec node scripts/test-codeforces-source-service.cjs
           pnpm exec node scripts/test-material-library.cjs
           pnpm exec node scripts/test-performance.mjs
       - name: Build renderer
