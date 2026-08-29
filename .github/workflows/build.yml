@@ -33,7 +33,9 @@ jobs:
           pnpm exec node scripts/test-carrot.mjs
           pnpm exec node scripts/test-analytics.mjs
           pnpm exec node scripts/test-ai-service.cjs
+          pnpm exec node scripts/test-contest-recommendations.cjs
           pnpm exec node scripts/test-codeforces-source-service.cjs
+          pnpm exec node scripts/test-study-plan-service.cjs
           pnpm exec node scripts/test-material-library.cjs
           pnpm exec node scripts/test-performance.mjs
       - name: Build renderer
@@ -91,6 +93,8 @@ jobs:
           $env:CF_COMPASS_QA_EXECUTABLE = $executable.FullName
           pnpm exec node scripts/qa-material-quarantine.cjs
           pnpm exec node scripts/qa-issue-13-layout.cjs
+          pnpm exec node scripts/qa-template-summary-persistence.cjs
+          pnpm exec node scripts/qa-study-plan.cjs
           pnpm exec node scripts/qa-electron.cjs
       - name: Verify macOS application signature
         if: runner.os == 'macOS'

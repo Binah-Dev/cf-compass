@@ -122,7 +122,9 @@ let app;
   const errors = [];
   app = await electron.launch({
     executablePath,
-    args: process.env.CF_COMPASS_QA_EXECUTABLE ? [] : [projectRoot],
+    args: process.env.CF_COMPASS_QA_EXECUTABLE
+      ? ["--disable-gpu"]
+      : ["--disable-gpu", projectRoot],
     cwd: projectRoot,
     env: { ...process.env, CF_COMPASS_USER_DATA: userDataRoot },
   });

@@ -100,7 +100,7 @@ function assertAnchored(layout, phase) {
     executablePath: packagedExecutable
       ? path.resolve(packagedExecutable)
       : path.join(projectRoot, "node_modules", "electron", "dist", "electron.exe"),
-    args: packagedExecutable ? [] : [projectRoot],
+    args: packagedExecutable ? ["--disable-gpu"] : ["--disable-gpu", projectRoot],
     cwd: projectRoot,
     env: { ...process.env, CF_COMPASS_USER_DATA: userDataRoot },
   });

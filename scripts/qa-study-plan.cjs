@@ -51,7 +51,7 @@ let app;
   const errors = [];
   app = await electron.launch({
     executablePath: path.join(projectRoot, "node_modules/electron/dist/electron.exe"),
-    args: [projectRoot],
+    args: ["--disable-gpu", projectRoot],
     cwd: projectRoot,
     env: { ...process.env, CF_COMPASS_USER_DATA: userDataRoot },
   });

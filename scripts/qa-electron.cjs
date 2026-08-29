@@ -48,7 +48,7 @@ let app;
     executablePath: packagedExecutable
       ? path.resolve(packagedExecutable)
       : path.join(projectRoot, "node_modules/electron/dist/electron.exe"),
-    args: packagedExecutable ? [] : [projectRoot],
+    args: packagedExecutable ? ["--disable-gpu"] : ["--disable-gpu", projectRoot],
     cwd: projectRoot,
     env: {
       ...process.env,
