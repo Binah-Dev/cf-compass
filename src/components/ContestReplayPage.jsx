@@ -43,7 +43,7 @@ import {
   performanceTone,
   SPECIAL_CONTEST_FILTERS,
 } from "../lib/contests";
-import { analyzeContestWithAi } from "../lib/ai";
+import { analyzeContestWithAi, recommendContestProblems } from "../lib/ai";
 import { buildContestDiffMockReview } from "../lib/ai-mock";
 import { loadCodeforcesSourceConfig } from "../lib/codeforces-source";
 import { formatNumber, formatPercent, ratingTone } from "../lib/stats";
@@ -140,6 +140,8 @@ function ProblemTable({
   onOpenNote,
   plannedKeys,
   onAddToPlan,
+  favorites,
+  onToggleFavorite,
 }) {
   return (
     <section className="contest-problem-table" aria-label={`${contest.contestName} 比赛题目`}>
@@ -412,6 +414,9 @@ export default function ContestReplayPage({
   const [aiMode, setAiMode] = useState("summary");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+  const [recommendation, setRecommendation] = useState(null);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationError, setRecommendationError] = useState("");
   const [sourceConfig, setSourceConfig] = useState({
     enabled: false,
     hasCredentials: false,
@@ -670,6 +675,19 @@ export default function ContestReplayPage({
     setAiReview(saved);
   }
 
+  async function requestRecommendations() {
+    if (!aiContest || !aiReview) return;
+    setRecommendationLoading(true);
+    setRecommendationError("");
+    try {
+      setRecommendation(await recommendContestProblems(aiContest.contestId, { review: aiReview }));
+    } catch (error) {
+      setRecommendationError(error.message || "推荐题单生成失败");
+    } finally {
+      setRecommendationLoading(false);
+    }
+  }
+
   const sourceAccess = Boolean(
     contestDiffMockEnabled ||
       (!data?.isDemo && sourceConfig?.enabled && sourceConfig?.hasCredentials),
@@ -869,9 +887,20 @@ export default function ContestReplayPage({
           setAiReview(null);
           setAiMode("summary");
           setAiError("");
+          setRecommendation(null);
+          setRecommendationError("");
         }}
         onRetry={() => requestAiReview(aiContest, aiMode === "source", false)}
         onSave={saveAiReview}
+        recommendation={recommendation}
+        recommendationLoading={recommendationLoading}
+        recommendationError={recommendationError}
+        onGenerateRecommendations={requestRecommendations}
+        favorites={favorites}
+        onToggleFavorite={onToggleFavorite}
+        plannedKeys={plannedKeys}
+        onAddToPlan={onAddToPlan}
+        onOpenNote={onOpenNote}
       />
     </section>
   );

@@ -32,6 +32,7 @@ import {
 import { acCountTone, displayTag, ratingTone } from "../lib/stats";
 import { RatingScore } from "./RatingDisplay";
 import PlanQueueButton from "./PlanQueueButton";
+import ProblemNoteButton from "./ProblemNoteButton";
 
 const gradeButtons = [
   { id: "again", label: "重来", hint: "1 天", tone: "red" },
@@ -536,6 +537,7 @@ export default function TodayTraining({
                           <span className={`rating rating--${ratingTone(item.problem.rating)}`}>
                             {item.problem.rating}
                           </span>
+                          <ProblemNoteButton problem={item.problem} onOpenNote={onOpenNote} />
                           <PlanQueueButton problem={item.problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
                           <button
                             type="button"

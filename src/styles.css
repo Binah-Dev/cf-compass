@@ -6046,6 +6046,29 @@ select:focus-visible {
   font-weight: 750;
 }
 
+.ai-recommendation-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.ai-recommendation-heading h3 { margin-bottom: 4px; }
+.ai-recommendation-heading p { margin: 0; color: #7192a8; font-size: var(--ai-review-secondary-size); }
+.ai-recommendation-heading .ghost-button { flex: 0 0 auto; }
+.ai-recommendation-error { padding: 10px 12px; border: 1px solid rgba(255, 112, 132, .25); border-radius: 8px; color: #ff9aae; background: rgba(105, 27, 47, .22); }
+.ai-recommendation-list { margin-top: 12px; display: grid; gap: 8px; }
+.ai-recommendation-list > article { min-width: 0; padding: 12px; display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 12px; border: 1px solid rgba(111, 177, 222, .16); border-radius: 10px; background: rgba(15, 36, 54, .7); }
+.ai-recommendation-index { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; color: #78e1bd; background: rgba(55, 188, 139, .12); font-weight: 800; }
+.ai-recommendation-main { min-width: 0; padding: 0; border: 0; display: grid; gap: 4px; color: inherit; background: transparent; text-align: left; }
+.ai-recommendation-main strong { overflow: hidden; color: #dceef9; font-size: var(--ai-review-body-size); text-overflow: ellipsis; white-space: nowrap; }
+.ai-recommendation-main small { color: #72a3bc; font-size: var(--ai-review-secondary-size); }
+.ai-recommendation-main p { margin: 2px 0 0; color: #9ab5c6; line-height: 1.5; }
+.ai-recommendation-main em { color: #6fd9b1; font-size: var(--ai-review-secondary-size); font-style: normal; }
+.ai-recommendation-actions { display: flex; align-items: center; gap: 6px; }
+.ai-recommendation-actions > button { min-width: 34px; min-height: 34px; border: 1px solid rgba(111, 177, 222, .18); border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #7597ab; background: rgba(6, 20, 33, .5); }
+.ai-recommendation-actions > button:hover, .ai-recommendation-actions > button.is-active { color: #7ce5be; border-color: rgba(91, 213, 167, .35); }
+
+@media (max-width: 760px) {
+  .ai-recommendation-heading { align-items: stretch; flex-direction: column; }
+  .ai-recommendation-list > article { grid-template-columns: 36px minmax(0, 1fr); }
+  .ai-recommendation-actions { grid-column: 2; flex-wrap: wrap; }
+}
+
 .ai-review-summary p {
   margin: 8px 0 0;
   color: #d9eaf5;

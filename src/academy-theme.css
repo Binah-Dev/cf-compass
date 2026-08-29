@@ -3175,7 +3175,7 @@ html[lang="en-US"] .titlebar__brand::after {
 
 .academy-theme.is-immersive .app-wallpaper--image,
 .academy-theme.is-immersive .app-wallpaper--video {
-  transform: scale(var(--wallpaper-scale, 1));
+  transform: translateX(34px) scale(calc(var(--wallpaper-scale, 1) + 0.04));
 }
 
 .academy-theme.is-immersive .app-wallpaper--backdrop {

@@ -48,6 +48,10 @@ async function main() {
     ],
   };
   const cache = {
+    problems: [
+      { contestId: 2001, index: "A", name: "Graph Practice", rating: 1200, tags: ["graphs"] },
+      { contestId: 2002, index: "B", name: "Implementation Practice", rating: 900, tags: ["implementation"] },
+    ],
     submissions: [
       {
         id: 1,
@@ -149,6 +153,18 @@ async function main() {
           assert.deepEqual(body.thinking, { type: "disabled" });
           assert.match(body.messages[1].content, /1900-A/);
           if (requestCount === 3) assert.match(body.messages[1].content, /source for 1900-A/);
+          if (requestCount === 4) {
+            assert.match(body.messages[1].content, /2001-A/);
+            return {
+              ok: true,
+              status: 200,
+              text: async () => "",
+              json: async () => ({ choices: [{ message: { content: JSON.stringify({ recommendations: [
+                { id: "2001-A", reason: "补强图论", focus: "图建模" },
+                { id: "9999-Z", reason: "必须过滤" },
+              ] }) } }] }),
+            };
+          }
           if (requestCount === 1) {
             return {
               ok: true,
@@ -224,6 +240,11 @@ async function main() {
     assert.equal(sourceReview.sourceDiffs[0].kind, "initial");
     assert.match(sourceReview.sourceDiffs[0].patch, /source for 1900-A/);
     assert.equal(requestCount, 3);
+    const recommendation = await service.recommendContestProblems(1900, { review });
+    assert.equal(recommendation.recommendations.length, 1);
+    assert.equal(recommendation.recommendations[0].problemKey, "2001-A");
+    assert.equal(recommendation.recommendations[0].name, "Graph Practice");
+    assert.equal(requestCount, 4);
 
     const demoService = createAiService({
       dataPath: (filename) => path.join(temporaryDirectory, filename),

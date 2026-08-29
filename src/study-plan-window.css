@@ -12,7 +12,7 @@
 .study-plan-window-progress > b { color: #6fdab5; font-size: 10px; text-align: right; }
 .study-plan-window-error { margin: 0 12px 8px; padding: 7px 10px; color: #ff9caf; border: 1px solid rgba(255, 109, 137, 0.2); border-radius: 8px; background: rgba(104, 23, 41, 0.25); font-size: 10px; }
 .study-plan-window-list { min-height: 0; padding: 5px 10px 10px; overflow: auto; display: grid; align-content: start; gap: 7px; }
-.study-plan-window-item { min-height: 66px; display: grid; grid-template-columns: 48px minmax(0, 1fr) 40px 40px; align-items: stretch; overflow: hidden; border: 1px solid rgba(104, 185, 224, 0.11); border-radius: 11px; background: rgba(16, 42, 58, 0.78); transition: opacity 130ms ease, transform 130ms ease, border-color 130ms ease, background 130ms ease; }
+.study-plan-window-item { min-height: 66px; display: grid; grid-template-columns: 48px minmax(0, 1fr) 40px 40px 40px; align-items: stretch; overflow: hidden; border: 1px solid rgba(104, 185, 224, 0.11); border-radius: 11px; background: rgba(16, 42, 58, 0.78); transition: opacity 130ms ease, transform 130ms ease, border-color 130ms ease, background 130ms ease; }
 .study-plan-window-item:hover { border-color: rgba(100, 222, 178, 0.25); background: rgba(20, 52, 68, 0.9); }
 .study-plan-window-item.is-dragging { opacity: .38; transform: scale(.985); }
 .study-plan-window-item.is-done { opacity: .68; background: rgba(11, 41, 39, .76); }
@@ -29,6 +29,8 @@
 .study-plan-window-problem span { overflow: hidden; color: #678899; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .study-plan-window-done,
 .study-plan-window-delete { display: grid; place-items: center; border: 0; border-left: 1px solid rgba(105, 182, 228, 0.09); background: transparent; cursor: pointer; }
+.study-plan-window-item > .icon-note-button { width: auto; height: auto; border: 0; border-left: 1px solid rgba(105, 182, 228, 0.09); border-radius: 0; color: #6d91a4; background: transparent; }
+.study-plan-window-item > .icon-note-button:hover { color: #82dfff; background: rgba(72, 156, 198, 0.12); }
 .study-plan-window-done { color: #5d7f92; }
 .study-plan-window-done:hover,
 .study-plan-window-item.is-done .study-plan-window-done { color: #76e1ba; background: rgba(65, 190, 145, 0.1); }
@@ -46,5 +48,5 @@
   .study-plan-window-header { padding-inline: 12px; }
   .study-plan-window-progress { padding-inline: 12px; }
   .study-plan-window-list { padding-inline: 7px; }
-  .study-plan-window-item { grid-template-columns: 40px minmax(0, 1fr) 36px 36px; }
+  .study-plan-window-item { grid-template-columns: 40px minmax(0, 1fr) 36px 36px 36px; }
 }

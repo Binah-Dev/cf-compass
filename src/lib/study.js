@@ -154,6 +154,20 @@ export async function saveStudyData(value) {
   return safe;
 }
 
+export async function saveProblemNote(problemKey, note) {
+  const key = String(problemKey || "").trim().toUpperCase();
+  if (window.cfBridge?.setProblemNote) {
+    return normalizeStudyData(await window.cfBridge.setProblemNote(key, note));
+  }
+  const current = await loadStudyData();
+  return saveStudyData({ ...current, notes: { ...current.notes, [key]: note } });
+}
+
+export function onStudyDataChanged(callback) {
+  if (!window.cfBridge?.onStudyChanged) return () => {};
+  return window.cfBridge.onStudyChanged((study) => callback(normalizeStudyData(study)));
+}
+
 export async function getDataCenterStatus() {
   if (window.cfBridge) return window.cfBridge.getDataStatus();
   const data = JSON.parse(localStorage.getItem("cf-compass-cache-v1") || "null");

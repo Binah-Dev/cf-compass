@@ -13,6 +13,7 @@ import {
 import { acCountTone, displayTag, formatNumber, ratingTone } from "../lib/stats";
 import { openProblem, problemKey } from "../lib/codeforces";
 import RatingRange from "./RatingRange";
+import ProblemNoteButton from "./ProblemNoteButton";
 
 const statusOptions = [
   { id: "all", label: "全部题目" },
@@ -21,7 +22,7 @@ const statusOptions = [
   { id: "favorite", label: "已收藏" },
 ];
 
-function ProblemRow({ problem, stats, isFavorite, isPlanned, onToggleFavorite, onAddToPlan, showTags }) {
+function ProblemRow({ problem, stats, isFavorite, isPlanned, onToggleFavorite, onAddToPlan, onOpenNote, showTags }) {
   const key = problemKey(problem);
   const solved = Boolean(stats?.accepted);
   return (
@@ -45,6 +46,7 @@ function ProblemRow({ problem, stats, isFavorite, isPlanned, onToggleFavorite, o
         >
           {isPlanned ? <Check size={15} /> : <ListPlus size={15} />}
         </button>
+        <ProblemNoteButton problem={problem} onOpenNote={onOpenNote} />
       </div>
       <button type="button" className="problem-id" onClick={() => openProblem(problem)}>
         {problem.contestId}
@@ -93,6 +95,7 @@ export default function ProblemWorkspace({
   favorites,
   plannedKeys,
   onToggleFavorite,
+  onOpenNote,
   onAddToPlan,
   search,
   onSearchChange,
@@ -194,6 +197,7 @@ export default function ProblemWorkspace({
                 isFavorite={favorites.has(problemKey(problem))}
                 isPlanned={plannedKeys.has(problemKey(problem))}
                 onToggleFavorite={onToggleFavorite}
+                onOpenNote={onOpenNote}
                 onAddToPlan={onAddToPlan}
                 showTags={showTags}
               />

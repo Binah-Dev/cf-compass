@@ -42,6 +42,7 @@ import {
   importAllData,
   loadStudyData,
   openBackupFolder,
+  saveProblemNote as saveProblemNoteData,
   saveStudyData,
 } from "./lib/study";
 import {
@@ -603,12 +604,15 @@ export default function App() {
     }
   }, []);
 
-  function saveProblemNote(key, note) {
-    persistStudy(
-      { ...studyData, notes: { ...studyData.notes, [key]: note } },
-      "复盘笔记已保存",
-    );
-    setNoteProblem(null);
+  async function saveProblemNote(key, note) {
+    try {
+      const saved = await saveProblemNoteData(key, note);
+      setStudyData(saved);
+      setToast({ type: "success", message: "复盘笔记已保存" });
+      setNoteProblem(null);
+    } catch (error) {
+      setToast({ type: "error", message: error.message || "复盘笔记保存失败" });
+    }
   }
 
   async function handleExport() {
@@ -766,6 +770,7 @@ export default function App() {
             onToggleStatus={togglePlanItem}
             onRemove={removePlanItem}
             onReorder={reorderPlanItems}
+            onOpenNote={setNoteProblem}
             onOpenLibrary={() => navigate("library")}
             onOpenWindow={() => openStudyPlanWindow().catch((error) => setToast({ type: "error", message: error.message || "待做题单窗口打开失败" }))}
           />
@@ -778,6 +783,8 @@ export default function App() {
             onToast={(type, message) => setToast({ type, message })}
             plannedKeys={plannedKeys}
             onAddToPlan={addProblemToPlan}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
           />
         ) : activeNav === "contest-center" ? (
           <ContestCenterPage
@@ -787,6 +794,7 @@ export default function App() {
             onToast={showToast}
             plannedKeys={plannedKeys}
             onAddToPlan={addProblemToPlan}
+            onOpenNote={setNoteProblem}
           />
         ) : activeNav === "templates" ? (
           <TemplateLibrary onToast={showToast} />
@@ -831,6 +839,7 @@ export default function App() {
                   plannedKeys={plannedKeys}
                   onToggleFavorite={toggleFavorite}
                   onAddToPlan={addProblemToPlan}
+                  onOpenNote={setNoteProblem}
                   search={search}
                   onSearchChange={(value) => resetPage(() => setSearch(value))}
                   ratingRange={ratingRange}
@@ -872,6 +881,7 @@ export default function App() {
                    recentActivity={recentActivity}
                    plannedKeys={plannedKeys}
                    onAddToPlan={addProblemToPlan}
+                   onOpenNote={setNoteProblem}
                 />
               ),
             }}

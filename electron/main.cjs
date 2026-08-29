@@ -1388,16 +1388,7 @@ function sanitizeStudyData(input) {
   const notes = {};
   for (const [key, value] of Object.entries(source.notes || {}).slice(0, 10000)) {
     if (!value || typeof value !== "object") continue;
-    notes[String(key).slice(0, 80)] = {
-      difficulty: clampNumber(value.difficulty, 1, 5, 3),
-      mistakeReason: String(value.mistakeReason || "").slice(0, 80),
-      mistakeTags: Array.isArray(value.mistakeTags)
-        ? value.mistakeTags.slice(0, 12).map((tag) => String(tag).slice(0, 30))
-        : [],
-      keyIdea: String(value.keyIdea || "").slice(0, 5000),
-      content: String(value.content || "").slice(0, 30000),
-      updatedAt: String(value.updatedAt || new Date().toISOString()),
-    };
+    notes[String(key).slice(0, 80)] = sanitizeProblemNote(value);
   }
 
   const reviews = {};
@@ -1674,6 +1665,26 @@ function sanitizeStudyData(input) {
           : DEFAULT_SETTINGS.reduceMotion,
     },
   };
+}
+
+function sanitizeProblemNote(value) {
+  const source = value && typeof value === "object" ? value : {};
+  return {
+    difficulty: clampNumber(source.difficulty, 1, 5, 3),
+    mistakeReason: String(source.mistakeReason || "").slice(0, 80),
+    mistakeTags: Array.isArray(source.mistakeTags)
+      ? source.mistakeTags.slice(0, 12).map((tag) => String(tag).slice(0, 30))
+      : [],
+    keyIdea: String(source.keyIdea || "").slice(0, 5000),
+    content: String(source.content || "").slice(0, 30000),
+    updatedAt: String(source.updatedAt || new Date().toISOString()).slice(0, 40),
+  };
+}
+
+async function broadcastStudyData(study) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send("study:changed", study);
+  }
 }
 
 async function readStudyData() {
@@ -2231,6 +2242,9 @@ app.whenReady().then(() => {
   handleTrusted("ai:analyze-contest", (_event, contestId, options = {}) =>
     aiService.analyzeContest(contestId, options),
   );
+  handleTrusted("ai:recommend-contest", (_event, contestId, options = {}) =>
+    aiService.recommendContestProblems(contestId, options),
+  );
   handleTrusted("data:export", (_event, snapshot) => exportData(snapshot));
   handleTrusted("data:import", () => importData());
   handleTrusted("data:open-backups", async () => {
@@ -2248,6 +2262,20 @@ app.whenReady().then(() => {
     const safe = sanitizeStudyData(studyData);
     await writeJson("study.json", safe);
     scheduleAutomaticBackup("study-update");
+    await broadcastStudyData(safe);
+    return safe;
+  });
+  handleTrusted("study:note-set", async (_event, problemKeyValue, noteValue) => {
+    const problemKey = String(problemKeyValue || "").trim().toUpperCase().slice(0, 80);
+    if (!/^\d+-?[A-Z][A-Z0-9]*$/.test(problemKey)) throw new Error("题目标识无效");
+    const current = await readStudyData();
+    const safe = sanitizeStudyData({
+      ...current,
+      notes: { ...current.notes, [problemKey]: sanitizeProblemNote(noteValue) },
+    });
+    await writeJson("study.json", safe);
+    scheduleAutomaticBackup("study-note-update");
+    await broadcastStudyData(safe);
     return safe;
   });
   handleTrusted("plan:get", () => getStudyPlanService().getQueue());

@@ -1,6 +1,7 @@
 import { Check, Circle, ExternalLink, GripVertical, ListChecks, LoaderCircle, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { openProblem } from "../lib/codeforces";
+import { loadStudyData, onStudyDataChanged, saveProblemNote } from "../lib/study";
 import {
   getStudyPlan,
   onStudyPlanChanged,
@@ -8,6 +9,8 @@ import {
   reorderStudyPlan,
   setStudyPlanStatus,
 } from "../lib/study-plan";
+import ProblemNoteButton from "./ProblemNoteButton";
+import ProblemNoteDrawer from "./ProblemNoteDrawer";
 
 export default function StudyPlanWindow() {
   const [items, setItems] = useState([]);
@@ -15,6 +18,8 @@ export default function StudyPlanWindow() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
   const [draggedId, setDraggedId] = useState("");
+  const [studyData, setStudyData] = useState(null);
+  const [noteProblem, setNoteProblem] = useState(null);
   const doneCount = useMemo(() => items.filter((item) => item.status === "done").length, [items]);
   const progress = items.length ? Math.round(doneCount / items.length * 100) : 0;
 
@@ -31,6 +36,13 @@ export default function StudyPlanWindow() {
         setError("");
       }
     });
+    return () => { active = false; dispose?.(); };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadStudyData().then((study) => { if (active) setStudyData(study); }).catch(() => undefined);
+    const dispose = onStudyDataChanged((study) => { if (active) setStudyData(study); });
     return () => { active = false; dispose?.(); };
   }, []);
 
@@ -98,6 +110,7 @@ export default function StudyPlanWindow() {
                   <strong>{item.name}<ExternalLink size={12} /></strong>
                   <span>{item.rating || "—"}{item.tags?.length ? ` · ${item.tags.slice(0, 2).join(" / ")}` : ""}</span>
                 </button>
+                <ProblemNoteButton problem={item} onOpenNote={setNoteProblem} />
                 <button
                   type="button"
                   className="study-plan-window-done"
@@ -124,6 +137,19 @@ export default function StudyPlanWindow() {
         <div className="study-plan-window-empty"><span><Check size={24} /></span><strong>今天的题单刷完啦</strong><p>回到主页面，从任意题目旁边加入新的待做题。</p></div>
       )}
       <footer>拖动题目调整顺序 · 点圆圈划掉 · 点垃圾桶移除</footer>
+      {noteProblem && studyData ? (
+        <ProblemNoteDrawer
+          problem={noteProblem}
+          studyData={studyData}
+          plannedKeys={new Set(items.map((item) => item.problemKey))}
+          onClose={() => setNoteProblem(null)}
+          onSave={async (problemKey, note) => {
+            const next = await saveProblemNote(problemKey, note);
+            setStudyData(next);
+            setNoteProblem(null);
+          }}
+        />
+      ) : null}
     </main>
   );
 }

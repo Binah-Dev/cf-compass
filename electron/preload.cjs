@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld("cfBridge", {
   setAiConfig: (config) => ipcRenderer.invoke("ai:set-config", config),
   analyzeContestWithAi: (contestId, options = {}) =>
     ipcRenderer.invoke("ai:analyze-contest", contestId, options),
+  recommendContestProblems: (contestId, options = {}) =>
+    ipcRenderer.invoke("ai:recommend-contest", contestId, options),
   exportData: (snapshot) => ipcRenderer.invoke("data:export", snapshot),
   importData: () => ipcRenderer.invoke("data:import"),
   openBackupFolder: () => ipcRenderer.invoke("data:open-backups"),
@@ -24,6 +26,12 @@ contextBridge.exposeInMainWorld("cfBridge", {
   setFavorites: (favorites) => ipcRenderer.invoke("favorites:set", favorites),
   getStudyData: () => ipcRenderer.invoke("study:get"),
   setStudyData: (studyData) => ipcRenderer.invoke("study:set", studyData),
+  setProblemNote: (problemKey, note) => ipcRenderer.invoke("study:note-set", problemKey, note),
+  onStudyChanged: (callback) => {
+    const listener = (_event, study) => callback(study);
+    ipcRenderer.on("study:changed", listener);
+    return () => ipcRenderer.removeListener("study:changed", listener);
+  },
   getStudyPlan: () => ipcRenderer.invoke("plan:get"),
   addStudyPlanProblem: (problemKey) => ipcRenderer.invoke("plan:add", problemKey),
   setStudyPlanStatus: (itemId, status) => ipcRenderer.invoke("plan:status", itemId, status),

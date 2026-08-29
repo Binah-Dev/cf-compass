@@ -8,9 +8,13 @@ import {
   RefreshCw,
   Save,
   Sparkles,
+  Star,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { openProblem } from "../lib/codeforces";
+import PlanQueueButton from "./PlanQueueButton";
+import ProblemNoteButton from "./ProblemNoteButton";
 
 function ReviewList({ items, tone = "" }) {
   if (!items?.length) return <p className="ai-review-empty">暂无足够证据</p>;
@@ -159,6 +163,15 @@ export default function ContestAiReview({
   onClose,
   onRetry,
   onSave,
+  recommendation,
+  recommendationLoading = false,
+  recommendationError = "",
+  onGenerateRecommendations,
+  favorites,
+  onToggleFavorite,
+  plannedKeys,
+  onAddToPlan,
+  onOpenNote,
 }) {
   useEffect(() => {
     if (!contest) return undefined;
@@ -269,6 +282,39 @@ export default function ContestAiReview({
                   </div>
                 ) : <p className="ai-review-empty">暂无明确行动项</p>}
               </section>
+              <section className="ai-review-section ai-recommendation-section">
+                <div className="ai-recommendation-heading">
+                  <div>
+                    <h3>针对本场的下一组题</h3>
+                    <p>候选只来自已同步题库；已通过、已在待做和本场题目会先被排除。</p>
+                  </div>
+                  <button type="button" className="ghost-button" disabled={recommendationLoading} onClick={onGenerateRecommendations}>
+                    {recommendationLoading ? <LoaderCircle size={14} className="is-spinning" /> : <Sparkles size={14} />}
+                    {recommendation ? "重新推荐" : "生成推荐题单"}
+                  </button>
+                </div>
+                {recommendationError ? <p className="ai-recommendation-error">{recommendationError}</p> : null}
+                {recommendation?.recommendations?.length ? (
+                  <div className="ai-recommendation-list">
+                    {recommendation.recommendations.map((item, index) => (
+                      <article key={item.problemKey}>
+                        <span className="ai-recommendation-index">{String(index + 1).padStart(2, "0")}</span>
+                        <button type="button" className="ai-recommendation-main" onClick={() => openProblem(item)}>
+                          <strong>{item.problemKey} · {item.name}</strong>
+                          <small>Rating {item.rating} · {(item.sharedTags || item.tags || []).slice(0, 3).join(" / ")}</small>
+                          <p>{item.reason || item.evidence}</p>
+                          {item.focus ? <em>练习重点：{item.focus}</em> : null}
+                        </button>
+                        <div className="ai-recommendation-actions">
+                          <button type="button" className={favorites?.has?.(item.problemKey) ? "is-active" : ""} title="收藏" onClick={() => onToggleFavorite?.(item.problemKey)}><Star size={15} /></button>
+                          <ProblemNoteButton problem={item} onOpenNote={onOpenNote} />
+                          <PlanQueueButton problem={item} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} />
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : recommendationLoading ? <p className="ai-review-empty">正在从真实题库候选中挑选…</p> : null}
+              </section>
             </>
           ) : null}
         </div>
@@ -278,6 +324,9 @@ export default function ContestAiReview({
             <div>
               <button type="button" className="ghost-button" onClick={onRetry}>
                 <RefreshCw size={14} />重新分析
+              </button>
+              <button type="button" className="ghost-button" disabled={recommendationLoading} onClick={onGenerateRecommendations}>
+                <Sparkles size={14} />推荐下一组题
               </button>
               <button type="button" className="primary-button" onClick={() => onSave(review)}>
                 <Save size={14} />保存复盘

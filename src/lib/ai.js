@@ -163,3 +163,13 @@ export async function analyzeContestWithAi(contestId, options = {}) {
     language: getCurrentLocale() === "en-US" ? "en-US" : "zh-CN",
   });
 }
+
+export async function recommendContestProblems(contestId, options = {}) {
+  if (!window.cfBridge?.recommendContestProblems) {
+    throw new Error("AI 推荐题单需要桌面版 Electron 运行环境");
+  }
+  return window.cfBridge.recommendContestProblems(contestId, {
+    review: normalizeAiReview(options?.review),
+    language: getCurrentLocale() === "en-US" ? "en-US" : "zh-CN",
+  });
+}

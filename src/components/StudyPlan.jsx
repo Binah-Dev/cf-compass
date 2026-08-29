@@ -2,6 +2,7 @@ import { Check, Circle, ExternalLink, GripVertical, ListChecks, LoaderCircle, Pa
 import { useMemo, useState } from "react";
 import { openProblem } from "../lib/codeforces";
 import { displayTag, ratingTone } from "../lib/stats";
+import ProblemNoteButton from "./ProblemNoteButton";
 
 const filters = [
   { id: "all", label: "全部" },
@@ -9,7 +10,7 @@ const filters = [
   { id: "done", label: "已完成" },
 ];
 
-export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, onOpenLibrary, onOpenWindow }) {
+export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, onOpenLibrary, onOpenWindow, onOpenNote }) {
   const [filter, setFilter] = useState("all");
   const [busyId, setBusyId] = useState("");
   const [draggedId, setDraggedId] = useState("");
@@ -77,6 +78,7 @@ export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, 
                     <span className="study-plan-item__id">{item.problemKey}</span><span className="study-plan-item__title">{item.name}<ExternalLink size={13} /></span>
                     <span className="study-plan-item__meta"><b className={`rating rating--${ratingTone(item.rating)}`}>{item.rating || "—"}</b>{(item.tags || []).slice(0, 2).map((tag) => <em key={tag}>{displayTag(tag)}</em>)}{item.reason ? <small>{item.reason}</small> : null}</span>
                   </button>
+                  <ProblemNoteButton problem={item} onOpenNote={onOpenNote} />
                   <button type="button" className="study-plan-item__delete" aria-label={`从计划题单删除 ${item.problemKey}`} title="从计划题单删除" disabled={busyId === item.id} onClick={() => run(item.id, () => onRemove(item))}><Trash2 size={16} /></button>
                 </article>
               );

@@ -19,6 +19,7 @@ import {
 import { openProblem } from "../lib/codeforces";
 import { RatedName, RatingScore } from "./RatingDisplay";
 import PlanQueueButton from "./PlanQueueButton";
+import ProblemNoteButton from "./ProblemNoteButton";
 
 function rankLabel(rank) {
   return String(rank || "unrated")
@@ -35,6 +36,7 @@ export default function ProgressPanel({
   recentActivity,
   plannedKeys,
   onAddToPlan,
+  onOpenNote,
 }) {
   const currentRatingTone = ratingTone(user?.rating);
   const isEliteRatingStanding =
@@ -264,6 +266,7 @@ export default function ProgressPanel({
                 </span>
                 <ArrowUpRight size={14} />
               </button>
+              <ProblemNoteButton problem={problem} onOpenNote={onOpenNote} />
               <PlanQueueButton problem={problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
               </div>
             ))
