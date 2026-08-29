@@ -68,10 +68,13 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
       - uses: actions/checkout@v4
+        if: github.ref_name != 'v4.0.1' || matrix.target == 'Windows-x64'
       - uses: pnpm/action-setup@v4
+        if: github.ref_name != 'v4.0.1' || matrix.target == 'Windows-x64'
         with:
           version: 11.19.0
       - uses: actions/setup-node@v4
+        if: github.ref_name != 'v4.0.1' || matrix.target == 'Windows-x64'
         with:
           node-version: 22
           cache: pnpm
