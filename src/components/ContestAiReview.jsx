@@ -160,9 +160,18 @@ export default function ContestAiReview({
   onRetry,
   onSave,
 }) {
+  useEffect(() => {
+    if (!contest) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [contest, onClose]);
+
   if (!contest) return null;
   return (
-    <div className="drawer-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className="drawer-backdrop ai-review-backdrop" role="presentation" onMouseDown={onClose}>
       <aside
         className="ai-review-drawer"
         role="dialog"
@@ -176,7 +185,7 @@ export default function ContestAiReview({
             <span>{sourceMode || review?.sourceIncluded ? "源码增强复盘" : "比赛 AI 复盘"}</span>
             <strong>{contest.contestName}</strong>
           </div>
-          <button type="button" aria-label="关闭 AI 复盘" onClick={onClose}><X size={18} /></button>
+          <button type="button" className="ai-review-close" aria-label="关闭 AI 复盘" onClick={onClose}><X size={20} /></button>
         </header>
         <div className="ai-review-drawer__body">
           {loading ? (

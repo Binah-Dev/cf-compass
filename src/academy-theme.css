@@ -4988,6 +4988,69 @@ body {
   height: 30px;
 }
 
+/* Contest replay typography follows the existing three-level interface density. */
+:where(.density-compact, .density-comfortable, .density-large) .contest-replay-page {
+  --contest-body-size: var(--ui-body-size);
+  --contest-secondary-size: var(--ui-secondary-size);
+}
+
+:where(.density-compact, .density-comfortable, .density-large) :where(
+  .contest-record__row > time,
+  .contest-division,
+  .contest-delta,
+  .contest-solved,
+  .contest-detail-metrics span,
+  .contest-problem-table__header,
+  .contest-attempt-count,
+  .contest-detail-source,
+  .contest-ai-button
+) {
+  font-size: var(--contest-secondary-size);
+  line-height: 1.45;
+}
+
+:where(.density-compact, .density-comfortable, .density-large) :where(
+  .contest-record__title strong,
+  .contest-detail-metrics strong,
+  .contest-problem-name strong,
+  .contest-result,
+  .contest-current-status,
+  .contest-attempt-count strong
+) {
+  font-size: var(--contest-body-size);
+  line-height: 1.45;
+}
+
+:where(.density-compact, .density-comfortable, .density-large) :where(
+  .contest-summary-metric small,
+  .contest-sync-progress span,
+  .special-contest-filters button,
+  .contest-list-header,
+  .contest-performance small,
+  .contest-rank small,
+  .contest-rank > span
+) {
+  font-size: var(--contest-secondary-size);
+}
+
+:where(.density-compact, .density-comfortable, .density-large) .contest-problem-row {
+  min-height: calc(var(--ui-row-height) + 4px);
+}
+
+:where(.density-compact, .density-comfortable, .density-large) .contest-problem-table__header {
+  min-height: 38px;
+}
+
+:where(.density-compact, .density-comfortable, .density-large) .contest-detail-metrics {
+  min-height: 70px;
+}
+
+:where(.density-compact, .density-comfortable, .density-large) .contest-problem-actions button {
+  min-width: 78px;
+  height: 32px;
+  font-size: var(--contest-secondary-size);
+}
+
 /* 3.6 personal training analytics — restrained Codeforces-inspired finish */
 .training-analytics {
   padding: 0 2px 18px;
