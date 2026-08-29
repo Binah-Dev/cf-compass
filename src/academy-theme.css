@@ -4264,6 +4264,7 @@ html[lang="en-US"] .titlebar__brand::after {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
   color: #66859b;
   font-size: 8px;
 }

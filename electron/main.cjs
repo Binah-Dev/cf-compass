@@ -7,6 +7,7 @@ const {
   nativeImage,
   nativeTheme,
   protocol,
+  safeStorage,
   session,
   shell,
 } = require("electron");
@@ -18,6 +19,9 @@ const {
   createMaterialLibraryService,
   safeMaterialRelativePath,
 } = require("./services/material-library-service.cjs");
+const { createAiService, normalizeAiReview } = require("./services/ai-service.cjs");
+const { buildDemoAiData } = require("./services/ai-demo-data.cjs");
+const { createCodeforcesSourceService } = require("./services/codeforces-source-service.cjs");
 
 nativeTheme.themeSource = "dark";
 app.setAppUserModelId("com.cfcompass.desktop");
@@ -84,6 +88,7 @@ const DEFAULT_STUDY_DATA = {
   version: 1,
   notes: {},
   reviews: {},
+  aiReviews: {},
   contestQueue: [],
   plan: null,
   settings: DEFAULT_SETTINGS,
@@ -1282,6 +1287,28 @@ function clampNumber(value, minimum, maximum, fallback) {
   return Math.min(maximum, Math.max(minimum, Math.round(number)));
 }
 
+function sanitizeAiReviews(input) {
+  const reviews = {};
+  for (const [key, value] of Object.entries(input || {}).slice(0, 200)) {
+    if (!value || typeof value !== "object") continue;
+    const normalized = normalizeAiReview(value);
+    reviews[String(key).slice(0, 80)] = {
+      ...normalized,
+      contestId: Number(value.contestId) || null,
+      contestName: String(value.contestName || "").slice(0, 240),
+      provider: String(value.provider || "deepseek").slice(0, 40),
+      model: String(value.model || "").slice(0, 100),
+      analysisMode: value.analysisMode === "source" ? "source" : "summary",
+      sourceIncluded: value.sourceIncluded === true,
+      sourceSubmissionCount: clampNumber(value.sourceSubmissionCount, 0, 300, 0),
+      generatedAt: String(value.generatedAt || new Date().toISOString()).slice(0, 40),
+      savedAt: String(value.savedAt || "").slice(0, 40),
+      inputFingerprint: String(value.inputFingerprint || "").slice(0, 32),
+    };
+  }
+  return reviews;
+}
+
 function sanitizeStudyData(input) {
   const source = input && typeof input === "object" ? input : {};
   const settings = source.settings && typeof source.settings === "object"
@@ -1371,11 +1398,13 @@ function sanitizeStudyData(input) {
   const contestQueue = Array.isArray(source.contestQueue)
     ? [...new Set(source.contestQueue.slice(0, 1000).map((key) => String(key).slice(0, 80)))]
     : [];
+  const aiReviews = sanitizeAiReviews(source.aiReviews);
 
   return {
     version: 1,
     notes,
     reviews,
+    aiReviews,
     contestQueue,
     plan,
     settings: {
@@ -1601,6 +1630,25 @@ async function readUiLanguage() {
 function sanitizeFavorites(input) {
   return Array.isArray(input) ? input.slice(0, 10000).map(String) : [];
 }
+
+const codeforcesSourceService = createCodeforcesSourceService({
+  dataPath,
+  safeStorage,
+  fetchJson: (endpoint) => fetchCodeforces(endpoint),
+});
+
+const aiService = createAiService({
+  dataPath,
+  readJson,
+  writeJson,
+  safeStorage,
+  net,
+  getCache: () => readJson("cache.json", null),
+  getStudy: () => readStudyData(),
+  getReplay: () => readJson("contest-replay.json", null),
+  getDemoData: () => buildDemoAiData(),
+  getSubmissionSources: (request) => codeforcesSourceService.fetchSources(request),
+});
 
 function validCache(value) {
   return Boolean(
@@ -2057,6 +2105,15 @@ app.whenReady().then(() => {
     loadContestCenterDetail(contestId, force),
   );
   handleTrusted("data:status", () => getDataCenterStatus());
+  handleTrusted("codeforces:get-source-config", () => codeforcesSourceService.getConfig());
+  handleTrusted("codeforces:set-source-config", (_event, config) =>
+    codeforcesSourceService.setConfig(config),
+  );
+  handleTrusted("ai:get-config", () => aiService.getConfig());
+  handleTrusted("ai:set-config", (_event, config) => aiService.setConfig(config));
+  handleTrusted("ai:analyze-contest", (_event, contestId, options = {}) =>
+    aiService.analyzeContest(contestId, options),
+  );
   handleTrusted("data:export", (_event, snapshot) => exportData(snapshot));
   handleTrusted("data:import", () => importData());
   handleTrusted("data:open-backups", async () => {
