@@ -146,6 +146,7 @@ async function main() {
           const body = JSON.parse(options.body);
           assert.equal(body.model, "mock-model");
           assert.equal(body.response_format.type, "json_object");
+          assert.deepEqual(body.thinking, { type: "disabled" });
           assert.match(body.messages[1].content, /1900-A/);
           if (requestCount === 3) assert.match(body.messages[1].content, /source for 1900-A/);
           if (requestCount === 1) {
@@ -236,6 +237,7 @@ async function main() {
       net: {
         fetch: async (_url, options) => {
           const body = JSON.parse(options.body);
+          assert.deepEqual(body.thinking, { type: "disabled" });
           assert.match(body.messages[1].content, /Codeforces Round 1050/);
           assert.match(body.messages[1].content, /2250-A/);
           return {

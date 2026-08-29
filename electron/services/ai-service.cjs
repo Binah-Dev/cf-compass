@@ -482,6 +482,25 @@ function extractMessageContent(body) {
   return "";
 }
 
+function emptyMessageError(body) {
+  const choice = body?.choices?.[0];
+  const finishReason = text(choice?.finish_reason, 80);
+  const hasReasoning = Boolean(text(choice?.message?.reasoning_content, 20));
+  if (finishReason === "length") {
+    return new Error("AI 输出达到长度上限，正文尚未生成；请重试或缩短复盘输入");
+  }
+  if (finishReason === "content_filter") {
+    return new Error("AI 返回内容被服务商安全策略过滤");
+  }
+  if (finishReason === "insufficient_system_resource") {
+    return new Error("AI 服务当前资源不足，请稍后重试");
+  }
+  if (hasReasoning) {
+    return new Error("AI 只返回了思考过程，没有生成最终复盘正文");
+  }
+  return new Error("AI 没有返回可用正文");
+}
+
 function parseJsonContent(content) {
   const trimmed = String(content || "").trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   try {
@@ -654,6 +673,7 @@ function createAiService({
         body: JSON.stringify({
           model: config.model,
           messages,
+          thinking: { type: "disabled" },
           temperature,
           max_tokens: 3200,
           response_format: { type: "json_object" },
@@ -667,7 +687,7 @@ function createAiService({
       }
       const body = await response.json();
       const content = extractMessageContent(body);
-      if (!content) throw new Error("AI 没有返回可用内容");
+      if (!content) throw emptyMessageError(body);
       return parseJsonContent(content);
     }
     try {
