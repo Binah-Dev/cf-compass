@@ -307,7 +307,8 @@ export default function DataCenter({
               </select>
             </label>
           </div>
-          <div className="ai-settings">
+          <div className="ai-settings-grid">
+            <div className="ai-settings">
             <header className="ai-settings__header">
               <div>
                 <span className="workspace-kicker">可选 AI 助手</span>
@@ -378,7 +379,7 @@ export default function DataCenter({
               ) : null}
             </div>
           </div>
-          <div className="ai-settings source-settings">
+            <div className="ai-settings source-settings">
             <header className="ai-settings__header">
               <div>
                 <span className="workspace-kicker">可选增强能力</span>
@@ -451,6 +452,7 @@ export default function DataCenter({
                   清除凭证
                 </button>
               ) : null}
+            </div>
             </div>
           </div>
         </section>
