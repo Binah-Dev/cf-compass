@@ -164,14 +164,15 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 Open [Latest Release](https://github.com/qeffg/cf-compass/releases/latest) and choose the package for your device:
 
 ```text
-Windows x64:       CF-Compass-3.13.0-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.13.0-Linux-x86_64.AppImage
-Linux Debian x64:  CF-Compass-3.13.0-Linux-amd64.deb
-macOS Intel:       CF-Compass-3.13.0-macOS-x64.dmg
-macOS Apple Silicon: CF-Compass-3.13.0-macOS-arm64.dmg
+Windows x64 (recommended installer): CF-Compass-4.0.1-Windows-x64-Setup.exe
+Windows x64 (portable):              CF-Compass-4.0.1-Windows-x64-portable.exe
+Linux x64 (reused from v4.0.0):      CF-Compass-4.0.0-Linux-x86_64.AppImage
+Linux Debian x64 (reused from v4.0.0): CF-Compass-4.0.0-Linux-amd64.deb
+macOS Intel (reused from v4.0.0):    CF-Compass-4.0.0-macOS-x64.dmg
+macOS Apple Silicon (reused from v4.0.0): CF-Compass-4.0.0-macOS-arm64.dmg
 ```
 
-The Windows portable build requires no installer wizard. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
+Windows users should normally choose the `Setup.exe` installer. It extracts the application once during installation, so later launches start directly from the installed files. The `portable.exe` build requires no installation, but it extracts its program files on every launch and can be noticeably slower on low-end disks or while antivirus scanning is active. v4.0.1 only changes Windows distribution, so its Release reuses the already verified v4.0.0 Linux and macOS assets under their truthful `4.0.0` filenames. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
 
 Every package has a matching `.sha256` file and the Release includes `SHA256SUMS.txt`. Verify on Windows with `Get-FileHash -Algorithm SHA256 <file>`, on Linux with `sha256sum -c SHA256SUMS.txt --ignore-missing`, or on macOS with `shasum -a 256 <file>`.
 
@@ -198,7 +199,7 @@ Enter a Codeforces handle after launch to sync its public data.
 ```powershell
 pnpm verify         # production renderer build
 pnpm desktop:pack   # unpacked Windows application
-pnpm desktop:build  # one-file Windows portable executable
+pnpm desktop:build  # Windows installer and portable executable
 pnpm desktop:build:linux  # Linux AppImage and deb
 pnpm desktop:build:mac    # macOS Intel and Apple Silicon dmg; run on macOS
 ```

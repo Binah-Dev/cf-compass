@@ -1,7 +1,7 @@
 {
   "name": "cf-compass",
   "desktopName": "cf-compass.desktop",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": {
@@ -28,7 +28,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "verify": "vite build",
     "desktop:pack": "vite build && electron-builder --dir",
-    "desktop:build": "vite build && electron-builder --win portable --x64 --publish never",
+    "desktop:build": "vite build && electron-builder --win nsis portable --x64 --publish never",
     "desktop:build:linux": "vite build && electron-builder --linux AppImage deb --x64 --publish never",
     "desktop:build:mac": "vite build && electron-builder --mac dmg --x64 --arm64 --publish never",
     "qa:i18n": "node scripts/qa-i18n.cjs",
@@ -77,12 +77,32 @@
       "signExecutable": false,
       "target": [
         {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
           "target": "portable",
           "arch": [
             "x64"
           ]
         }
-      ],
+      ]
+    },
+    "nsis": {
+      "artifactName": "CF-Compass-${version}-Windows-${arch}-Setup.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CF Compass",
+      "uninstallDisplayName": "CF Compass ${version}",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
       "artifactName": "CF-Compass-${version}-Windows-${arch}-portable.${ext}"
     },
     "linux": {

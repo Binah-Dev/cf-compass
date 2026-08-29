@@ -276,19 +276,20 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 打开 [Latest Release](https://github.com/qeffg/cf-compass/releases/latest)，按设备下载：
 
 ```text
-Windows x64:       CF-Compass-3.13.0-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.13.0-Linux-x86_64.AppImage
-Linux Debian x64:  CF-Compass-3.13.0-Linux-amd64.deb
-macOS Intel:       CF-Compass-3.13.0-macOS-x64.dmg
-macOS Apple 芯片:  CF-Compass-3.13.0-macOS-arm64.dmg
+Windows x64（推荐安装版）: CF-Compass-4.0.1-Windows-x64-Setup.exe
+Windows x64（便携版）:     CF-Compass-4.0.1-Windows-x64-portable.exe
+Linux x64（沿用 v4.0.0）: CF-Compass-4.0.0-Linux-x86_64.AppImage
+Linux Debian x64（沿用 v4.0.0）: CF-Compass-4.0.0-Linux-amd64.deb
+macOS Intel（沿用 v4.0.0）: CF-Compass-4.0.0-macOS-x64.dmg
+macOS Apple 芯片（沿用 v4.0.0）: CF-Compass-4.0.0-macOS-arm64.dmg
 ```
 
-Windows portable 版无需安装，双击即可运行；Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
+Windows 用户推荐下载 `Setup.exe` 安装版：应用只在安装时解压，之后从已安装目录直接启动，速度更稳定。`portable.exe` 便携版无需安装，但每次启动都要先释放程序文件，在机械硬盘、低速设备或杀毒软件扫描环境下会明显更慢。v4.0.1 只调整 Windows 分发方式，因此 Release 原样附带已经通过 v4.0.0 发布验证的 Linux 与 macOS 包，文件名保留真实版本号 `4.0.0`。Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
 
 每个安装包旁都有同名 `.sha256`，Release 还提供汇总文件 `SHA256SUMS.txt`。例如 Windows 可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\CF-Compass-3.13.0-Windows-x64-portable.exe
+Get-FileHash -Algorithm SHA256 .\CF-Compass-4.0.1-Windows-x64-Setup.exe
 ```
 
 Linux 或 macOS 可运行：
@@ -343,7 +344,7 @@ pnpm verify
 # 生成 Windows 解包目录
 pnpm desktop:pack
 
-# 生成 Windows portable 程序
+# 同时生成 Windows 推荐安装版与便携版
 pnpm desktop:build
 
 # 生成 Linux AppImage 与 deb
@@ -353,7 +354,7 @@ pnpm desktop:build:linux
 pnpm desktop:build:mac
 ```
 
-构建产物位于 `release/`，不会提交到 Git。正式 Release 提供 Windows x64、Linux x64、macOS Intel 与 macOS Apple 芯片包，并附独立 SHA-256 和总校验清单。
+构建产物位于 `release/`，不会提交到 Git。正式 Release 提供 Windows x64 安装版与便携版、Linux x64、macOS Intel 与 macOS Apple 芯片包，并附独立 SHA-256 和总校验清单。
 
 主分支和 Pull Request 会自动安装依赖、检查生产依赖安全性并运行重点回归测试；版本标签会在 GitHub Actions 的 Windows、Linux 与 macOS 环境中分别构建真实安装包，全部成功后才创建 Release。
 
