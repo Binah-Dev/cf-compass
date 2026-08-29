@@ -34,6 +34,8 @@ import {
   openContestPage,
 } from "../lib/contest-center";
 import { RatingScore } from "./RatingDisplay";
+import PlanQueueButton from "./PlanQueueButton";
+import ProblemNoteButton from "./ProblemNoteButton";
 
 const PAGE_SIZE = 50;
 const QUICK_FILTERS = [
@@ -132,7 +134,7 @@ function SelectField({ value, onChange, label, children }) {
   );
 }
 
-function ProblemStrip({ contest, problems, submissionMap, onAddQueue, queueSet }) {
+function ProblemStrip({ contest, problems, submissionMap, onAddQueue, queueSet, plannedKeys, onAddToPlan, onOpenNote }) {
   if (!problems.length) {
     return <div className="contest-center-problems__empty">该场次暂未返回题目数据，请稍后重试。</div>;
   }
@@ -145,9 +147,9 @@ function ProblemStrip({ contest, problems, submissionMap, onAddQueue, queueSet }
           const solved = demoSolved || state?.accepted;
           const attempted = !solved && Boolean(state?.attempts);
           return (
+            <div className="contest-problem-wrap" key={contestProblemKey(contest.id, problem.index)}>
             <button
               className={`contest-problem ${solved ? "is-solved" : attempted ? "is-attempted" : ""}`}
-              key={contestProblemKey(contest.id, problem.index)}
               type="button"
               onClick={() => openProblem(problem)}
               title={`打开 ${problem.index}. ${problem.name}`}
@@ -160,6 +162,9 @@ function ProblemStrip({ contest, problems, submissionMap, onAddQueue, queueSet }
               <RatingScore value={problem.rating} fallback="未定级" />
               <ExternalLink size={14} />
             </button>
+            <ProblemNoteButton problem={problem} onOpenNote={onOpenNote} />
+            <PlanQueueButton problem={problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
+            </div>
           );
         })}
       </div>
@@ -192,6 +197,9 @@ function ContestRow({
   queueSet,
   onToggle,
   onAddQueue,
+  plannedKeys,
+  onAddToPlan,
+  onOpenNote,
 }) {
   const [phaseLabel, phaseTone] = phaseMeta(contest);
   const participantText = detail?.participantCount
@@ -234,6 +242,9 @@ function ContestRow({
               submissionMap={submissionMap}
               queueSet={queueSet}
               onAddQueue={onAddQueue}
+              plannedKeys={plannedKeys}
+              onAddToPlan={onAddToPlan}
+              onOpenNote={onOpenNote}
             />
           )}
         </div>
@@ -242,7 +253,7 @@ function ContestRow({
   );
 }
 
-export default function ContestCenterPage({ data, studyData, onStudyChange, onToast }) {
+export default function ContestCenterPage({ data, studyData, onStudyChange, onToast, plannedKeys, onAddToPlan, onOpenNote }) {
   const [center, setCenter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -493,6 +504,9 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
               queueSet={queueSet}
               onToggle={() => toggleContest(item)}
               onAddQueue={addToQueue}
+              plannedKeys={plannedKeys}
+              onAddToPlan={onAddToPlan}
+              onOpenNote={onOpenNote}
             />
           )) : (
             <div className="contest-center-empty"><Search size={27} /><strong>没有匹配的场次</strong><span>放宽类型、状态或搜索条件后再试试</span><button type="button" onClick={resetFilters}>清空筛选</button></div>

@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  Code2,
   ChevronDown,
   ChevronRight,
   Clock3,
@@ -15,6 +16,7 @@ import {
   NotebookPen,
   RefreshCw,
   Search,
+  Sparkles,
   Target,
   Trophy,
   Users,
@@ -24,6 +26,7 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { openProblem } from "../lib/codeforces";
@@ -40,8 +43,13 @@ import {
   performanceTone,
   SPECIAL_CONTEST_FILTERS,
 } from "../lib/contests";
+import { analyzeContestWithAi, recommendContestProblems } from "../lib/ai";
+import { buildContestDiffMockReview } from "../lib/ai-mock";
+import { loadCodeforcesSourceConfig } from "../lib/codeforces-source";
 import { formatNumber, formatPercent, ratingTone } from "../lib/stats";
 import { RatingScore } from "./RatingDisplay";
+import PlanQueueButton from "./PlanQueueButton";
+import ContestAiReview from "./ContestAiReview";
 
 const SORT_OPTIONS = [
   { id: "newest", label: "比赛时间（新 → 旧）" },
@@ -130,6 +138,10 @@ function ProblemTable({
   queuedProblems,
   onToggleQueue,
   onOpenNote,
+  plannedKeys,
+  onAddToPlan,
+  favorites,
+  onToggleFavorite,
 }) {
   return (
     <section className="contest-problem-table" aria-label={`${contest.contestName} 比赛题目`}>
@@ -180,6 +192,7 @@ function ProblemTable({
                   <NotebookPen size={13} />
                   笔记
                 </button>
+                <PlanQueueButton problem={problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} />
               </div>
             </article>
           );
@@ -194,6 +207,13 @@ function ContestDetail({
   queuedProblems,
   onToggleQueue,
   onOpenNote,
+  plannedKeys,
+  onAddToPlan,
+  onAiReview,
+  onEnhancedAiReview,
+  hasSavedAiReview,
+  hasSavedEnhancedAiReview,
+  sourceAccess,
 }) {
   return (
     <div className="contest-detail">
@@ -234,10 +254,26 @@ function ContestDetail({
         queuedProblems={queuedProblems}
         onToggleQueue={onToggleQueue}
         onOpenNote={onOpenNote}
+        plannedKeys={plannedKeys}
+        onAddToPlan={onAddToPlan}
       />
       <footer className="contest-detail-source">
         <span>表现分由 Carrot Plus 算法计算，通常与精确值相差 0～4 分。</span>
         <span>官方排名：第 {formatNumber(contest.officialRank)} 名</span>
+        <div className="contest-ai-actions">
+          <button type="button" className="contest-ai-button" onClick={() => onAiReview(contest)}>
+            <Sparkles size={14} />{hasSavedAiReview ? "查看 AI 复盘" : "AI 复盘"}
+          </button>
+          {sourceAccess ? (
+            <button
+              type="button"
+              className="contest-ai-button contest-ai-button--source"
+              onClick={() => onEnhancedAiReview(contest)}
+            >
+              <Code2 size={14} />{hasSavedEnhancedAiReview ? "查看增强复盘" : "增强复盘"}
+            </button>
+          ) : null}
+        </div>
       </footer>
     </div>
   );
@@ -252,6 +288,13 @@ function ContestRow({
   onRetry,
   onToggleQueue,
   onOpenNote,
+  plannedKeys,
+  onAddToPlan,
+  onAiReview,
+  onEnhancedAiReview,
+  hasSavedAiReview,
+  hasSavedEnhancedAiReview,
+  sourceAccess,
 }) {
   const tone = performanceTone(contest.performance);
   const ready = contest.status === "ready";
@@ -317,6 +360,13 @@ function ContestRow({
             queuedProblems={queuedProblems}
             onToggleQueue={onToggleQueue}
             onOpenNote={onOpenNote}
+            plannedKeys={plannedKeys}
+            onAddToPlan={onAddToPlan}
+            onAiReview={onAiReview}
+            onEnhancedAiReview={onEnhancedAiReview}
+            hasSavedAiReview={hasSavedAiReview}
+            hasSavedEnhancedAiReview={hasSavedEnhancedAiReview}
+            sourceAccess={sourceAccess}
           />
         ) : (
           <div className="contest-detail-loading">
@@ -348,6 +398,10 @@ export default function ContestReplayPage({
   onStudyChange,
   onOpenNote,
   onToast,
+  plannedKeys,
+  onAddToPlan,
+  favorites,
+  onToggleFavorite,
 }) {
   const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -357,7 +411,36 @@ export default function ContestReplayPage({
   const [sort, setSort] = useState("newest");
   const [expandedId, setExpandedId] = useState(null);
   const [calculatingId, setCalculatingId] = useState(null);
+  const [aiContest, setAiContest] = useState(null);
+  const [aiReview, setAiReview] = useState(null);
+  const [aiMode, setAiMode] = useState("summary");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [recommendation, setRecommendation] = useState(null);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationError, setRecommendationError] = useState("");
+  const [sourceConfig, setSourceConfig] = useState({
+    enabled: false,
+    hasCredentials: false,
+  });
+  const mockOpenedRef = useRef(false);
+  const contestDiffMockEnabled =
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("mock") === "contest-diff";
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
+
+  useEffect(() => {
+    let alive = true;
+    loadCodeforcesSourceConfig()
+      .then((config) => {
+        if (alive && config) setSourceConfig(config);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -507,6 +590,110 @@ export default function ContestReplayPage({
       setCalculatingId(null);
     }
   }
+
+  async function requestAiReview(contest, includeSource = false, confirmSource = true) {
+    if (!contest) return;
+    if (includeSource && confirmSource) {
+      const confirmed = window.confirm(
+        "增强复盘会读取本场可用提交源码，按时间线生成代码 Diff，并将 Diff 与提交记录发送给已配置的 AI。是否继续？",
+      );
+      if (!confirmed) return;
+    }
+    setAiContest(contest);
+    setAiMode(includeSource ? "source" : "summary");
+    setAiReview(null);
+    setAiError("");
+    setAiLoading(true);
+    try {
+      const result = await analyzeContestWithAi(contest.contestId, { includeSource });
+      setAiReview(result);
+    } catch (error) {
+      setAiError(error.message || "AI 复盘失败");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  function openMockSourceReview(contest) {
+    if (!contest) return;
+    setAiContest(contest);
+    setAiMode("source");
+    setAiReview(buildContestDiffMockReview(contest));
+    setAiError("");
+    setAiLoading(false);
+  }
+
+  useEffect(() => {
+    if (!contestDiffMockEnabled || mockOpenedRef.current || !history?.contests?.length) {
+      return;
+    }
+    const contest = history.contests.find((item) => Number(item.contestId) === 2250)
+      || history.contests[0];
+    mockOpenedRef.current = true;
+    openMockSourceReview(contest);
+  }, [contestDiffMockEnabled, history?.contests]);
+
+  function reviewStorageKey(contestId, includeSource = false) {
+    return `${contestId}${includeSource ? ":source" : ""}`;
+  }
+
+  function openAiReview(contest, includeSource = false) {
+    if (contestDiffMockEnabled && includeSource) {
+      openMockSourceReview(contest);
+      return;
+    }
+    const saved = studyData?.aiReviews?.[reviewStorageKey(contest.contestId, includeSource)];
+    const savedSourceIsComplete = !includeSource || (
+      Array.isArray(saved?.sourceTimeline) &&
+      saved.sourceTimeline.length > 0 &&
+      Array.isArray(saved?.sourceDiffs) &&
+      saved.sourceDiffs.length > 0
+    );
+    if (saved && savedSourceIsComplete) {
+      setAiContest(contest);
+      setAiMode(includeSource ? "source" : "summary");
+      setAiReview(saved);
+      setAiError("");
+      setAiLoading(false);
+      return;
+    }
+    void requestAiReview(contest, includeSource);
+  }
+
+  function saveAiReview(review) {
+    if (!review?.contestId) return;
+    const saved = { ...review, savedAt: new Date().toISOString() };
+    const storageKey = reviewStorageKey(
+      review.contestId,
+      review.analysisMode === "source" || review.sourceIncluded === true,
+    );
+    onStudyChange(
+      {
+        ...studyData,
+        aiReviews: { ...(studyData?.aiReviews || {}), [storageKey]: saved },
+      },
+      "AI 复盘已保存",
+    );
+    setAiReview(saved);
+  }
+
+  async function requestRecommendations() {
+    if (!aiContest || !aiReview) return;
+    setRecommendationLoading(true);
+    setRecommendationError("");
+    try {
+      setRecommendation(await recommendContestProblems(aiContest.contestId, { review: aiReview }));
+    } catch (error) {
+      setRecommendationError(error.message || "推荐题单生成失败");
+    } finally {
+      setRecommendationLoading(false);
+    }
+  }
+
+  const sourceAccess = Boolean(
+    contestDiffMockEnabled ||
+      (!data?.isDemo && sourceConfig?.enabled && sourceConfig?.hasCredentials),
+  );
 
   function toggleQueue(problem) {
     const key = contestProblemKey(problem);
@@ -671,6 +858,15 @@ export default function ContestReplayPage({
                 onRetry={() => retryContest(contest)}
                 onToggleQueue={toggleQueue}
                 onOpenNote={onOpenNote}
+                plannedKeys={plannedKeys}
+                onAddToPlan={onAddToPlan}
+                onAiReview={openAiReview}
+                onEnhancedAiReview={(item) => openAiReview(item, true)}
+                hasSavedAiReview={Boolean(studyData?.aiReviews?.[reviewStorageKey(contest.contestId)])}
+                hasSavedEnhancedAiReview={Boolean(
+                  studyData?.aiReviews?.[reviewStorageKey(contest.contestId, true)],
+                )}
+                sourceAccess={sourceAccess}
               />
             ))
           ) : (
@@ -682,6 +878,32 @@ export default function ContestReplayPage({
           )}
         </div>
       </section>
+      <ContestAiReview
+        contest={aiContest}
+        review={aiReview}
+        loading={aiLoading}
+        error={aiError}
+        sourceMode={aiMode === "source"}
+        onClose={() => {
+          setAiContest(null);
+          setAiReview(null);
+          setAiMode("summary");
+          setAiError("");
+          setRecommendation(null);
+          setRecommendationError("");
+        }}
+        onRetry={() => requestAiReview(aiContest, aiMode === "source", false)}
+        onSave={saveAiReview}
+        recommendation={recommendation}
+        recommendationLoading={recommendationLoading}
+        recommendationError={recommendationError}
+        onGenerateRecommendations={requestRecommendations}
+        favorites={favorites}
+        onToggleFavorite={onToggleFavorite}
+        plannedKeys={plannedKeys}
+        onAddToPlan={onAddToPlan}
+        onOpenNote={onOpenNote}
+      />
     </section>
   );
 }

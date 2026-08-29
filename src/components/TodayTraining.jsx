@@ -31,6 +31,8 @@ import {
 } from "../lib/planning";
 import { acCountTone, displayTag, ratingTone } from "../lib/stats";
 import { RatingScore } from "./RatingDisplay";
+import PlanQueueButton from "./PlanQueueButton";
+import ProblemNoteButton from "./ProblemNoteButton";
 
 const gradeButtons = [
   { id: "again", label: "重来", hint: "1 天", tone: "red" },
@@ -72,6 +74,8 @@ export default function TodayTraining({
   studyData,
   onStudyChange,
   onOpenNote,
+  plannedKeys,
+  onAddToPlan,
 }) {
   const problems = data.problems || [];
   const problemLookup = useMemo(
@@ -310,14 +314,17 @@ export default function TodayTraining({
                       </span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="icon-note-button"
-                    aria-label={`编辑 ${item.problem.name} 的笔记`}
-                    onClick={() => onOpenNote(item.problem)}
-                  >
-                    <NotebookPen size={15} />
-                  </button>
+                  <div className="review-queue-item__actions">
+                    <button
+                      type="button"
+                      className="icon-note-button"
+                      aria-label={`编辑 ${item.problem.name} 的笔记`}
+                      onClick={() => onOpenNote(item.problem)}
+                    >
+                      <NotebookPen size={15} />
+                    </button>
+                    <PlanQueueButton problem={item.problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
+                  </div>
                   <div className="review-grade" aria-label="复习反馈">
                     {gradeButtons.map((grade) => (
                       <button
@@ -399,6 +406,13 @@ export default function TodayTraining({
                   >
                     {item.problem.rating}
                   </span>
+                  <ProblemNoteButton problem={item.problem} onOpenNote={onOpenNote} />
+                  <PlanQueueButton
+                    problem={item.problem}
+                    plannedKeys={plannedKeys}
+                    onAddToPlan={onAddToPlan}
+                    compact
+                  />
                   <button
                     type="button"
                     className={`complete-button ${
@@ -530,6 +544,8 @@ export default function TodayTraining({
                           <span className={`rating rating--${ratingTone(item.problem.rating)}`}>
                             {item.problem.rating}
                           </span>
+                          <ProblemNoteButton problem={item.problem} onOpenNote={onOpenNote} />
+                          <PlanQueueButton problem={item.problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
                           <button
                             type="button"
                             className={`complete-button ${

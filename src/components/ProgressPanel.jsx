@@ -18,6 +18,8 @@ import {
 } from "../lib/stats";
 import { openProblem } from "../lib/codeforces";
 import { RatedName, RatingScore } from "./RatingDisplay";
+import PlanQueueButton from "./PlanQueueButton";
+import ProblemNoteButton from "./ProblemNoteButton";
 
 function rankLabel(rank) {
   return String(rank || "unrated")
@@ -32,6 +34,9 @@ export default function ProgressPanel({
   overview,
   submissions,
   recentActivity,
+  plannedKeys,
+  onAddToPlan,
+  onOpenNote,
 }) {
   const currentRatingTone = ratingTone(user?.rating);
   const isEliteRatingStanding =
@@ -247,7 +252,8 @@ export default function ProgressPanel({
         <div className="recent-list">
           {recentActivity.length ? (
             recentActivity.map(({ problem, timestamp }) => (
-              <button type="button" key={`${problem.contestId}-${problem.index}`} onClick={() => openProblem(problem)}>
+              <div className="recent-problem-actions" key={`${problem.contestId}-${problem.index}`}>
+              <button type="button" onClick={() => openProblem(problem)}>
                 <span className="recent-check">
                   <CheckCircle2 size={15} />
                 </span>
@@ -260,6 +266,9 @@ export default function ProgressPanel({
                 </span>
                 <ArrowUpRight size={14} />
               </button>
+              <ProblemNoteButton problem={problem} onOpenNote={onOpenNote} />
+              <PlanQueueButton problem={problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
+              </div>
             ))
           ) : (
             <div className="recent-empty">同步后显示最近通过的题目</div>

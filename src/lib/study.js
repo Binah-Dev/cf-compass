@@ -1,3 +1,5 @@
+import { normalizeAiReview } from "./ai";
+
 const STUDY_KEY = "cf-compass-study-v1";
 const ACTIVITY_KEY = "cf-compass-activity-v1";
 
@@ -5,6 +7,7 @@ export const DEFAULT_STUDY_DATA = {
   version: 1,
   notes: {},
   reviews: {},
+  aiReviews: {},
   contestQueue: [],
   plan: null,
   settings: {
@@ -91,11 +94,32 @@ export function normalizeStudyData(value) {
         wallpaperPosition: DEFAULT_STUDY_DATA.settings.wallpaperPosition,
       }
     : migratedSettings;
+  const aiReviews = {};
+  for (const [key, review] of Object.entries(source.aiReviews || {}).slice(0, 200)) {
+    if (!review || typeof review !== "object") continue;
+    aiReviews[String(key).slice(0, 80)] = {
+      ...normalizeAiReview(review),
+      contestId: Number(review.contestId) || null,
+      contestName: String(review.contestName || "").slice(0, 240),
+      provider: String(review.provider || "deepseek").slice(0, 40),
+      model: String(review.model || "").slice(0, 100),
+      analysisMode: review.analysisMode === "source" ? "source" : "summary",
+      sourceIncluded: review.sourceIncluded === true,
+      sourceSubmissionCount: Math.max(
+        0,
+        Math.min(300, Math.round(Number(review.sourceSubmissionCount) || 0)),
+      ),
+      generatedAt: String(review.generatedAt || new Date().toISOString()).slice(0, 40),
+      savedAt: String(review.savedAt || "").slice(0, 40),
+      inputFingerprint: String(review.inputFingerprint || "").slice(0, 32),
+    };
+  }
   return {
     ...DEFAULT_STUDY_DATA,
     ...source,
     notes: { ...(source.notes || {}) },
     reviews: { ...(source.reviews || {}) },
+    aiReviews,
     contestQueue: Array.isArray(source.contestQueue)
       ? [...new Set(source.contestQueue.map(String))].slice(0, 1000)
       : [],
@@ -128,6 +152,20 @@ export async function saveStudyData(value) {
   }
   localStorage.setItem(STUDY_KEY, JSON.stringify(safe));
   return safe;
+}
+
+export async function saveProblemNote(problemKey, note) {
+  const key = String(problemKey || "").trim().toUpperCase();
+  if (window.cfBridge?.setProblemNote) {
+    return normalizeStudyData(await window.cfBridge.setProblemNote(key, note));
+  }
+  const current = await loadStudyData();
+  return saveStudyData({ ...current, notes: { ...current.notes, [key]: note } });
+}
+
+export function onStudyDataChanged(callback) {
+  if (!window.cfBridge?.onStudyChanged) return () => {};
+  return window.cfBridge.onStudyChanged((study) => callback(normalizeStudyData(study)));
 }
 
 export async function getDataCenterStatus() {

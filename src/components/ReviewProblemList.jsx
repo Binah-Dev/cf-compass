@@ -9,8 +9,9 @@ import {
 import { openProblem } from "../lib/codeforces";
 import { formatReviewDate } from "../lib/review";
 import { acCountTone, displayTag, ratingTone } from "../lib/stats";
+import PlanQueueButton from "./PlanQueueButton";
 
-function ReviewProblemRow({ item, isFavorite, onToggleFavorite, onOpenNote }) {
+function ReviewProblemRow({ item, isFavorite, onToggleFavorite, onOpenNote, plannedKeys, onAddToPlan }) {
   const { key, problem, stats } = item;
   return (
     <div className="review-row" role="row">
@@ -31,6 +32,7 @@ function ReviewProblemRow({ item, isFavorite, onToggleFavorite, onOpenNote }) {
         >
           <NotebookPen size={14} />
         </button>
+        <PlanQueueButton problem={problem} plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} compact />
       </div>
       <button type="button" className="problem-id" onClick={() => openProblem(problem)}>
         {problem.contestId}
@@ -80,6 +82,8 @@ export default function ReviewProblemList({
   totalPages,
   totalFiltered,
   onPageChange,
+  plannedKeys,
+  onAddToPlan,
 }) {
   return (
     <>
@@ -103,6 +107,8 @@ export default function ReviewProblemList({
                 isFavorite={favorites.has(item.key)}
                 onToggleFavorite={onToggleFavorite}
                 onOpenNote={onOpenNote}
+                plannedKeys={plannedKeys}
+                onAddToPlan={onAddToPlan}
               />
             ))
           ) : (

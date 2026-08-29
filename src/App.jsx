@@ -28,6 +28,7 @@ import {
   loadLocalWallpaperLibrary,
   updateCustomWallpaperMetadata,
 } from "./lib/appearance";
+import { addStudyPlanProblem, getStudyPlan, onStudyPlanChanged, openStudyPlanWindow, removeStudyPlanItem, reorderStudyPlan, setStudyPlanStatus } from "./lib/study-plan";
 import {
   loadFavorites,
   loadInitialData,
@@ -41,6 +42,7 @@ import {
   importAllData,
   loadStudyData,
   openBackupFolder,
+  saveProblemNote as saveProblemNoteData,
   saveStudyData,
 } from "./lib/study";
 import {
@@ -58,6 +60,7 @@ const ContestReplayPage = lazy(() => import("./components/ContestReplayPage"));
 const DataCenter = lazy(() => import("./components/DataCenter"));
 const ProblemNoteDrawer = lazy(() => import("./components/ProblemNoteDrawer"));
 const ReviewLibrary = lazy(() => import("./components/ReviewLibrary"));
+const StudyPlan = lazy(() => import("./components/StudyPlan"));
 const TemplateLibrary = lazy(() => import("./components/TemplateLibrary"));
 const TodayTraining = lazy(() => import("./components/TodayTraining"));
 const TrainingAnalytics = lazy(() => import("./components/TrainingAnalytics"));
@@ -66,6 +69,14 @@ const PAGE_SIZE = 14;
 const DEFAULT_RATING_RANGE = [800, 3500];
 const DEFAULT_PANEL_ORDER = ["taxonomy", "problems", "progress"];
 const PANEL_LAYOUT_KEY = "cf-compass-panel-layout-v1";
+
+function contestDiffMockEnabled() {
+  return (
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("mock") === "contest-diff"
+  );
+}
 function chooseNextWallpaperId(settings, currentId, wallpapers) {
   const wallpaperIds = wallpapers.map((wallpaper) => wallpaper.id);
   const wallpaperIdSet = new Set(wallpaperIds);
@@ -96,8 +107,8 @@ function applyRotatedWallpaper(settings, pageId, wallpapers) {
 
 const pageMeta = {
   library: ["题库工作台", "筛选、追踪并完成下一道值得做的题"],
-  favorites: ["收藏题目", "集中查看你标记过、准备继续挑战的题目"],
   today: ["今日训练", "复习该复习的，补强最值得补强的"],
+  plan: ["计划题单", "把想刷的题排进清单，用完成轨迹推动下一步"],
   review: ["复习库", "回看刷过的题，让每次 AC 都留下轨迹"],
   contests: ["赛事复盘", "有效参加的 Rated 比赛与表现分记录"],
   "contest-center": ["赛事中心", "浏览全部 Codeforces 场次，找到最适合现在的下一场"],
@@ -130,12 +141,13 @@ function FeatureFallback() {
 }
 
 export default function App() {
-  const { setLocale } = useI18n();
+  const { locale, setLocale } = useI18n();
   const [data, setData] = useState(null);
   const [studyData, setStudyData] = useState(null);
   const [dataStatus, setDataStatus] = useState(null);
   const [handle, setHandle] = useState("tourist");
   const [favorites, setFavorites] = useState(() => new Set());
+  const [planItems, setPlanItems] = useState([]);
   const [selectedTag, setSelectedTag] = useState("all");
   const [ratingRange, setRatingRange] = useState(DEFAULT_RATING_RANGE);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -144,7 +156,9 @@ export default function App() {
   const [page, setPage] = useState(1);
   const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState(null);
-  const [activeNav, setActiveNav] = useState("library");
+  const [activeNav, setActiveNav] = useState(() =>
+    contestDiffMockEnabled() ? "contests" : "library",
+  );
   const [panelOrder, setPanelOrder] = useState(loadPanelOrder);
   const [noteProblem, setNoteProblem] = useState(null);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
@@ -195,11 +209,13 @@ export default function App() {
       loadInitialData(),
       loadFavorites(),
       loadStudyData(),
-    ]).then(([initialData, initialFavorites, initialStudy]) => {
+      Promise.resolve().then(() => getStudyPlan()).catch(() => ({ items: [] })),
+    ]).then(([initialData, initialFavorites, initialStudy, initialPlan]) => {
       if (!alive) return;
       setData(initialData);
       setHandle(initialData.handle || initialData.user?.handle || "");
       setFavorites(new Set(initialFavorites));
+      setPlanItems(Array.isArray(initialPlan?.items) ? initialPlan.items : []);
       setStudyData(initialStudy);
       setLocale(initialStudy.settings?.language || "zh-CN");
       scheduleSecondaryData();
@@ -213,6 +229,11 @@ export default function App() {
         window.clearTimeout(secondaryIdleId);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    if (!window.cfBridge?.onStudyPlanChanged) return undefined;
+    return onStudyPlanChanged((queue) => setPlanItems(Array.isArray(queue?.items) ? queue.items : []));
   }, []);
 
   useEffect(() => {
@@ -448,21 +469,77 @@ export default function App() {
     });
   }
 
+  async function addProblemToPlan(key) {
+    try {
+      const result = await addStudyPlanProblem(key);
+      setPlanItems(Array.isArray(result?.items) ? result.items : []);
+      setToast({
+        type: result?.added || result?.revived ? "success" : "info",
+        message: result?.revived
+          ? "已重新加入计划题单"
+          : result?.added
+            ? "已加入计划题单"
+            : "这道题已经在计划题单中",
+      });
+      return result;
+    } catch (error) {
+      setToast({ type: "error", message: error.message || "加入计划题单失败" });
+      return null;
+    }
+  }
+
+  async function togglePlanItem(item) {
+    try {
+      const nextStatus = item.status === "done" ? "pending" : "done";
+      const result = await setStudyPlanStatus(item.id, nextStatus);
+      setPlanItems(Array.isArray(result?.items) ? result.items : []);
+      setToast({ type: "success", message: nextStatus === "done" ? `已完成 ${item.problemKey}` : `已恢复 ${item.problemKey}` });
+      return result;
+    } catch (error) {
+      setToast({ type: "error", message: error.message || "更新计划状态失败" });
+      return null;
+    }
+  }
+
+  async function removePlanItem(item) {
+    try {
+      const result = await removeStudyPlanItem(item.id);
+      setPlanItems(Array.isArray(result?.items) ? result.items : []);
+      setToast({ type: "success", message: `已从计划题单删除 ${item.problemKey}` });
+      return result;
+    } catch (error) {
+      setToast({ type: "error", message: error.message || "删除计划题失败" });
+      return null;
+    }
+  }
+
+  async function reorderPlanItems(itemIds) {
+    try {
+      const result = await reorderStudyPlan(itemIds);
+      setPlanItems(Array.isArray(result?.items) ? result.items : []);
+      return result;
+    } catch (error) {
+      setToast({ type: "error", message: error.message || "计划题单排序失败" });
+      return null;
+    }
+  }
+
   function navigate(target) {
+    const nextTarget = target === "favorites" || target === "agent" ? "library" : target;
     const appearanceSettings = studyData?.settings;
     if (
       appearanceSettings?.randomWallpaperOnPageChange &&
       !appearanceSettings?.wallpaperLocked
     ) {
-      const nextSettings = applyRotatedWallpaper(appearanceSettings, target, availableWallpapers);
+      const nextSettings = applyRotatedWallpaper(appearanceSettings, nextTarget, availableWallpapers);
       if (nextSettings !== appearanceSettings) {
         persistStudy({ ...studyData, settings: nextSettings });
       }
     }
-    setActiveNav(target);
+    setActiveNav(nextTarget);
     if (target === "favorites") {
       resetPage(() => setStatusFilter("favorite"));
-    } else if (target === "library") {
+    } else if (nextTarget === "library") {
       resetPage(() => setStatusFilter("all"));
     }
   }
@@ -527,12 +604,15 @@ export default function App() {
     }
   }, []);
 
-  function saveProblemNote(key, note) {
-    persistStudy(
-      { ...studyData, notes: { ...studyData.notes, [key]: note } },
-      "复盘笔记已保存",
-    );
-    setNoteProblem(null);
+  async function saveProblemNote(key, note) {
+    try {
+      const saved = await saveProblemNoteData(key, note);
+      setStudyData(saved);
+      setToast({ type: "success", message: "复盘笔记已保存" });
+      setNoteProblem(null);
+    } catch (error) {
+      setToast({ type: "error", message: error.message || "复盘笔记保存失败" });
+    }
   }
 
   async function handleExport() {
@@ -554,6 +634,7 @@ export default function App() {
       setData(result.cache);
       setHandle(result.cache.handle || result.cache.user?.handle || "");
       setFavorites(new Set(result.favorites));
+      setPlanItems(Array.isArray(result.studyPlan?.items) ? result.studyPlan.items : []);
       setStudyData(result.study);
       setLocale(result.study.settings?.language || "zh-CN");
       await refreshStatus().catch(() => undefined);
@@ -583,8 +664,9 @@ export default function App() {
     );
   }
 
-  const isWorkbench = activeNav === "library" || activeNav === "favorites";
+  const isWorkbench = activeNav === "library";
   const isReviewLibrary = activeNav === "review";
+  const plannedKeys = new Set(planItems.map((item) => item.problemKey));
   const hasGlobalStats = isWorkbench || isReviewLibrary;
   const [title, subtitle] = pageMeta[activeNav] || pageMeta.library;
   const appearance = studyData.settings;
@@ -669,6 +751,8 @@ export default function App() {
             studyData={studyData}
             onToggleFavorite={toggleFavorite}
             onOpenNote={setNoteProblem}
+            plannedKeys={plannedKeys}
+            onAddToPlan={addProblemToPlan}
           />
         ) : activeNav === "today" ? (
           <TodayTraining
@@ -677,6 +761,18 @@ export default function App() {
             studyData={studyData}
             onStudyChange={persistStudy}
             onOpenNote={setNoteProblem}
+            plannedKeys={plannedKeys}
+            onAddToPlan={addProblemToPlan}
+          />
+        ) : activeNav === "plan" ? (
+          <StudyPlan
+            items={planItems}
+            onToggleStatus={togglePlanItem}
+            onRemove={removePlanItem}
+            onReorder={reorderPlanItems}
+            onOpenNote={setNoteProblem}
+            onOpenLibrary={() => navigate("library")}
+            onOpenWindow={() => openStudyPlanWindow().catch((error) => setToast({ type: "error", message: error.message || "待做题单窗口打开失败" }))}
           />
         ) : activeNav === "contests" ? (
           <ContestReplayPage
@@ -685,6 +781,10 @@ export default function App() {
             onStudyChange={persistStudy}
             onOpenNote={setNoteProblem}
             onToast={(type, message) => setToast({ type, message })}
+            plannedKeys={plannedKeys}
+            onAddToPlan={addProblemToPlan}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
           />
         ) : activeNav === "contest-center" ? (
           <ContestCenterPage
@@ -692,6 +792,9 @@ export default function App() {
             studyData={studyData}
             onStudyChange={persistStudy}
             onToast={showToast}
+            plannedKeys={plannedKeys}
+            onAddToPlan={addProblemToPlan}
+            onOpenNote={setNoteProblem}
           />
         ) : activeNav === "templates" ? (
           <TemplateLibrary onToast={showToast} />
@@ -706,6 +809,7 @@ export default function App() {
             onExport={handleExport}
             onImport={handleImport}
             onOpenBackups={() => openBackupFolder().catch((error) => setToast({ type: "error", message: error.message }))}
+            onToast={showToast}
             onSettingsChange={(patch) =>
               persistStudy(
                 { ...studyData, settings: { ...studyData.settings, ...patch } },
@@ -732,7 +836,10 @@ export default function App() {
                   totalFiltered={filteredProblems.length}
                   submissionMap={submissionMap}
                   favorites={favorites}
+                  plannedKeys={plannedKeys}
                   onToggleFavorite={toggleFavorite}
+                  onAddToPlan={addProblemToPlan}
+                  onOpenNote={setNoteProblem}
                   search={search}
                   onSearchChange={(value) => resetPage(() => setSearch(value))}
                   ratingRange={ratingRange}
@@ -772,6 +879,9 @@ export default function App() {
                    overview={overview}
                    submissions={submissions}
                    recentActivity={recentActivity}
+                   plannedKeys={plannedKeys}
+                   onAddToPlan={addProblemToPlan}
+                   onOpenNote={setNoteProblem}
                 />
               ),
             }}
@@ -786,6 +896,8 @@ export default function App() {
             studyData={studyData}
             onClose={() => setNoteProblem(null)}
             onSave={saveProblemNote}
+            plannedKeys={plannedKeys}
+            onAddToPlan={addProblemToPlan}
           />
         </Suspense>
       ) : null}

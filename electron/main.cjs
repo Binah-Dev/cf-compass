@@ -7,6 +7,7 @@ const {
   nativeImage,
   nativeTheme,
   protocol,
+  safeStorage,
   session,
   shell,
 } = require("electron");
@@ -18,6 +19,10 @@ const {
   createMaterialLibraryService,
   safeMaterialRelativePath,
 } = require("./services/material-library-service.cjs");
+const { createStudyPlanService, sanitizeStudyPlan } = require("./services/study-plan-service.cjs");
+const { createAiService, normalizeAiReview } = require("./services/ai-service.cjs");
+const { buildDemoAiData } = require("./services/ai-demo-data.cjs");
+const { createCodeforcesSourceService } = require("./services/codeforces-source-service.cjs");
 
 nativeTheme.themeSource = "dark";
 app.setAppUserModelId("com.cfcompass.desktop");
@@ -84,6 +89,7 @@ const DEFAULT_STUDY_DATA = {
   version: 1,
   notes: {},
   reviews: {},
+  aiReviews: {},
   contestQueue: [],
   plan: null,
   settings: DEFAULT_SETTINGS,
@@ -108,6 +114,7 @@ function createFirstLaunchStudyData() {
 }
 
 let mainWindow;
+let studyPlanWindow;
 let apiQueue = Promise.resolve();
 let lastApiCallAt = 0;
 let carrotModulePromise;
@@ -115,6 +122,7 @@ const contestCalculationTasks = new Map();
 let contestAutoCalculationPromise = null;
 let automaticBackupTimer = null;
 let templateLibraryCache = null;
+let studyPlanService = null;
 
 const TEMPLATE_SOURCE_EXTENSIONS = new Set([
   ".cpp",
@@ -312,6 +320,27 @@ async function writeJson(filename, value, options) {
   await writeJsonPath(dataPath(filename), value, options);
 }
 
+function getStudyPlanService() {
+  if (!studyPlanService) {
+    studyPlanService = createStudyPlanService({
+      readJson,
+      writeJson,
+      onChanged: () => {
+        scheduleAutomaticBackup("plan-update");
+        void broadcastStudyPlan();
+      },
+    });
+  }
+  return studyPlanService;
+}
+
+async function broadcastStudyPlan() {
+  const queue = await getStudyPlanService().getQueue();
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send("plan:changed", queue);
+  }
+}
+
 const wallpaperService = createWallpaperService({
   dialog,
   nativeImage,
@@ -332,47 +361,82 @@ function templateConfigPath() {
   return dataPath("template-library.json");
 }
 
+function templateConfigBackupPath() {
+  return dataPath("template-library.json.bak");
+}
+
+function templateRootKey(root) {
+  const normalized = path.resolve(root).replace(/\\/g, "/");
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
 function defaultTemplateRoot() {
   return path.join(app.getPath("desktop"), "OJ", "Template Library");
 }
 
 async function readTemplateConfig() {
-  const saved = await readJsonPath(templateConfigPath(), {});
+  let saved = await readJsonPath(templateConfigPath(), null);
+  if (!saved || typeof saved !== "object") {
+    saved = await readJsonPath(templateConfigBackupPath(), {});
+  }
+  const root = typeof saved?.root === "string" && saved.root.trim()
+    ? path.resolve(saved.root)
+    : defaultTemplateRoot();
+  const profiles = saved?.profiles && typeof saved.profiles === "object"
+    ? { ...saved.profiles }
+    : {};
+  const profile = profiles[templateRootKey(root)];
   return {
-    root: typeof saved?.root === "string" && saved.root.trim()
-      ? path.resolve(saved.root)
-      : defaultTemplateRoot(),
+    root,
     overrides:
-      saved?.overrides && typeof saved.overrides === "object"
-        ? { ...saved.overrides }
+      profile?.overrides && typeof profile.overrides === "object"
+        ? { ...profile.overrides }
+        : saved?.overrides && typeof saved.overrides === "object"
+          ? { ...saved.overrides }
         : {},
     summaries:
-      saved?.summaries && typeof saved.summaries === "object"
-        ? { ...saved.summaries }
+      profile?.summaries && typeof profile.summaries === "object"
+        ? { ...profile.summaries }
+        : saved?.summaries && typeof saved.summaries === "object"
+          ? { ...saved.summaries }
         : {},
+    profiles,
   };
 }
 
 async function saveTemplateConfig(config) {
+  const root = path.resolve(config.root);
+  const overrides = Object.fromEntries(
+    Object.entries(config.overrides || {})
+      .filter(([, category]) => TEMPLATE_CATEGORY_IDS.has(category))
+      .slice(0, 5000),
+  );
+  const summaries = Object.fromEntries(
+    Object.entries(config.summaries || {})
+      .filter(([, summary]) => typeof summary === "string" && summary.trim())
+      .map(([relativePath, summary]) => [
+        normalizeRelativePath(relativePath),
+        summary.replace(/\r\n/g, "\n").trim().slice(0, 1200),
+      ])
+      .slice(0, 5000),
+  );
+  const profiles = { ...(config.profiles || {}) };
+  profiles[templateRootKey(root)] = { root, overrides, summaries };
   const safe = {
-    root: path.resolve(config.root),
-    overrides: Object.fromEntries(
-      Object.entries(config.overrides || {})
-        .filter(([, category]) => TEMPLATE_CATEGORY_IDS.has(category))
-        .slice(0, 5000),
-    ),
-    summaries: Object.fromEntries(
-      Object.entries(config.summaries || {})
-        .filter(([, summary]) => typeof summary === "string" && summary.trim())
-        .map(([relativePath, summary]) => [
-          normalizeRelativePath(relativePath),
-          summary.replace(/\r\n/g, "\n").trim().slice(0, 1200),
-        ])
-        .slice(0, 5000),
-    ),
+    root,
+    overrides,
+    summaries,
+    profiles: Object.fromEntries(Object.entries(profiles).slice(-20)),
     updatedAt: new Date().toISOString(),
   };
-  await writeJsonPath(templateConfigPath(), safe);
+  const target = templateConfigPath();
+  const temporary = `${target}.tmp`;
+  await writeJsonPath(temporary, safe);
+  await fs.rename(temporary, target).catch(async () => {
+    await fs.copyFile(temporary, target);
+    await fs.unlink(temporary).catch(() => undefined);
+  });
+  await fs.copyFile(target, templateConfigBackupPath());
   return safe;
 }
 
@@ -569,7 +633,15 @@ async function chooseTemplateRoot() {
     properties: ["openDirectory"],
   });
   if (result.canceled || !result.filePaths[0]) return { canceled: true };
-  await saveTemplateConfig({ root: result.filePaths[0], overrides: {}, summaries: {} });
+  const nextRoot = path.resolve(result.filePaths[0]);
+  const savedProfile = config.profiles?.[templateRootKey(nextRoot)];
+  const sameRoot = templateRootKey(nextRoot) === templateRootKey(config.root);
+  await saveTemplateConfig({
+    root: nextRoot,
+    overrides: sameRoot ? config.overrides : savedProfile?.overrides || {},
+    summaries: sameRoot ? config.summaries : savedProfile?.summaries || {},
+    profiles: config.profiles,
+  });
   templateLibraryCache = null;
   return { canceled: false, library: await scanTemplateLibrary(true) };
 }
@@ -1282,6 +1354,28 @@ function clampNumber(value, minimum, maximum, fallback) {
   return Math.min(maximum, Math.max(minimum, Math.round(number)));
 }
 
+function sanitizeAiReviews(input) {
+  const reviews = {};
+  for (const [key, value] of Object.entries(input || {}).slice(0, 200)) {
+    if (!value || typeof value !== "object") continue;
+    const normalized = normalizeAiReview(value);
+    reviews[String(key).slice(0, 80)] = {
+      ...normalized,
+      contestId: Number(value.contestId) || null,
+      contestName: String(value.contestName || "").slice(0, 240),
+      provider: String(value.provider || "deepseek").slice(0, 40),
+      model: String(value.model || "").slice(0, 100),
+      analysisMode: value.analysisMode === "source" ? "source" : "summary",
+      sourceIncluded: value.sourceIncluded === true,
+      sourceSubmissionCount: clampNumber(value.sourceSubmissionCount, 0, 300, 0),
+      generatedAt: String(value.generatedAt || new Date().toISOString()).slice(0, 40),
+      savedAt: String(value.savedAt || "").slice(0, 40),
+      inputFingerprint: String(value.inputFingerprint || "").slice(0, 32),
+    };
+  }
+  return reviews;
+}
+
 function sanitizeStudyData(input) {
   const source = input && typeof input === "object" ? input : {};
   const settings = source.settings && typeof source.settings === "object"
@@ -1294,16 +1388,7 @@ function sanitizeStudyData(input) {
   const notes = {};
   for (const [key, value] of Object.entries(source.notes || {}).slice(0, 10000)) {
     if (!value || typeof value !== "object") continue;
-    notes[String(key).slice(0, 80)] = {
-      difficulty: clampNumber(value.difficulty, 1, 5, 3),
-      mistakeReason: String(value.mistakeReason || "").slice(0, 80),
-      mistakeTags: Array.isArray(value.mistakeTags)
-        ? value.mistakeTags.slice(0, 12).map((tag) => String(tag).slice(0, 30))
-        : [],
-      keyIdea: String(value.keyIdea || "").slice(0, 5000),
-      content: String(value.content || "").slice(0, 30000),
-      updatedAt: String(value.updatedAt || new Date().toISOString()),
-    };
+    notes[String(key).slice(0, 80)] = sanitizeProblemNote(value);
   }
 
   const reviews = {};
@@ -1371,11 +1456,13 @@ function sanitizeStudyData(input) {
   const contestQueue = Array.isArray(source.contestQueue)
     ? [...new Set(source.contestQueue.slice(0, 1000).map((key) => String(key).slice(0, 80)))]
     : [];
+  const aiReviews = sanitizeAiReviews(source.aiReviews);
 
   return {
     version: 1,
     notes,
     reviews,
+    aiReviews,
     contestQueue,
     plan,
     settings: {
@@ -1580,6 +1667,26 @@ function sanitizeStudyData(input) {
   };
 }
 
+function sanitizeProblemNote(value) {
+  const source = value && typeof value === "object" ? value : {};
+  return {
+    difficulty: clampNumber(source.difficulty, 1, 5, 3),
+    mistakeReason: String(source.mistakeReason || "").slice(0, 80),
+    mistakeTags: Array.isArray(source.mistakeTags)
+      ? source.mistakeTags.slice(0, 12).map((tag) => String(tag).slice(0, 30))
+      : [],
+    keyIdea: String(source.keyIdea || "").slice(0, 5000),
+    content: String(source.content || "").slice(0, 30000),
+    updatedAt: String(source.updatedAt || new Date().toISOString()).slice(0, 40),
+  };
+}
+
+async function broadcastStudyData(study) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send("study:changed", study);
+  }
+}
+
 async function readStudyData() {
   try {
     const source = JSON.parse(await fs.readFile(dataPath("study.json"), "utf8"));
@@ -1601,6 +1708,25 @@ async function readUiLanguage() {
 function sanitizeFavorites(input) {
   return Array.isArray(input) ? input.slice(0, 10000).map(String) : [];
 }
+
+const codeforcesSourceService = createCodeforcesSourceService({
+  dataPath,
+  safeStorage,
+  fetchJson: (endpoint) => fetchCodeforces(endpoint),
+});
+
+const aiService = createAiService({
+  dataPath,
+  readJson,
+  writeJson,
+  safeStorage,
+  net,
+  getCache: () => readJson("cache.json", null),
+  getStudy: () => readStudyData(),
+  getReplay: () => readJson("contest-replay.json", null),
+  getDemoData: () => buildDemoAiData(),
+  getSubmissionSources: (request) => codeforcesSourceService.fetchSources(request),
+});
 
 function validCache(value) {
   return Boolean(
@@ -1674,6 +1800,7 @@ async function collectDataBundle(reason = "manual", snapshot = null) {
       favorites: snapshotFavorites || sanitizeFavorites(await readJson("favorites.json", [])),
       study: snapshotStudy || (await readStudyData()),
       contestReplay: validContestReplay(contestReplay) ? contestReplay : null,
+      studyPlan: sanitizeStudyPlan(await readJson("study-plan.json", { version: 1, items: [] })),
     },
   };
 }
@@ -1866,6 +1993,7 @@ function validateImportBundle(bundle) {
     contestReplay: validContestReplay(bundle.data.contestReplay)
       ? bundle.data.contestReplay
       : emptyContestReplay(bundle.data.cache.handle),
+    studyPlan: sanitizeStudyPlan(bundle.data.studyPlan || bundle.data.agentTodo),
   };
 }
 
@@ -1905,6 +2033,7 @@ async function importData() {
     writeJson("favorites.json", imported.favorites),
     writeJson("study.json", imported.study),
     writeJson("contest-replay.json", imported.contestReplay),
+    writeJson("study-plan.json", imported.studyPlan),
   ]);
   await appendActivity(
     "手动导入",
@@ -1916,6 +2045,7 @@ async function importData() {
     cache: imported.cache,
     favorites: imported.favorites,
     study: imported.study,
+    studyPlan: imported.studyPlan,
   };
 }
 
@@ -1978,6 +2108,52 @@ function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+}
+
+function createStudyPlanWindow() {
+  if (studyPlanWindow && !studyPlanWindow.isDestroyed()) {
+    studyPlanWindow.show();
+    studyPlanWindow.focus();
+    return studyPlanWindow;
+  }
+  const mainBounds = mainWindow?.getBounds();
+  studyPlanWindow = new BrowserWindow({
+    width: 480,
+    height: 580,
+    minWidth: 360,
+    minHeight: 320,
+    x: mainBounds ? mainBounds.x + Math.max(40, mainBounds.width - 510) : undefined,
+    y: mainBounds ? mainBounds.y + 82 : undefined,
+    title: "CF Compass · 待做题单",
+    backgroundColor: "#071825",
+    icon: path.join(__dirname, "..", "build", "icon.ico"),
+    show: false,
+    resizable: true,
+    minimizable: true,
+    maximizable: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  studyPlanWindow.setMenuBarVisibility(false);
+  studyPlanWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  studyPlanWindow.webContents.on("will-navigate", (event, url) => {
+    if (!isTrustedRendererUrl(url)) event.preventDefault();
+  });
+  const devUrl = process.env.VITE_DEV_SERVER_URL;
+  if (devUrl) {
+    const target = new URL(devUrl);
+    target.searchParams.set("studyPlanWindow", "1");
+    studyPlanWindow.loadURL(target.toString());
+  } else {
+    studyPlanWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"), { query: { studyPlanWindow: "1" } });
+  }
+  studyPlanWindow.once("ready-to-show", () => studyPlanWindow?.show());
+  studyPlanWindow.on("closed", () => { studyPlanWindow = null; });
+  return studyPlanWindow;
 }
 
 function trustedRendererUrl() {
@@ -2057,6 +2233,18 @@ app.whenReady().then(() => {
     loadContestCenterDetail(contestId, force),
   );
   handleTrusted("data:status", () => getDataCenterStatus());
+  handleTrusted("codeforces:get-source-config", () => codeforcesSourceService.getConfig());
+  handleTrusted("codeforces:set-source-config", (_event, config) =>
+    codeforcesSourceService.setConfig(config),
+  );
+  handleTrusted("ai:get-config", () => aiService.getConfig());
+  handleTrusted("ai:set-config", (_event, config) => aiService.setConfig(config));
+  handleTrusted("ai:analyze-contest", (_event, contestId, options = {}) =>
+    aiService.analyzeContest(contestId, options),
+  );
+  handleTrusted("ai:recommend-contest", (_event, contestId, options = {}) =>
+    aiService.recommendContestProblems(contestId, options),
+  );
   handleTrusted("data:export", (_event, snapshot) => exportData(snapshot));
   handleTrusted("data:import", () => importData());
   handleTrusted("data:open-backups", async () => {
@@ -2074,7 +2262,30 @@ app.whenReady().then(() => {
     const safe = sanitizeStudyData(studyData);
     await writeJson("study.json", safe);
     scheduleAutomaticBackup("study-update");
+    await broadcastStudyData(safe);
     return safe;
+  });
+  handleTrusted("study:note-set", async (_event, problemKeyValue, noteValue) => {
+    const problemKey = String(problemKeyValue || "").trim().toUpperCase().slice(0, 80);
+    if (!/^\d+-?[A-Z][A-Z0-9]*$/.test(problemKey)) throw new Error("题目标识无效");
+    const current = await readStudyData();
+    const safe = sanitizeStudyData({
+      ...current,
+      notes: { ...current.notes, [problemKey]: sanitizeProblemNote(noteValue) },
+    });
+    await writeJson("study.json", safe);
+    scheduleAutomaticBackup("study-note-update");
+    await broadcastStudyData(safe);
+    return safe;
+  });
+  handleTrusted("plan:get", () => getStudyPlanService().getQueue());
+  handleTrusted("plan:add", (_event, problemKey) => getStudyPlanService().addProblem(problemKey));
+  handleTrusted("plan:status", (_event, itemId, status) => getStudyPlanService().setStatus(itemId, status));
+  handleTrusted("plan:remove", (_event, itemId) => getStudyPlanService().remove(itemId));
+  handleTrusted("plan:reorder", (_event, itemIds) => getStudyPlanService().reorder(itemIds));
+  handleTrusted("plan:window-open", () => {
+    createStudyPlanWindow();
+    return { opened: true };
   });
   handleTrusted("appearance:get-wallpaper", () => wallpaperService.get());
   handleTrusted("appearance:get-local-library", () => materialLibraryService.get());

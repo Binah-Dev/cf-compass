@@ -185,6 +185,14 @@ let app;
     fullPage: true,
   });
   await page.getByRole("button", { name: "关闭外观设置", exact: true }).click();
+  const normalGeometry = await page.evaluate(() => {
+    const image = document.querySelector(".app-wallpaper--image").getBoundingClientRect();
+    const backdrop = document.querySelector(".app-wallpaper--backdrop").getBoundingClientRect();
+    return {
+      image: [image.x, image.y, image.width, image.height],
+      backdrop: [backdrop.x, backdrop.y, backdrop.width, backdrop.height],
+    };
+  });
   await page.getByRole("button", { name: "沉浸大厅", exact: true }).click();
   await page.waitForSelector(".app-shell.is-immersive");
   await page.waitForTimeout(500);
@@ -206,6 +214,11 @@ let app;
     backdropBottom < immersive.viewport[1]
   ) {
     throw new Error(`沉浸模式未覆盖完整宽度：${JSON.stringify(immersive)}`);
+  }
+  const geometryShift = [...normalGeometry.image, ...normalGeometry.backdrop]
+    .map((value, index) => Math.abs(value - [...immersive.image, ...immersive.backdrop][index]));
+  if (Math.max(...geometryShift) > 0.25) {
+    throw new Error(`沉浸模式切换导致壁纸位移：${JSON.stringify({ normalGeometry, immersive, geometryShift })}`);
   }
   await page.screenshot({
     path: path.join(outputRoot, "smart-fill-immersive.png"),
@@ -336,6 +349,7 @@ let app;
     cover,
     contain,
     immersive,
+    normalGeometry,
     video,
     videoMetadata,
     reducedMotionPaused,

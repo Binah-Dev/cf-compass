@@ -11,6 +11,14 @@ contextBridge.exposeInMainWorld("cfBridge", {
   getContestCenterDetail: (contestId, force = false) =>
     ipcRenderer.invoke("contest-center:get-detail", contestId, force),
   getDataStatus: () => ipcRenderer.invoke("data:status"),
+  getCodeforcesSourceConfig: () => ipcRenderer.invoke("codeforces:get-source-config"),
+  setCodeforcesSourceConfig: (config) => ipcRenderer.invoke("codeforces:set-source-config", config),
+  getAiConfig: () => ipcRenderer.invoke("ai:get-config"),
+  setAiConfig: (config) => ipcRenderer.invoke("ai:set-config", config),
+  analyzeContestWithAi: (contestId, options = {}) =>
+    ipcRenderer.invoke("ai:analyze-contest", contestId, options),
+  recommendContestProblems: (contestId, options = {}) =>
+    ipcRenderer.invoke("ai:recommend-contest", contestId, options),
   exportData: (snapshot) => ipcRenderer.invoke("data:export", snapshot),
   importData: () => ipcRenderer.invoke("data:import"),
   openBackupFolder: () => ipcRenderer.invoke("data:open-backups"),
@@ -18,6 +26,23 @@ contextBridge.exposeInMainWorld("cfBridge", {
   setFavorites: (favorites) => ipcRenderer.invoke("favorites:set", favorites),
   getStudyData: () => ipcRenderer.invoke("study:get"),
   setStudyData: (studyData) => ipcRenderer.invoke("study:set", studyData),
+  setProblemNote: (problemKey, note) => ipcRenderer.invoke("study:note-set", problemKey, note),
+  onStudyChanged: (callback) => {
+    const listener = (_event, study) => callback(study);
+    ipcRenderer.on("study:changed", listener);
+    return () => ipcRenderer.removeListener("study:changed", listener);
+  },
+  getStudyPlan: () => ipcRenderer.invoke("plan:get"),
+  addStudyPlanProblem: (problemKey) => ipcRenderer.invoke("plan:add", problemKey),
+  setStudyPlanStatus: (itemId, status) => ipcRenderer.invoke("plan:status", itemId, status),
+  removeStudyPlanItem: (itemId) => ipcRenderer.invoke("plan:remove", itemId),
+  reorderStudyPlan: (itemIds) => ipcRenderer.invoke("plan:reorder", itemIds),
+  openStudyPlanWindow: () => ipcRenderer.invoke("plan:window-open"),
+  onStudyPlanChanged: (callback) => {
+    const listener = (_event, queue) => callback(queue);
+    ipcRenderer.on("plan:changed", listener);
+    return () => ipcRenderer.removeListener("plan:changed", listener);
+  },
   getCustomWallpaper: () => ipcRenderer.invoke("appearance:get-wallpaper"),
   getLocalWallpaperLibrary: () => ipcRenderer.invoke("appearance:get-local-library"),
   chooseCustomWallpaper: () => ipcRenderer.invoke("appearance:choose-wallpaper"),

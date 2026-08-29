@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   EyeOff,
+  ListPlus,
   Search,
   Star,
   Tags,
@@ -12,6 +13,7 @@ import {
 import { acCountTone, displayTag, formatNumber, ratingTone } from "../lib/stats";
 import { openProblem, problemKey } from "../lib/codeforces";
 import RatingRange from "./RatingRange";
+import ProblemNoteButton from "./ProblemNoteButton";
 
 const statusOptions = [
   { id: "all", label: "全部题目" },
@@ -20,19 +22,32 @@ const statusOptions = [
   { id: "favorite", label: "已收藏" },
 ];
 
-function ProblemRow({ problem, stats, isFavorite, onToggleFavorite, showTags }) {
+function ProblemRow({ problem, stats, isFavorite, isPlanned, onToggleFavorite, onAddToPlan, onOpenNote, showTags }) {
   const key = problemKey(problem);
   const solved = Boolean(stats?.accepted);
   return (
     <div className="problem-row" role="row">
-      <button
-        type="button"
-        className={`favorite-button ${isFavorite ? "is-active" : ""}`}
-        aria-label={isFavorite ? "取消收藏" : "收藏题目"}
-        onClick={() => onToggleFavorite(key)}
-      >
-        <Star size={15} fill={isFavorite ? "currentColor" : "none"} />
-      </button>
+      <div className="problem-row-actions">
+        <button
+          type="button"
+          className={`favorite-button ${isFavorite ? "is-active" : ""}`}
+          aria-label={isFavorite ? "取消收藏" : "收藏题目"}
+          onClick={() => onToggleFavorite(key)}
+        >
+          <Star size={15} fill={isFavorite ? "currentColor" : "none"} />
+        </button>
+        <button
+          type="button"
+          className={`plan-button ${isPlanned ? "is-active" : ""}`}
+          aria-label={isPlanned ? "已在计划题单" : "加入计划题单"}
+          title={isPlanned ? "已在计划题单" : "加入计划题单"}
+          disabled={isPlanned}
+          onClick={() => onAddToPlan(key)}
+        >
+          {isPlanned ? <Check size={15} /> : <ListPlus size={15} />}
+        </button>
+        <ProblemNoteButton problem={problem} onOpenNote={onOpenNote} />
+      </div>
       <button type="button" className="problem-id" onClick={() => openProblem(problem)}>
         {problem.contestId}
         {problem.index}
@@ -78,7 +93,10 @@ export default function ProblemWorkspace({
   totalFiltered,
   submissionMap,
   favorites,
+  plannedKeys,
   onToggleFavorite,
+  onOpenNote,
+  onAddToPlan,
   search,
   onSearchChange,
   ratingRange,
@@ -177,7 +195,10 @@ export default function ProblemWorkspace({
                 problem={problem}
                 stats={submissionMap.get(problemKey(problem))}
                 isFavorite={favorites.has(problemKey(problem))}
+                isPlanned={plannedKeys.has(problemKey(problem))}
                 onToggleFavorite={onToggleFavorite}
+                onOpenNote={onOpenNote}
+                onAddToPlan={onAddToPlan}
                 showTags={showTags}
               />
             ))
