@@ -11,6 +11,12 @@ contextBridge.exposeInMainWorld("cfBridge", {
   getContestCenterDetail: (contestId, force = false) =>
     ipcRenderer.invoke("contest-center:get-detail", contestId, force),
   getDataStatus: () => ipcRenderer.invoke("data:status"),
+  getCodeforcesSourceConfig: () => ipcRenderer.invoke("codeforces:get-source-config"),
+  setCodeforcesSourceConfig: (config) => ipcRenderer.invoke("codeforces:set-source-config", config),
+  getAiConfig: () => ipcRenderer.invoke("ai:get-config"),
+  setAiConfig: (config) => ipcRenderer.invoke("ai:set-config", config),
+  analyzeContestWithAi: (contestId, options = {}) =>
+    ipcRenderer.invoke("ai:analyze-contest", contestId, options),
   exportData: (snapshot) => ipcRenderer.invoke("data:export", snapshot),
   importData: () => ipcRenderer.invoke("data:import"),
   openBackupFolder: () => ipcRenderer.invoke("data:open-backups"),

@@ -38,6 +38,8 @@
     "qa:wallpaper": "node scripts/qa-wallpaper-engine.cjs",
     "benchmark:startup": "node scripts/benchmark-startup.cjs",
     "test:analytics": "node scripts/test-analytics.mjs",
+    "test:ai": "node scripts/test-ai-service.cjs",
+    "test:codeforces-source": "node scripts/test-codeforces-source-service.cjs",
     "test:materials": "node scripts/test-material-library.cjs",
     "test:performance": "node scripts/test-performance.mjs"
   },

@@ -98,6 +98,17 @@ Browse rated contests you actually joined and inspect estimated performance, off
 
 Performance is a local training estimate based on the MIT-licensed Carrot algorithm, not an extra official Codeforces rating.
 
+### Optional AI contest review
+
+AI contest review turns contest results and submission history into actionable review notes. Configure the DeepSeek API in **Data Center → AI Contest Review**, then open **AI Review** or **Enhanced review** from a contest. Results remain a draft until you choose **Save review**.
+
+- Standard review uses the contest summary, per-problem submission statistics, contest state, and local notes to identify time-management patterns, strengths, weaknesses, and next actions.
+- Source-assisted review is a separate opt-in capability. It needs your own Codeforces API key and secret, builds the complete contest submission timeline, and generates adjacent-version Diffs for submissions whose source was retrieved before sending the code evidence to AI.
+- Source code, Diffs, and API credentials are excluded from ordinary study data, JSON exports, and automatic backups. Reopening source-assisted review reads the submission source again.
+- The feature is off by default and does not run during automatic sync. AI output is a review aid only; it does not replace official Codeforces results or modify notes, review feedback, or training plans automatically.
+
+![CF Compass source-assisted contest review](./docs/screenshots/contest-ai-diff.png)
+
 ### Contest center — search the past and choose the next contest
 
 ![CF Compass contest center](./docs/screenshots/contest-center.png)
@@ -196,7 +207,7 @@ GitHub Actions installs dependencies, audits production packages, runs focused r
 
 ## Privacy and open-source boundary
 
-- Codeforces integration reads public API data only.
+- Standard Codeforces synchronization reads public API data only. The optional source-assisted review uses an explicitly configured, authenticated request for your own submissions.
 - User data, notes, template summaries, settings, and backups stay local by default.
 - The repository contains no real user database, access token, or maintainer computer path.
 - Third-party character artwork, game assets, and reusable wallpapers are not included in the source tree, Windows executable, or MIT License.

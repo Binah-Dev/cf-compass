@@ -68,6 +68,14 @@ const PAGE_SIZE = 14;
 const DEFAULT_RATING_RANGE = [800, 3500];
 const DEFAULT_PANEL_ORDER = ["taxonomy", "problems", "progress"];
 const PANEL_LAYOUT_KEY = "cf-compass-panel-layout-v1";
+
+function contestDiffMockEnabled() {
+  return (
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("mock") === "contest-diff"
+  );
+}
 function chooseNextWallpaperId(settings, currentId, wallpapers) {
   const wallpaperIds = wallpapers.map((wallpaper) => wallpaper.id);
   const wallpaperIdSet = new Set(wallpaperIds);
@@ -147,7 +155,9 @@ export default function App() {
   const [page, setPage] = useState(1);
   const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState(null);
-  const [activeNav, setActiveNav] = useState("library");
+  const [activeNav, setActiveNav] = useState(() =>
+    contestDiffMockEnabled() ? "contests" : "library",
+  );
   const [panelOrder, setPanelOrder] = useState(loadPanelOrder);
   const [noteProblem, setNoteProblem] = useState(null);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
@@ -791,6 +801,7 @@ export default function App() {
             onExport={handleExport}
             onImport={handleImport}
             onOpenBackups={() => openBackupFolder().catch((error) => setToast({ type: "error", message: error.message }))}
+            onToast={showToast}
             onSettingsChange={(patch) =>
               persistStudy(
                 { ...studyData, settings: { ...studyData.settings, ...patch } },
