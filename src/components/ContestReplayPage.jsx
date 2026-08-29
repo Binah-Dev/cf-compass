@@ -400,6 +400,8 @@ export default function ContestReplayPage({
   onToast,
   plannedKeys,
   onAddToPlan,
+  favorites,
+  onToggleFavorite,
 }) {
   const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);

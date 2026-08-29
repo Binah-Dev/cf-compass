@@ -92,8 +92,8 @@ select:focus-visible {
 .app-wallpaper {
   position: absolute;
   z-index: -3;
-  inset: 34px 0 0 68px;
-  width: calc(100% - 68px);
+  inset: 34px 0 0;
+  width: 100%;
   height: calc(100% - 34px);
   opacity: 0;
   background-color: transparent;
@@ -129,6 +129,7 @@ select:focus-visible {
 .app-wallpaper--image {
   object-fit: contain;
   object-position: var(--wallpaper-position, center center);
+  transform: translateX(34px) scale(calc(var(--wallpaper-scale, 1.12) + 0.04));
 }
 
 .wallpaper-fit-cover .app-wallpaper--image,
@@ -3139,6 +3140,7 @@ html[lang="en-US"] .titlebar__brand::after {
 
 .app-wallpaper--video {
   object-position: var(--wallpaper-position, center center);
+  transform: translateX(34px) scale(calc(var(--wallpaper-scale, 1.12) + 0.04));
 }
 
 .app-content,
@@ -3165,21 +3167,6 @@ html[lang="en-US"] .titlebar__brand::after {
 
 .academy-theme.is-immersive::before {
   opacity: 0.12;
-}
-
-.academy-theme.is-immersive .app-wallpaper {
-  inset: 34px 0 0;
-  width: 100%;
-  height: calc(100% - 34px);
-}
-
-.academy-theme.is-immersive .app-wallpaper--image,
-.academy-theme.is-immersive .app-wallpaper--video {
-  transform: translateX(34px) scale(calc(var(--wallpaper-scale, 1) + 0.04));
-}
-
-.academy-theme.is-immersive .app-wallpaper--backdrop {
-  transform: scale(1.06);
 }
 
 .immersive-exit {
