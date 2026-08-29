@@ -3216,7 +3216,7 @@ select:focus-visible {
   padding: 9px 7px;
   border-bottom: 1px solid #282e37;
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) 52px 32px 32px;
+  grid-template-columns: 26px minmax(0, 1fr) 52px 32px 32px 32px;
   align-items: center;
   gap: 8px;
   transition: 140ms ease;

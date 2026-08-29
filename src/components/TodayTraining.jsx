@@ -406,6 +406,13 @@ export default function TodayTraining({
                   >
                     {item.problem.rating}
                   </span>
+                  <ProblemNoteButton problem={item.problem} onOpenNote={onOpenNote} />
+                  <PlanQueueButton
+                    problem={item.problem}
+                    plannedKeys={plannedKeys}
+                    onAddToPlan={onAddToPlan}
+                    compact
+                  />
                   <button
                     type="button"
                     className={`complete-button ${
