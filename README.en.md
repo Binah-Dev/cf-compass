@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/qeffg/cf-compass/actions/workflows/build.yml"><img src="https://github.com/qeffg/cf-compass/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
-  <a href="https://github.com/qeffg/cf-compass/releases/latest"><img src="https://img.shields.io/github/v/release/qeffg/cf-compass?display_name=tag&sort=semver" alt="Latest release" /></a>
+  <a href="https://github.com/Binah-Dev/cf-compass/actions/workflows/build.yml"><img src="https://github.com/Binah-Dev/cf-compass/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
+  <a href="https://github.com/Binah-Dev/cf-compass/releases/latest"><img src="https://img.shields.io/github/v/release/Binah-Dev/cf-compass?display_name=tag&sort=semver" alt="Latest release" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-2ea44f.svg" alt="MIT License" /></a>
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-0078D4" alt="Windows Linux macOS" />
   <img src="https://img.shields.io/badge/Language-简体中文%20%7C%20English-38BDF8" alt="Simplified Chinese and English" />
@@ -22,10 +22,23 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/qeffg/cf-compass/releases/latest">Download for Windows, Linux, or macOS</a></strong>
+  <strong><a href="https://github.com/Binah-Dev/cf-compass/releases/latest">Download for Windows, Linux, or macOS</a></strong>
 </p>
 
 ![CF Compass problem dashboard](./docs/screenshots/dashboard-sky.png)
+
+## Current release: v4.0.1
+
+v4 turns CF Compass from a collection of training pages into a coherent desktop workbench. v4.0.1 keeps the same feature set and adds a Windows installer designed for regular daily use.
+
+| v4 highlight | What it enables |
+| --- | --- |
+| Evidence-based contest review | Inspect the real submission timeline and adjacent-version Diffs, then request an optional AI review draft. |
+| Actionable recommendations | Rank candidates from the locally synced problem set, inspect the evidence, and then save, annotate, or add a problem to the target list. |
+| One learning record | Use the same notes and target list from the problem set, daily training, reviews, contests, and recommendations. |
+| Customizable workbench | Hide, restore, and reorder rail items; choose a UI scale; and review contests in a full-page layout. |
+
+See the [v4.0.1 release notes](./docs/releases/v4.0.1.md) and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
 
 ## Why CF Compass?
 
@@ -106,8 +119,16 @@ AI contest review turns contest results and submission history into actionable r
 - Source-assisted review is a separate opt-in capability. It needs your own Codeforces API key and secret, builds the complete contest submission timeline, and generates adjacent-version Diffs for submissions whose source was retrieved before sending the code evidence to AI.
 - Source code, Diffs, and API credentials are excluded from ordinary study data, JSON exports, and automatic backups. Reopening source-assisted review reads the submission source again.
 - The feature is off by default and does not run during automatic sync. AI output is a review aid only; it does not replace official Codeforces results or modify notes, review feedback, or training plans automatically.
+- Recommendation candidates come from the locally synced Codeforces problem set. Hard filters remove contest originals, solved, already planned, duplicate, and invalid candidates before the UI shows the problem, difficulty, and recommendation evidence. Saving, annotating, or adding a target remains an explicit user action.
 
 ![CF Compass source-assisted contest review](./docs/screenshots/contest-ai-diff.png)
+
+### Global notes and target list — give “later” a real home
+
+- Open the same problem note from the problem workspace, daily training, review library, contest replay, AI recommendations, or target list.
+- Collect problems you want to learn, upsolve, or revisit, then sort them by date, difficulty, or status.
+- Detach and resize the target-list window; completed entries remain crossed out so the training trail stays visible.
+- Notes and targets stay synchronized across windows and travel with local export, import, and backup data.
 
 ### Contest center — search the past and choose the next contest
 
@@ -143,6 +164,13 @@ See the [Data Center guide](./docs/DATA_CENTER_GUIDE.md) for first sync, migrati
 
 Switch between all time, one year, three months, one month, two weeks, or a custom date range. Summary metrics, the Codeforces Rating chart, algorithm acceptance ranking, and daily Accepted rhythm all follow the same window. Rating points expose contest changes and ranks; scroll over the chart to zoom around the pointer, or use the navigator handles for precise selection. The complete algorithm ranking remains vertically scrollable instead of hiding lower entries.
 
+### Customizable desktop workbench
+
+- Hide unused rail items, restore them from settings, and drag frequently used destinations into the order you prefer.
+- Contest Replay uses a full-page layout for timelines, per-problem state, and AI evidence instead of squeezing them into a narrow drawer.
+- Small, medium, and large UI scales work alongside the saved language, theme, background, and optional local-asset settings.
+- The desktop app provides native windows, file selection, VS Code handoff, and local backups; browser preview remains available for quick UI inspection.
+
 ## Three original themes
 
 ![CF Compass theme picker](./docs/screenshots/theme-picker.png)
@@ -161,17 +189,18 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 
 ### Desktop downloads
 
-Open [Latest Release](https://github.com/qeffg/cf-compass/releases/latest) and choose the package for your device:
+Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the package for your device:
 
 ```text
-Windows x64:       CF-Compass-3.13.0-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.13.0-Linux-x86_64.AppImage
-Linux Debian x64:  CF-Compass-3.13.0-Linux-amd64.deb
-macOS Intel:       CF-Compass-3.13.0-macOS-x64.dmg
-macOS Apple Silicon: CF-Compass-3.13.0-macOS-arm64.dmg
+Windows x64 (recommended installer): CF-Compass-4.0.1-Windows-x64-Setup.exe
+Windows x64 (portable):              CF-Compass-4.0.1-Windows-x64-portable.exe
+Linux x64 (reused from v4.0.0):      CF-Compass-4.0.0-Linux-x86_64.AppImage
+Linux Debian x64 (reused from v4.0.0): CF-Compass-4.0.0-Linux-amd64.deb
+macOS Intel (reused from v4.0.0):    CF-Compass-4.0.0-macOS-x64.dmg
+macOS Apple Silicon (reused from v4.0.0): CF-Compass-4.0.0-macOS-arm64.dmg
 ```
 
-The Windows portable build requires no installer wizard. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
+Windows users should normally choose the `Setup.exe` installer. It extracts the application once during installation, so later launches start directly from the installed files. The `portable.exe` build requires no installation, but it extracts its program files on every launch and can be noticeably slower on low-end disks or while antivirus scanning is active. v4.0.1 only changes Windows distribution, so its Release reuses the already verified v4.0.0 Linux and macOS assets under their truthful `4.0.0` filenames. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
 
 Every package has a matching `.sha256` file and the Release includes `SHA256SUMS.txt`. Verify on Windows with `Get-FileHash -Algorithm SHA256 <file>`, on Linux with `sha256sum -c SHA256SUMS.txt --ignore-missing`, or on macOS with `shasum -a 256 <file>`.
 
@@ -184,7 +213,7 @@ The public build is currently unsigned because the project does not own a commer
 Requirements: Windows, Linux, or macOS; Node.js 22; pnpm 11.19.0; and Git.
 
 ```powershell
-git clone https://github.com/qeffg/cf-compass.git
+git clone https://github.com/Binah-Dev/cf-compass.git
 cd cf-compass
 corepack enable
 pnpm install --frozen-lockfile
@@ -198,7 +227,7 @@ Enter a Codeforces handle after launch to sync its public data.
 ```powershell
 pnpm verify         # production renderer build
 pnpm desktop:pack   # unpacked Windows application
-pnpm desktop:build  # one-file Windows portable executable
+pnpm desktop:build  # Windows installer and portable executable
 pnpm desktop:build:linux  # Linux AppImage and deb
 pnpm desktop:build:mac    # macOS Intel and Apple Silicon dmg; run on macOS
 ```
