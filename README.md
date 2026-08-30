@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/qeffg/cf-compass/actions/workflows/build.yml"><img src="https://github.com/qeffg/cf-compass/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
-  <a href="https://github.com/qeffg/cf-compass/releases/latest"><img src="https://img.shields.io/github/v/release/qeffg/cf-compass?display_name=tag&sort=semver" alt="Latest release" /></a>
+  <a href="https://github.com/Binah-Dev/cf-compass/actions/workflows/build.yml"><img src="https://github.com/Binah-Dev/cf-compass/actions/workflows/build.yml/badge.svg" alt="Build" /></a>
+  <a href="https://github.com/Binah-Dev/cf-compass/releases/latest"><img src="https://img.shields.io/github/v/release/Binah-Dev/cf-compass?display_name=tag&sort=semver" alt="Latest release" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-2ea44f.svg" alt="MIT License" /></a>
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-0078D4" alt="Windows Linux macOS" />
   <img src="https://img.shields.io/badge/Language-简体中文%20%7C%20English-38BDF8" alt="简体中文与 English" />
@@ -31,12 +31,25 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/qeffg/cf-compass/releases/latest">⬇ 下载 Windows / Linux / macOS 版本</a></strong>
+  <strong><a href="https://github.com/Binah-Dev/cf-compass/releases/latest">⬇ 下载 Windows / Linux / macOS 版本</a></strong>
 </p>
 
 ![CF Compass 题库工作台](./docs/screenshots/dashboard-sky.png)
 
 <p align="center"><sub>题库工作台 · 天空蓝主题 · 仓库内置虚构演示数据</sub></p>
+
+## 当前版本：v4.0.1
+
+v4 把 CF Compass 从一组训练页面升级为一套可持续使用的桌面工作台；v4.0.1 在功能保持不变的基础上，补充了更适合日常使用的 Windows 安装版。
+
+| v4 重点 | 现在可以做什么 |
+| --- | --- |
+| 证据化比赛复盘 | 查看真实提交时间线与相邻版本 Diff，并按需生成 AI 复盘草稿。 |
+| 训练建议落地 | 从本地同步题库中筛选候选题，查看推荐依据，再收藏、记录或加入目标题单。 |
+| 全局学习记录 | 在题库、今日训练、复习、比赛和推荐结果中使用同一套笔记与目标题单。 |
+| 可定制桌面工作台 | 隐藏、恢复和调整左侧功能入口顺序，切换字号与全页赛事复盘布局。 |
+
+完整变化见 [v4.0.1 发布说明](./docs/releases/v4.0.1.md) 与 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
 
 ## 为什么是 CF Compass
 
@@ -167,10 +180,22 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 - 源码增强复盘是独立的可选能力，需要自己的 Codeforces API Key / Secret。它会整理本场完整提交时间线，对已获取源码的相邻版本生成 Diff，并在确认后将这些代码证据交给 AI 分析。
 - 源码、Diff 和 API 凭证不会写入普通学习数据、JSON 导出或自动备份；重新打开源码增强复盘时会重新读取提交源码。
 - 功能默认关闭，不参与自动同步。AI 输出只用于复盘建议，不替代 Codeforces 官方结果，也不会自动修改题目笔记、复习反馈或训练计划。
+- 训练建议基于本机同步的 Codeforces 题库先做硬筛选，排除本场原题、已解决、已计划、重复和无效候选，再展示题目、难度与推荐依据；用户确认后才会收藏、记录笔记或加入目标题单。
 
 ![CF Compass 源码增强复盘](./docs/screenshots/contest-ai-diff.png)
 
-### 5. 赛事中心：把参赛计划也放进训练系统
+### 5. 全局笔记与目标题单：让“以后再做”真的有下文
+
+一道值得回看的题，不必因为入口不同而留下五份互不相干的记录：
+
+- 在题库、今日训练、复习库、赛事复盘、AI 推荐和目标题单中打开同一份题目笔记。
+- 将想学、想补或想重做的题加入目标题单，并按加入时间、难度或状态排序。
+- 目标题单可以独立打开、调整窗口大小；完成项保留划线状态，方便回看训练轨迹。
+- 笔记和题单在窗口之间同步，随本地学习数据一起导出、导入和备份。
+
+它像训练系统里的“收件箱”：灵感、欠账和下一步先可靠地接住，再由你决定什么时候处理。
+
+### 6. 赛事中心：把参赛计划也放进训练系统
 
 ![CF Compass 赛事中心](./docs/screenshots/contest-center.png)
 
@@ -187,7 +212,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 赛事检索回答“下一场参加什么”，赛事复盘回答“上一场留下了什么”。两个页面合在一起，比赛便不再是训练计划之外的孤立事件。
 
-### 6. 本地模板库：代码、题意和适用场景放在一起
+### 7. 本地模板库：代码、题意和适用场景放在一起
 
 ![CF Compass 模板库](./docs/screenshots/template-library.png)
 
@@ -213,7 +238,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 这样一份模板不再只是“某个能跑的 cpp 文件”，而是带着用途、边界与记忆线索的算法工具。
 
-### 7. 数据中心：数据属于你，而不是某个云端账户
+### 8. 数据中心：数据属于你，而不是某个云端账户
 
 ![CF Compass 数据中心](./docs/screenshots/data-center.png)
 
@@ -226,7 +251,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 第一次使用、迁移电脑和误操作恢复方法见 [数据中心完整指南](./docs/DATA_CENTER_GUIDE.md)。
 
-### 8. 训练分析：把进步画成一张可以探索的地图
+### 9. 训练分析：把进步画成一张可以探索的地图
 
 个人数据中心支持生涯、近一年、近三个月、近一个月、近两周和自定义日期范围。四张核心指标卡、Codeforces Rating 曲线、算法通过率排行与每日 Accepted 节奏共用同一时间窗口：
 
@@ -236,6 +261,13 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 - 首次通过、总提交、Accepted 比例和活跃天数不会混用不同时间口径。
 
 这不是一张静态成绩单，而是一块训练仪表盘：既能看长期趋势，也能把镜头拉近到最近两周寻找突破口。
+
+### 10. 可定制桌面工作台：让常用功能永远在手边
+
+- 隐藏暂时不用的左侧入口，随时从设置中恢复，并拖动调整顺序。
+- 赛事复盘使用完整页面承载时间线、逐题状态与 AI 证据，减少狭窄面板里的来回切换。
+- 提供小、中、大三档界面字号，语言、主题、背景与可选本地素材都保留为本机偏好。
+- 桌面端负责窗口、文件选择、VS Code 跳转、本地备份等系统能力；浏览器预览则用于快速查看界面。
 
 ## 适合哪些人
 
@@ -273,22 +305,23 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 ### 下载桌面版本
 
-打开 [Latest Release](https://github.com/qeffg/cf-compass/releases/latest)，按设备下载：
+打开 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)，按设备下载：
 
 ```text
-Windows x64:       CF-Compass-3.13.0-Windows-x64-portable.exe
-Linux x64:         CF-Compass-3.13.0-Linux-x86_64.AppImage
-Linux Debian x64:  CF-Compass-3.13.0-Linux-amd64.deb
-macOS Intel:       CF-Compass-3.13.0-macOS-x64.dmg
-macOS Apple 芯片:  CF-Compass-3.13.0-macOS-arm64.dmg
+Windows x64（推荐安装版）: CF-Compass-4.0.1-Windows-x64-Setup.exe
+Windows x64（便携版）:     CF-Compass-4.0.1-Windows-x64-portable.exe
+Linux x64（沿用 v4.0.0）: CF-Compass-4.0.0-Linux-x86_64.AppImage
+Linux Debian x64（沿用 v4.0.0）: CF-Compass-4.0.0-Linux-amd64.deb
+macOS Intel（沿用 v4.0.0）: CF-Compass-4.0.0-macOS-x64.dmg
+macOS Apple 芯片（沿用 v4.0.0）: CF-Compass-4.0.0-macOS-arm64.dmg
 ```
 
-Windows portable 版无需安装，双击即可运行；Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
+Windows 用户推荐下载 `Setup.exe` 安装版：应用只在安装时解压，之后从已安装目录直接启动，速度更稳定。`portable.exe` 便携版无需安装，但每次启动都要先释放程序文件，在机械硬盘、低速设备或杀毒软件扫描环境下会明显更慢。v4.0.1 只调整 Windows 分发方式，因此 Release 原样附带已经通过 v4.0.0 发布验证的 Linux 与 macOS 包，文件名保留真实版本号 `4.0.0`。Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
 
 每个安装包旁都有同名 `.sha256`，Release 还提供汇总文件 `SHA256SUMS.txt`。例如 Windows 可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\CF-Compass-3.13.0-Windows-x64-portable.exe
+Get-FileHash -Algorithm SHA256 .\CF-Compass-4.0.1-Windows-x64-Setup.exe
 ```
 
 Linux 或 macOS 可运行：
@@ -319,7 +352,7 @@ xattr -dr com.apple.quarantine "/Applications/CF Compass.app"
 - Git
 
 ```powershell
-git clone https://github.com/qeffg/cf-compass.git
+git clone https://github.com/Binah-Dev/cf-compass.git
 cd cf-compass
 corepack enable
 pnpm install --frozen-lockfile
@@ -343,7 +376,7 @@ pnpm verify
 # 生成 Windows 解包目录
 pnpm desktop:pack
 
-# 生成 Windows portable 程序
+# 同时生成 Windows 推荐安装版与便携版
 pnpm desktop:build
 
 # 生成 Linux AppImage 与 deb
@@ -353,7 +386,7 @@ pnpm desktop:build:linux
 pnpm desktop:build:mac
 ```
 
-构建产物位于 `release/`，不会提交到 Git。正式 Release 提供 Windows x64、Linux x64、macOS Intel 与 macOS Apple 芯片包，并附独立 SHA-256 和总校验清单。
+构建产物位于 `release/`，不会提交到 Git。正式 Release 提供 Windows x64 安装版与便携版、Linux x64、macOS Intel 与 macOS Apple 芯片包，并附独立 SHA-256 和总校验清单。
 
 主分支和 Pull Request 会自动安装依赖、检查生产依赖安全性并运行重点回归测试；版本标签会在 GitHub Actions 的 Windows、Linux 与 macOS 环境中分别构建真实安装包，全部成功后才创建 Release。
 
@@ -429,6 +462,20 @@ cf-compass/
 <summary><strong>会自动替我提交题目吗？</strong></summary>
 
 不会。CF Compass 负责训练规划、记录与复盘，不接收 Codeforces 密码，也不执行代码提交。
+
+</details>
+
+<details>
+<summary><strong>AI 会在后台自动读取提交或修改我的训练数据吗？</strong></summary>
+
+不会。AI 比赛复盘默认关闭，只会在你配置服务并主动打开复盘时运行；结果先作为草稿展示，保存以及收藏、笔记、目标题单等操作都需要用户确认。
+
+</details>
+
+<details>
+<summary><strong>Windows 安装版和便携版应该选哪个？</strong></summary>
+
+日常使用推荐 `Setup.exe`：安装一次后直接从已安装目录启动。`portable.exe` 无需安装，适合临时体验或放在移动设备中，但每次启动都需要释放程序文件，可能更慢。
 
 </details>
 
