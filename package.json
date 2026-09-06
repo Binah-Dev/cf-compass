@@ -55,7 +55,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
-    "electron": "43.4.1",
+    "electron": "44.1.1",
     "electron-builder": "26.15.3",
     "playwright-core": "^1.62.1",
     "vite": "^6.0.5",
