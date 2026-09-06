@@ -51,7 +51,7 @@ jobs:
         include:
           - target: Windows-x64
             os: windows-latest
-            command: pnpm exec electron-builder --win portable --x64 --publish never
+            command: pnpm exec electron-builder --win nsis portable --x64 --publish never
           - target: Linux-x64
             os: ubuntu-latest
             command: pnpm exec electron-builder --linux AppImage deb --x64 --publish never
@@ -195,25 +195,34 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@v4
-      - name: Download and verify published Windows package
+      - name: Download and verify published Windows packages
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           New-Item -ItemType Directory -Force release-verification | Out-Null
-          gh release download $env:GITHUB_REF_NAME --dir release-verification --pattern '*Windows-x64-portable.exe' --pattern 'SHA256SUMS.txt'
+          gh release download $env:GITHUB_REF_NAME --dir release-verification --pattern '*Windows-x64-Setup.exe' --pattern '*Windows-x64-portable.exe' --pattern 'SHA256SUMS.txt'
           $manifest = Get-Content release-verification/SHA256SUMS.txt
-          $entry = $manifest | Where-Object { $_ -match 'Windows-x64-portable\.exe$' } | Select-Object -First 1
-          if (-not $entry) {
-            throw 'The Windows package is missing from SHA256SUMS.txt.'
+          $windowsPackages = @(
+            @{ Pattern = 'Windows-x64-Setup\.exe$'; Label = 'installer' },
+            @{ Pattern = 'Windows-x64-portable\.exe$'; Label = 'portable' }
+          )
+          foreach ($package in $windowsPackages) {
+            $entry = $manifest | Where-Object { $_ -match $package.Pattern } | Select-Object -First 1
+            if (-not $entry) {
+              throw "The Windows $($package.Label) package is missing from SHA256SUMS.txt."
+            }
+            $parts = $entry -split '\s+', 2
+            $asset = Join-Path 'release-verification' $parts[1]
+            $actual = (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -ne $parts[0].ToLowerInvariant()) {
+              throw "Windows $($package.Label) package checksum mismatch: $actual"
+            }
           }
-          $parts = $entry -split '\s+', 2
-          $asset = Join-Path 'release-verification' $parts[1]
-          $actual = (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actual -ne $parts[0].ToLowerInvariant()) {
-            throw "Windows package checksum mismatch: $actual"
-          }
-          & ./scripts/qa-windows-portable.ps1 -Executable $asset
+          $installer = Get-ChildItem release-verification -File -Filter '*Windows-x64-Setup.exe' | Select-Object -First 1
+          $portable = Get-ChildItem release-verification -File -Filter '*Windows-x64-portable.exe' | Select-Object -First 1
+          & ./scripts/qa-windows-installer.ps1 -Installer $installer.FullName
+          & ./scripts/qa-windows-portable.ps1 -Executable $portable.FullName
       - name: Close issues verified by this release
         shell: bash
         env:
