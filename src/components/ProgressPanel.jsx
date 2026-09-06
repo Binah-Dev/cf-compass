@@ -16,6 +16,7 @@ import {
   ratingTone,
   relativeTime,
 } from "../lib/stats";
+import { codeforcesAvatarSources } from "../lib/avatar";
 import { openProblem } from "../lib/codeforces";
 import { RatedName, RatingScore } from "./RatingDisplay";
 import PlanQueueButton from "./PlanQueueButton";
@@ -26,6 +27,36 @@ function rankLabel(rank) {
     .split(" ")
     .map((word) => word[0]?.toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+function UserAvatar({ user }) {
+  const sources = useMemo(
+    () => codeforcesAvatarSources(user),
+    [user?.avatar, user?.handle],
+  );
+  const [sourceIndex, setSourceIndex] = useState(0);
+
+  useEffect(() => setSourceIndex(0), [user?.avatar, user?.handle]);
+
+  const source = sources[sourceIndex] || "";
+  if (!source) {
+    return (
+      <span aria-hidden="true">
+        {user?.handle?.slice(0, 1)?.toUpperCase() || "C"}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      key={source}
+      src={source}
+      alt={`${user.handle} 的头像`}
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => setSourceIndex((current) => current + 1)}
+    />
+  );
 }
 
 export default function ProgressPanel({
@@ -91,11 +122,7 @@ export default function ProgressPanel({
 
       <section className="profile-block">
         <div className="avatar-wrap">
-          {user?.avatar ? (
-            <img src={user.avatar} alt={`${user.handle} 的头像`} />
-          ) : (
-            <span>{user?.handle?.slice(0, 1)?.toUpperCase() || "C"}</span>
-          )}
+          <UserAvatar user={user} />
           <i />
         </div>
         <div className="profile-copy">
