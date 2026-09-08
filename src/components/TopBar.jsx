@@ -73,6 +73,7 @@ export default function TopBar({
         className="layout-button immersive-button"
         type="button"
         onClick={onToggleImmersive}
+        aria-label="沉浸大厅"
         title="暂时隐藏工作面板，只看记忆大厅"
       >
         <ScanLine size={15} />

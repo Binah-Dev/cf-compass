@@ -69,7 +69,12 @@ let app;
   await maximize.click();
   await page.waitForTimeout(300);
   assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMaximized()), false);
-  for (const exit of ['keyboard', 'button']) {
+  for (const width of [1500, 1040]) {
+    await page.setViewportSize({ width, height: 900 });
+    const enterButton = page.getByRole('button', { name: '沉浸大厅', exact: true });
+    assert.equal(await enterButton.count(), 1);
+    assert.equal(await enterButton.locator('span').evaluate(el => getComputedStyle(el).display === 'none'), width <= 1420);
+    for (const exit of ['keyboard', 'button']) {
     await page.getByRole('button', { name: '沉浸大厅', exact: true }).click();
     await page.waitForFunction(() => getComputedStyle(document.querySelector('.titlebar')).visibility === 'hidden');
     const hidden = await page.locator('.titlebar').evaluate(el => ({ opacity: getComputedStyle(el).opacity,
@@ -84,6 +89,8 @@ let app;
     await page.waitForFunction(() => getComputedStyle(document.querySelector('.titlebar')).opacity === '1');
     assert.equal(await page.locator('.titlebar').evaluate(el => el.inert), false);
     assert.equal(await maximize.isVisible(), true);
+    assert.equal(await enterButton.isVisible(), true);
+    }
   }
   const screenshot = await app.evaluate(async ({ BrowserWindow }) => (await BrowserWindow.getAllWindows()[0].webContents.capturePage()).toPNG().toString('base64'));
   fs.writeFileSync(path.join(output, 'titlebar.png'), Buffer.from(screenshot, 'base64'));
