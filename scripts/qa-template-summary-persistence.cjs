@@ -10,6 +10,7 @@ const rootA = path.join(outputRoot, "library-a");
 const rootB = path.join(outputRoot, "library-b");
 const summary = "题意：验证保存后的题目大意不会在刷新、重启或切换目录后消失。";
 fs.mkdirSync(userDataRoot, { recursive: true });
+fs.writeFileSync(path.join(userDataRoot, "study.json"), JSON.stringify({ settings: { language: "zh-CN", reduceMotion: true, autoSync: false } }));
 fs.mkdirSync(rootA, { recursive: true });
 fs.mkdirSync(rootB, { recursive: true });
 fs.writeFileSync(path.join(rootA, "persistent.cpp"), "int main() { return 0; }\n");
@@ -19,8 +20,8 @@ fs.writeFileSync(path.join(userDataRoot, "template-library.json"), JSON.stringif
 let app;
 async function openLibrary() {
   app = await electron.launch({
-    executablePath: path.join(projectRoot, "node_modules", "electron", "dist", "electron.exe"),
-    args: ["--disable-gpu", projectRoot],
+    executablePath: process.env.CF_COMPASS_QA_EXECUTABLE || path.join(projectRoot, "node_modules", "electron", "dist", "electron.exe"),
+    args: process.env.CF_COMPASS_QA_EXECUTABLE ? ["--disable-gpu"] : ["--disable-gpu", projectRoot],
     cwd: projectRoot,
     env: { ...process.env, CF_COMPASS_USER_DATA: userDataRoot },
   });

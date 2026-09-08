@@ -92,14 +92,11 @@ jobs:
           }
           $env:CF_COMPASS_PLAYWRIGHT = 'playwright-core'
           $env:CF_COMPASS_QA_EXECUTABLE = $executable.FullName
-          pnpm exec node scripts/qa-material-quarantine.cjs
-          pnpm exec node scripts/qa-issue-13-layout.cjs
-          pnpm exec node scripts/qa-template-summary-persistence.cjs
-          pnpm exec node scripts/qa-study-plan.cjs
-          pnpm exec node scripts/qa-electron.cjs
-          pnpm exec node scripts/qa-issue-25-virtual.cjs
-          pnpm exec node scripts/qa-workbench-layout.cjs
-          pnpm exec node scripts/benchmark-interactions.cjs
+          $checks = @('qa-material-quarantine.cjs', 'qa-issue-13-layout.cjs', 'qa-template-summary-persistence.cjs', 'qa-study-plan.cjs', 'qa-electron.cjs', 'qa-issue-25-virtual.cjs', 'qa-workbench-layout.cjs', 'benchmark-interactions.cjs')
+          foreach ($check in $checks) {
+            pnpm exec node "scripts/$check"
+            if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
+          }
       - name: Smoke test packaged Linux application
         if: runner.os == 'Linux'
         shell: bash

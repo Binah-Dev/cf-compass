@@ -23,6 +23,7 @@ fs.writeFileSync(
       contestQueue: [],
       plan: null,
       settings: {
+        language: "zh-CN",
         themeVersion: 4,
         wallpaperEnabled: true,
         wallpaperId: "material-lobby-miyako_01",
@@ -87,9 +88,9 @@ let app;
   });
 
   await page.getByRole("tab", { name: "全部" }).click();
-  const addReview = page.getByRole("button", { name: "加入复习" }).first();
+  const addReview = page.getByRole("button", { name: "加入补题", exact: true }).first();
   await addReview.click();
-  await page.getByRole("button", { name: "已加入" }).first().waitFor();
+  await page.getByRole("button", { name: "移出补题", exact: true }).first().waitFor();
 
   await page.getByRole("button", { name: "沉浸大厅" }).click();
   await page.waitForSelector(".is-immersive");
@@ -98,12 +99,13 @@ let app;
     path: path.join(evidenceRoot, "cf-compass-immersive.png"),
   });
 
+  if (errors.length) throw new Error(`Renderer errors: ${errors.join("; ")}`);
   console.log(
     JSON.stringify(
       {
         errors,
         contestRows: await page.locator(".contest-record").count(),
-        studyQueued: await page.getByRole("button", { name: "已加入" }).count(),
+        studyQueued: await page.getByRole("button", { name: "移出补题", exact: true }).count(),
       },
       null,
       2,

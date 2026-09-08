@@ -30,3 +30,7 @@ Scope: Issue #25, virtual-reference isolation, free panels, readable text, measu
 5. Only the successful final job posts the version-specific reply and closes Issue #25. Dependency PRs stay out of scope.
 
 Final native run IDs and published evidence must be checked from GitHub, not inferred from this plan.
+
+## First candidate audit
+
+Run `34180151538` on `566d959` built all four targets, but is **not accepted** as a release gate. Windows job logs exposed two masked timeouts: a legacy template test relied on host language and ignored the packaged executable; a replay test still searched for the renamed “加入复习” button. PowerShell continued after failed native commands. The harness now pins its fixture language, tests the packaged executable, uses current queue controls, checks renderer errors, and explicitly throws on any failed command. A fresh independent run is required.
