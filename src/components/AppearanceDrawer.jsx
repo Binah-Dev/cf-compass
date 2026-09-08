@@ -45,6 +45,7 @@ const appearanceDefaults = {
   usePageWallpapers: false,
   pageWallpapers: {},
   accentTheme: "sky",
+  titlebarColor: "",
   interfaceDensity: "comfortable",
   reduceMotion: false,
 };
@@ -628,6 +629,13 @@ export default function AppearanceDrawer({
             </div>
             <button type="button" className="appearance-reset-button" onClick={restoreDefault}>
               <RotateCcw size={14} />恢复天空蓝
+            </button>
+            <label className="appearance-select-row">
+              <span><strong>标题栏色块</strong><small>整条标题栏统一着色，不受面板透明度影响；沉浸大厅时隐藏。</small></span>
+              <input type="color" aria-label="标题栏颜色" value={draft.titlebarColor || ({ sky: '#081727', mint: '#0a1b1c', coral: '#1c1320' }[draft.accentTheme] || '#081727')} onChange={(event) => updateAppearance({ titlebarColor: event.target.value })} />
+            </label>
+            <button type="button" className="appearance-reset-button" onClick={() => updateAppearance({ titlebarColor: "" })}>
+              <RotateCcw size={14} />标题栏跟随主题
             </button>
           </section>
         </div>

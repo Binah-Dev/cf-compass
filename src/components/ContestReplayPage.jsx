@@ -317,7 +317,7 @@ function ContestDetail({
           <button type="button" className="contest-ai-button" onClick={() => onAiReview(contest)}>
             <Sparkles size={14} />{hasSavedAiReview ? "查看 AI 复盘" : "AI 复盘"}
           </button>
-          {sourceAccess ? (
+          {sourceAccess || hasSavedEnhancedAiReview ? (
             <button
               type="button"
               className="contest-ai-button contest-ai-button--source"
@@ -480,6 +480,9 @@ export default function ContestReplayPage({
   const [aiMode, setAiMode] = useState("summary");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+  const aiRequestVersion = useRef(0);
+  const recommendationVersion = useRef(0);
+  useEffect(() => () => { aiRequestVersion.current += 1; recommendationVersion.current += 1; }, []);
   const [recommendation, setRecommendation] = useState(null);
   const [recommendationLoading, setRecommendationLoading] = useState(false);
   const [recommendationError, setRecommendationError] = useState("");
@@ -683,15 +686,20 @@ export default function ContestReplayPage({
     setAiContest(contest);
     setAiMode(includeSource ? "source" : "summary");
     setAiReview(null);
+    const version = ++aiRequestVersion.current;
+    recommendationVersion.current += 1;
+    setRecommendation(null);
+    setRecommendationError("");
+    setRecommendationLoading(false);
     setAiError("");
     setAiLoading(true);
     try {
       const result = await analyzeContestWithAi(replayKey(contest), { includeSource });
-      setAiReview(result);
+      if (version === aiRequestVersion.current) setAiReview(result);
     } catch (error) {
-      setAiError(error.message || "AI 复盘失败");
+      if (version === aiRequestVersion.current) setAiError(error.message || "AI 复盘失败");
     } finally {
-      setAiLoading(false);
+      if (version === aiRequestVersion.current) setAiLoading(false);
     }
   }
 
@@ -724,13 +732,14 @@ export default function ContestReplayPage({
       return;
     }
     const saved = studyData?.aiReviews?.[reviewStorageKey(replayKey(contest), includeSource)];
-    const savedSourceIsComplete = !includeSource || (
-      Array.isArray(saved?.sourceTimeline) &&
-      saved.sourceTimeline.length > 0 &&
-      Array.isArray(saved?.sourceDiffs) &&
-      saved.sourceDiffs.length > 0
-    );
-    if (saved && savedSourceIsComplete) {
+    // Older saves may lack source evidence. Reuse the saved report without
+    // silently making another paid request; only explicit reanalysis regenerates it.
+    if (saved) {
+      aiRequestVersion.current += 1;
+      recommendationVersion.current += 1;
+      setRecommendation(null);
+      setRecommendationError("");
+      setRecommendationLoading(false);
       setAiContest(contest);
       setAiMode(includeSource ? "source" : "summary");
       setAiReview(saved);
@@ -741,33 +750,36 @@ export default function ContestReplayPage({
     void requestAiReview(contest, includeSource);
   }
 
-  function saveAiReview(review) {
+  async function saveAiReview(review) {
     if (!review?.contestId) return;
     const saved = { ...review, savedAt: new Date().toISOString() };
     const storageKey = reviewStorageKey(
       review.replayId || review.contestId,
       review.analysisMode === "source" || review.sourceIncluded === true,
     );
-    onStudyChange(
+    const version = aiRequestVersion.current;
+    const result = await onStudyChange(
       {
         ...studyData,
         aiReviews: { ...(studyData?.aiReviews || {}), [storageKey]: saved },
       },
       "AI 复盘已保存",
     );
-    setAiReview(saved);
+    if (result && version === aiRequestVersion.current) setAiReview(result.aiReviews?.[storageKey] || saved);
   }
 
   async function requestRecommendations() {
     if (!aiContest || !aiReview) return;
+    const version = ++recommendationVersion.current;
     setRecommendationLoading(true);
     setRecommendationError("");
     try {
-      setRecommendation(await recommendContestProblems(replayKey(aiContest), { review: aiReview }));
+      const result = await recommendContestProblems(replayKey(aiContest), { review: aiReview });
+      if (version === recommendationVersion.current) setRecommendation(result);
     } catch (error) {
-      setRecommendationError(error.message || "推荐题单生成失败");
+      if (version === recommendationVersion.current) setRecommendationError(error.message || "推荐题单生成失败");
     } finally {
-      setRecommendationLoading(false);
+      if (version === recommendationVersion.current) setRecommendationLoading(false);
     }
   }
 
@@ -975,6 +987,10 @@ export default function ContestReplayPage({
         error={aiError}
         sourceMode={aiMode === "source"}
         onClose={() => {
+          aiRequestVersion.current += 1;
+          recommendationVersion.current += 1;
+          setAiLoading(false);
+          setRecommendationLoading(false);
           setAiContest(null);
           setAiReview(null);
           setAiMode("summary");

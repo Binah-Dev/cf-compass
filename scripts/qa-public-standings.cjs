@@ -48,7 +48,7 @@ let app;
   assert.deepEqual(await app.evaluate(() => globalThis.openedProblems), ['https://codeforces.com/contest/1900/problem/C']);
   await problem.getByRole('button', { name: '加入补题', exact: true }).click();
   await problem.getByRole('button', { name: '移出补题', exact: true }).waitFor();
-  await page.waitForFunction(async () => (await window.cfBridge.getStudyData()).contestQueue.includes('1900-C'));
+  await require('./qa-wait.cjs').waitUntil(() => page.evaluate(() => window.cfBridge.getStudyData()), study => study.contestQueue.includes('1900-C'));
   await page.screenshot({ path: path.join(output, 'virtual-problems-upsolving.png') });
   await page.getByRole('button', { name: '赛事中心', exact: true }).click();
   await page.locator('.contest-center-shell > .contest-center-quick').getByRole('button', { name: '待补题', exact: true }).click();

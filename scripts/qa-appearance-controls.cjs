@@ -1,6 +1,7 @@
 const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
 const { _electron: electron } = require('playwright-core');
 const { makeFixture } = require('./fixtures/contest-sessions.cjs');
+const { waitUntil } = require('./qa-wait.cjs');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'output/playwright', `appearance-${Date.now()}`);
 const userData = path.join(output, 'user-data');
@@ -20,6 +21,17 @@ async function launch() {
   page = await app.firstWindow(); page.on('pageerror', e => errors.push(e.message));
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.waitForSelector('.workbench-move');
+  if (process.env.CF_COMPASS_QA_TRACE_SAVES) await app.evaluate(({ ipcMain }) => {
+    globalThis.appearanceSaveTrace = [];
+    const handler = ipcMain._invokeHandlers.get('study:set');
+    ipcMain.removeHandler('study:set');
+    ipcMain.handle('study:set', async (event, data) => {
+      globalThis.appearanceSaveTrace.push({ phase: 'request', theme: data.settings?.accentTheme, at: Date.now() });
+      const result = await handler(event, data);
+      globalThis.appearanceSaveTrace.push({ phase: 'saved', theme: result.settings?.accentTheme, at: Date.now() });
+      return result;
+    });
+  });
 }
 const stored = () => page.evaluate(() => window.cfBridge.getStudyData());
 const open = () => page.getByRole('button', { name: '外观设置', exact: true }).click();
@@ -61,7 +73,7 @@ async function alpha(selector) {
   await page.getByRole('button', { name: '完成', exact: true }).click();
   await page.locator('.draggable-panel').first().hover();
   assert.equal(await alpha('.draggable-panel'), 0, 'hover must not restore an opaque backing');
-  await page.waitForFunction(async () => (await window.cfBridge.getStudyData()).settings.panelOpacity === 0);
+  await waitUntil(stored, study => study.settings.panelOpacity === 0);
   assert.equal((await stored()).settings.panelOpacity, 0);
   assert.equal((await stored()).settings.customVisibilityPreset.panelOpacity, 0);
   await page.screenshot({ path: path.join(output, 'transparent.png') });
@@ -122,7 +134,7 @@ async function alpha(selector) {
     assert.deepEqual(appearanceAfter, appearanceBefore, 'theme must not change transparency or brightness');
     await page.screenshot({ path: path.join(output, `theme-${id}-picker.png`) });
     await page.getByRole('button', { name: '完成', exact: true }).click();
-    await page.waitForFunction(async id => (await window.cfBridge.getStudyData()).settings.accentTheme === id, id, { timeout: 5000 });
+    await waitUntil(stored, study => study.settings.accentTheme === id);
     assert.equal((await stored()).settings.accentTheme, id);
     assert.deepEqual(await ratingColors(), baselineRatingColors, 'CF rating colors must remain semantic');
     accents.push(await page.locator('.app-shell').evaluate(el => getComputedStyle(el).getPropertyValue('--accent').trim()));
@@ -137,4 +149,4 @@ async function alpha(selector) {
   assert.deepEqual(errors, []);
   fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ checks, errors }, null, 2));
   console.log(JSON.stringify({ output, checks, errors }));
-})().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { if (app) await app.close(); });
+})().catch(async error => { console.error(error); if(app) { const trace = await app.evaluate(() => globalThis.appearanceSaveTrace); fs.writeFileSync(path.join(output, 'save-failure.json'), JSON.stringify({ error: error.message, trace }, null, 2)); console.error(JSON.stringify(trace)); } process.exitCode = 1; }).finally(async () => { if (app) await app.close(); });

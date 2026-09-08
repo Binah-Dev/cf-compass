@@ -51,7 +51,16 @@ function ratingWindow(type) {
 
 function buildCandidatePool({ contest, problems, solvedKeys = [], plannedKeys = [] }) {
   const startedAt = Date.now();
-  const targets = buildTargets(contest);
+  const library = Array.isArray(problems) ? problems : [];
+  const metadata = new Map(library.map(problem => [problemKey(problem), problem]));
+  const enrichedContest = { ...contest, problems: (contest?.problems || []).map(problem => {
+    const known = metadata.get(problemKey(problem));
+    return { ...problem,
+      rating: Number(problem.rating) > 0 ? problem.rating : known?.rating,
+      tags: tagsOf(problem).length ? problem.tags : known?.tags,
+    };
+  }) };
+  const targets = buildTargets(enrichedContest);
   const excluded = new Set([...solvedKeys, ...plannedKeys].map(String));
   (contest?.problems || []).forEach((problem) => excluded.add(problemKey(problem)));
   const bestByKey = new Map();
@@ -96,7 +105,8 @@ function buildCandidatePool({ contest, problems, solvedKeys = [], plannedKeys = 
     contestCounts.set(item.contestId, count + 1);
     return true;
   }).slice(0, MAX_CANDIDATES);
-  return { targets, candidates, latencyMs: Date.now() - startedAt };
+  const emptyReason = !library.length ? 'library-empty' : !targets.length ? 'target-metadata-missing' : !candidates.length ? 'no-eligible-candidates' : null;
+  return { targets, candidates, emptyReason, libraryCount: library.length, latencyMs: Date.now() - startedAt };
 }
 
 function normalizeRecommendations(input, candidates) {

@@ -683,6 +683,9 @@ export default function App() {
     ? appearance.wallpaperFit
     : "smart";
   const appStyle = {
+    "--titlebar-color": /^#[0-9a-f]{6}$/i.test(appearance.titlebarColor || "") ? appearance.titlebarColor : undefined,
+    "--titlebar-text": /^#[0-9a-f]{6}$/i.test(appearance.titlebarColor || "") &&
+      (0.299 * parseInt(appearance.titlebarColor.slice(1, 3), 16) + 0.587 * parseInt(appearance.titlebarColor.slice(3, 5), 16) + 0.114 * parseInt(appearance.titlebarColor.slice(5, 7), 16)) > 150 ? '#142231' : '#eef6ff',
     "--wallpaper-opacity": (appearance.wallpaperOpacity ?? 92) / 100,
     "--wallpaper-backdrop-opacity": ((appearance.wallpaperOpacity ?? 92) / 100) * 0.9,
     "--wallpaper-blur": `${Math.max(0, (100 - (appearance.wallpaperClarity ?? 100)) * 0.14)}px`,

@@ -34,7 +34,7 @@ function ReviewList({ items, tone = "" }) {
 }
 
 function formatTimelineTime(seconds) {
-  if (!Number.isFinite(Number(seconds))) return "时间未知";
+  if (seconds === null || seconds === undefined || seconds === "" || !Number.isFinite(Number(seconds))) return "时间未知";
   const total = Math.max(0, Math.round(Number(seconds)));
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
@@ -231,6 +231,9 @@ export default function ContestAiReview({
                     源码增强 · 时间线 {review.sourceTimelineCount || review.sourceTimeline?.length || 0} 次 · Diff {review.sourceDiffCount || review.sourceDiffs?.length || 0} 组
                   </small>
                 ) : null}
+                {(sourceMode || review.sourceIncluded) && !review.sourceTimeline?.length ? (
+                  <small>已读取保存的报告；旧版未保存源码时间线。只有点击重新分析才会重新请求 AI。</small>
+                ) : null}
               </section>
               {review.sourceIncluded ? (
                 <SourceTimeline timeline={review.sourceTimeline} diffs={review.sourceDiffs} />
@@ -286,7 +289,7 @@ export default function ContestAiReview({
                 <div className="ai-recommendation-heading">
                   <div>
                     <h3>针对本场的下一组题</h3>
-                    <p>候选只来自已同步题库；已通过、已在待做和本场题目会先被排除。</p>
+                    <p>本地题库是「题库工作台 → 同步数据」下载到本机的 Codeforces 题目，不是模板库。已通过、已在待做和本场题目会先被排除。</p>
                   </div>
                   <button type="button" className="ghost-button" disabled={recommendationLoading} onClick={onGenerateRecommendations}>
                     {recommendationLoading ? <LoaderCircle size={14} className="is-spinning" /> : <Sparkles size={14} />}

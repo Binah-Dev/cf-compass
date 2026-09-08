@@ -767,7 +767,19 @@ function createAiService({
       solvedKeys,
       plannedKeys,
     });
-    if (!pool.candidates.length) throw new Error("本地题库中暂时没有符合条件且未做过的相似题，请先同步题库");
+    if (!pool.candidates.length) {
+      const messages = {
+        'library-empty': '尚未同步题库。请到「题库工作台」点击「同步数据」；本地题库指保存在本机的 Codeforces 题库缓存，不是模板库。',
+        'target-metadata-missing': '本场题目缺少 Rating 或算法标签，暂时无法可靠匹配相似题。可在「题库工作台」同步数据后重试；新比赛可能尚未公布这些信息。复盘和补题仍可使用。',
+        'no-eligible-candidates': '题库已同步，但排除已通过、计划中和本场题目后，没有符合当前难度及标签条件的相似题。这不表示同步失败；可先完成本场补题或调整计划题单。',
+      };
+      const english = {
+        'library-empty': 'No local problemset has been synced. Open Problemset > Sync Data. This is the locally cached Codeforces problemset, not the template library.',
+        'target-metadata-missing': 'This contest is missing problem ratings or tags, so similar problems cannot be matched reliably. Sync Data in Problemset and retry; recent contests may not have published this metadata yet. Review and upsolving remain available.',
+        'no-eligible-candidates': 'The problemset is available, but no rating/tag matches remain after excluding solved, planned, and current-contest problems. This is not a sync failure. Try upsolving this contest or adjusting your plan.',
+      };
+      throw new Error((options?.language === 'en-US' ? english : messages)[pool.emptyReason]);
+    }
     const review = normalizeAiReview(options?.review || {});
     const payload = {
       contest: {

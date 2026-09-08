@@ -33,6 +33,7 @@ jobs:
           pnpm exec node scripts/test-carrot.mjs
           pnpm exec node scripts/test-analytics.mjs
           pnpm exec node scripts/test-ai-service.cjs
+          pnpm exec node scripts/test-ai-review-storage.cjs
           pnpm exec node scripts/test-contest-recommendations.cjs
           pnpm exec node scripts/test-codeforces-source-service.cjs
           pnpm exec node scripts/test-codeforces-standings.cjs
@@ -98,6 +99,8 @@ jobs:
             pnpm exec node "scripts/$check"
             if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
           }
+          pnpm exec node scripts/qa-issue-27.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged regression failed: qa-issue-27.cjs' }
       - name: Smoke test packaged Linux application
         if: runner.os == 'Linux'
         shell: bash
@@ -181,9 +184,9 @@ jobs:
             *-alpha.*|*-beta.*|*-rc.*) prerelease="--prerelease" ;;
           esac
           if [ -f "$notes" ]; then
-            gh release create "$GITHUB_REF_NAME" release/* --verify-tag $prerelease --notes-file "$notes" --title "CF Compass $GITHUB_REF_NAME"
+            gh release create "$GITHUB_REF_NAME" release/* --verify-tag --draft $prerelease --notes-file "$notes" --title "CF Compass $GITHUB_REF_NAME"
           else
-            gh release create "$GITHUB_REF_NAME" release/* --verify-tag $prerelease --generate-notes --title "CF Compass $GITHUB_REF_NAME"
+            gh release create "$GITHUB_REF_NAME" release/* --verify-tag --draft $prerelease --generate-notes --title "CF Compass $GITHUB_REF_NAME"
           fi
       - name: Download and verify published packages
         env:
@@ -199,7 +202,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     permissions:
-      contents: read
+      contents: write
       issues: write
     steps:
       - uses: actions/checkout@v4
@@ -231,6 +234,15 @@ jobs:
           $portable = Get-ChildItem release-verification -File -Filter '*Windows-x64-portable.exe' | Select-Object -First 1
           & ./scripts/qa-windows-installer.ps1 -Installer $installer.FullName
           & ./scripts/qa-windows-portable.ps1 -Executable $portable.FullName
+      - name: Publish verified release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$GITHUB_REF_NAME" in
+            *-alpha.*|*-beta.*|*-rc.*) gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease ;;
+            *) gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease=false --latest ;;
+          esac
       - name: Close issues verified by this release
         shell: bash
         env:

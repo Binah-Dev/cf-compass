@@ -26,6 +26,7 @@ const {
 } = require("./services/material-library-service.cjs");
 const { createStudyPlanService, sanitizeStudyPlan } = require("./services/study-plan-service.cjs");
 const { createAiService, normalizeAiReview } = require("./services/ai-service.cjs");
+const { sanitizeReviewEvidence } = require("./services/ai-review-storage.cjs");
 const { buildDemoAiData } = require("./services/ai-demo-data.cjs");
 const { createCodeforcesSourceService } = require("./services/codeforces-source-service.cjs");
 
@@ -1372,6 +1373,7 @@ function sanitizeAiReviews(input) {
     const normalized = normalizeAiReview(value);
     reviews[String(key).slice(0, 80)] = {
       ...normalized,
+      ...sanitizeReviewEvidence(value),
       contestId: Number(value.contestId) || null,
       replayId: String(value.replayId || value.contestId || "").slice(0, 80),
       contestName: String(value.contestName || "").slice(0, 240),
@@ -1695,6 +1697,7 @@ function sanitizeStudyData(input) {
       accentTheme: ["sky", "mint", "coral"].includes(settings.accentTheme)
         ? settings.accentTheme
         : DEFAULT_SETTINGS.accentTheme,
+      titlebarColor: /^#[0-9a-f]{6}$/i.test(settings.titlebarColor || "") ? settings.titlebarColor : "",
       reduceMotion:
         typeof settings.reduceMotion === "boolean"
           ? settings.reduceMotion

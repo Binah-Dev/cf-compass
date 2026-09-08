@@ -28,6 +28,12 @@ const library = [
 ];
 
 const targets = buildTargets(contest);
+const missingMetadata = { ...contest, problems: contest.problems.map(({ rating, tags, ...problem }) => problem) };
+assert.equal(buildCandidatePool({ contest: missingMetadata, problems: library }).emptyReason, 'target-metadata-missing');
+const recovered = buildCandidatePool({ contest: missingMetadata, problems: [...library, ...contest.problems] });
+assert.deepEqual(recovered.candidates, buildCandidatePool({ contest, problems: [...library, ...contest.problems] }).candidates, 'metadata recovery must preserve ranking exactly');
+assert.equal(buildCandidatePool({ contest, problems: [] }).emptyReason, 'library-empty');
+assert.equal(buildCandidatePool({ contest, problems: library, solvedKeys: library.map(x => `${x.contestId}-${x.index}`) }).emptyReason, 'no-eligible-candidates');
 assert(targets.some((item) => item.type === "corrected" && item.key === "100-B"), "WA→AC/多次提交应形成纠错目标");
 assert(targets.some((item) => item.type === "slow" && item.key === "100-C"), "慢 AC 应形成耗时目标");
 assert(targets.some((item) => item.type === "unsolved" && item.key === "100-D"), "未通过题应形成补强目标");

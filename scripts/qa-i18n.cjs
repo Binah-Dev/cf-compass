@@ -29,12 +29,12 @@ fs.writeFileSync(
 
 const pages = [
   ["problemset", "Problemset", ".problem-workspace"],
-  ["today", "Today's Training", ".today-training"],
+  ["today", "Today's Training", ".today-page"],
   ["review", "Review Library", ".review-library"],
   ["analytics", "Training Analytics", ".training-analytics"],
   ["replay", "Contest Replay", ".contest-replay-page"],
   ["center", "Contest Center", ".contest-center-page"],
-  ["templates", "Template Library", ".template-library"],
+  ["templates", "Template Library", ".template-library-page"],
   ["favorites", "Favorites", ".problem-workspace"],
   ["data", "Data Center", ".data-center"],
 ];
@@ -57,8 +57,11 @@ let app;
   await page.waitForSelector(".app-shell");
 
   for (const [id, label, selector] of pages) {
-    await page.getByRole("button", { name: label, exact: true }).click();
-    await page.waitForSelector(selector, { timeout: 15000 }).catch(() => undefined);
+    if (id === "favorites") {
+      await page.getByRole("button", { name: "Problemset", exact: true }).click();
+      await page.getByRole("tab", { name: label, exact: true }).click();
+    } else await page.getByRole("button", { name: label, exact: true }).click();
+    await page.waitForSelector(selector, { timeout: 15000 });
     await page.waitForTimeout(500);
     residuals[id] = await page.evaluate(() => {
       const chinese = /[\u3400-\u9fff]/;

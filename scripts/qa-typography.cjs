@@ -42,7 +42,14 @@ async function measure(id, selector) {
     }
     return { tiny, clippedControls, samples, rootOverflow: document.documentElement.scrollWidth > innerWidth + 1 };
   });
-  await page.screenshot({ path: path.join(output, `${id}.png`) });
+  // Electron's native compositor capture avoids CDP screenshot stalls with
+  // software rendering on Windows; keep all geometry and readability assertions.
+  const png = await app.evaluate(async ({ BrowserWindow }) => {
+    const image = await BrowserWindow.getAllWindows()[0].webContents.capturePage();
+    if (image.isEmpty()) throw Error('Empty typography screenshot');
+    return image.toPNG().toString('base64');
+  });
+  fs.writeFileSync(path.join(output, `${id}.png`), Buffer.from(png, 'base64'));
   results.push({ id, ...result });
   assert.equal(result.rootOverflow, false, `${id}: root overflow`);
   if (!baseline && selector === ".contest-replay-page") {

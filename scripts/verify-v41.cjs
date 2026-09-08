@@ -5,6 +5,8 @@ fs.mkdirSync(output, { recursive: true });
 const units = ['test-virtual-score.cjs', 'test-codeforces-standings.cjs', 'test-template-summary-format.mjs', 'test-carrot.mjs', 'test-analytics.mjs', 'test-ai-service.cjs', 'test-contest-recommendations.cjs', 'test-codeforces-source-service.cjs', 'test-study-plan-service.cjs', 'test-material-library.cjs', 'test-performance.mjs', 'test-contest-sessions.cjs', 'test-virtual-reference.cjs', 'test-workbench-layout.mjs', 'test-frame-queue.mjs'];
 const ui = ['qa-titlebar.cjs', 'qa-virtual-score.cjs', 'qa-public-standings.cjs', 'qa-issue-25-virtual.cjs', 'qa-workbench-layout.cjs', 'benchmark-interactions.cjs', 'qa-material-quarantine.cjs', 'qa-template-summary-persistence.cjs', 'qa-study-plan.cjs', 'qa-issue-13-layout.cjs', 'qa-typography.cjs', 'qa-electron.cjs', 'qa-appearance-controls.cjs'];
 const results = [];
+units.push('test-ai-review-storage.cjs');
+ui.push('qa-issue-27.cjs');
 for (const file of process.argv.includes('--ui') ? ui : units) {
   const started = Date.now();
   const run = spawnSync(process.execPath, [path.join(root, 'scripts', file)], { cwd: root, encoding: 'utf8', timeout: 180000 });

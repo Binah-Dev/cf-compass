@@ -38,8 +38,9 @@
   height: 100%;
 }
 .academy-theme .titlebar {
-  background: rgba(var(--panel-rgb, 8, 23, 39), .86);
-  border-bottom-color: rgba(var(--accent-rgb, 121, 211, 255), .12);
+  background: var(--titlebar-color, rgb(var(--panel-rgb, 8, 23, 39)));
+  border: 0;
+  color: var(--titlebar-text, #eef6ff);
   box-shadow: none;
   backdrop-filter: none;
   transition: opacity 260ms ease, visibility 0s linear;
@@ -51,9 +52,16 @@
   transition: opacity 260ms ease, visibility 0s linear 260ms;
 }
 .academy-theme.is-immersive .titlebar__drag { -webkit-app-region: no-drag; }
+.academy-theme .titlebar::before,
 .academy-theme .titlebar::after { content: none; }
-.academy-theme .titlebar__brand { text-shadow: 0 1px 3px #000b; }
-.academy-theme .window-actions button { text-shadow: 0 1px 3px #000b; }
+.academy-theme .titlebar__brand,
+.academy-theme .titlebar__brand::after,
+.academy-theme .window-actions button { color: inherit; text-shadow: none; }
+.academy-theme .titlebar__brand,
+.academy-theme .titlebar__drag,
+.academy-theme .window-actions { background: transparent; box-shadow: none; }
+.academy-theme .window-actions button:hover { background: #8883; color: inherit; }
+.academy-theme .window-actions .window-actions__close:hover { background: #c93950; color: white; }
 /* Preserve keyboard focus, but keep its outline inside the window buttons. */
 .academy-theme .window-actions button:focus-visible { outline-offset: -3px; }
 

@@ -13,6 +13,10 @@ function safeText(value, maximum = 2400) {
   return String(value || "").trim().slice(0, maximum);
 }
 
+function finiteNumber(value) {
+  return value !== null && value !== undefined && value !== '' && typeof value !== 'boolean' && Number.isFinite(Number(value));
+}
+
 function normalizeEvidenceList(value) {
   if (!Array.isArray(value)) return [];
   return value.slice(0, 8).map((item) => {
@@ -30,16 +34,16 @@ function normalizeSourceTimeline(value) {
     const source = item && typeof item === "object" ? item : {};
     return {
       index: Number.isFinite(Number(source.index)) ? Math.max(1, Math.round(Number(source.index))) : index + 1,
-      submissionId: Number.isFinite(Number(source.submissionId)) ? Number(source.submissionId) : null,
+      submissionId: finiteNumber(source.submissionId) ? Number(source.submissionId) : null,
       problemKey: safeText(source.problemKey, 80),
       problemIndex: safeText(source.problemIndex, 20),
       problemName: safeText(source.problemName, 180),
       verdict: safeText(source.verdict, 40) || "UNKNOWN",
-      relativeTimeSeconds: Number.isFinite(Number(source.relativeTimeSeconds)) ? Number(source.relativeTimeSeconds) : null,
-      creationTimeSeconds: Number.isFinite(Number(source.creationTimeSeconds)) ? Number(source.creationTimeSeconds) : null,
+      relativeTimeSeconds: finiteNumber(source.relativeTimeSeconds) ? Number(source.relativeTimeSeconds) : null,
+      creationTimeSeconds: finiteNumber(source.creationTimeSeconds) ? Number(source.creationTimeSeconds) : null,
       programmingLanguage: safeText(source.programmingLanguage, 100),
-      timeConsumedMillis: Number.isFinite(Number(source.timeConsumedMillis)) ? Number(source.timeConsumedMillis) : null,
-      memoryConsumedBytes: Number.isFinite(Number(source.memoryConsumedBytes)) ? Number(source.memoryConsumedBytes) : null,
+      timeConsumedMillis: finiteNumber(source.timeConsumedMillis) ? Number(source.timeConsumedMillis) : null,
+      memoryConsumedBytes: finiteNumber(source.memoryConsumedBytes) ? Number(source.memoryConsumedBytes) : null,
       sourceAvailable: source.sourceAvailable === true,
     };
   });
@@ -54,20 +58,20 @@ function normalizeSourceDiffs(value) {
       problemKey: safeText(source.problemKey, 80),
       versionIndex: Number.isFinite(Number(source.versionIndex)) ? Math.max(1, Math.round(Number(source.versionIndex))) : index + 1,
       kind: source.kind === "revision" ? "revision" : "initial",
-      fromSubmissionId: Number.isFinite(Number(source.fromSubmissionId)) ? Number(source.fromSubmissionId) : null,
-      toSubmissionId: Number.isFinite(Number(source.toSubmissionId)) ? Number(source.toSubmissionId) : null,
+      fromSubmissionId: finiteNumber(source.fromSubmissionId) ? Number(source.fromSubmissionId) : null,
+      toSubmissionId: finiteNumber(source.toSubmissionId) ? Number(source.toSubmissionId) : null,
       fromVerdict: safeText(source.fromVerdict, 40),
       toVerdict: safeText(source.toVerdict, 40) || "UNKNOWN",
-      fromRelativeTimeSeconds: Number.isFinite(Number(source.fromRelativeTimeSeconds)) ? Number(source.fromRelativeTimeSeconds) : null,
-      toRelativeTimeSeconds: Number.isFinite(Number(source.toRelativeTimeSeconds)) ? Number(source.toRelativeTimeSeconds) : null,
+      fromRelativeTimeSeconds: finiteNumber(source.fromRelativeTimeSeconds) ? Number(source.fromRelativeTimeSeconds) : null,
+      toRelativeTimeSeconds: finiteNumber(source.toRelativeTimeSeconds) ? Number(source.toRelativeTimeSeconds) : null,
       programmingLanguage: safeText(source.programmingLanguage, 100),
       addedLines: Math.max(0, Math.round(Number(source.addedLines) || 0)),
       removedLines: Math.max(0, Math.round(Number(source.removedLines) || 0)),
       changedLines: Math.max(0, Math.round(Number(source.changedLines) || 0)),
-      patch: safeText(source.patch, 12000),
+      patch: typeof source.patch === "string" ? source.patch.slice(0, 12000) : "",
       coarse: source.coarse === true,
       sourceTruncated: source.sourceTruncated === true,
-      patchTruncated: source.patchTruncated === true,
+      patchTruncated: source.patchTruncated === true || (typeof source.patch === "string" && source.patch.length > 12000),
     };
   });
 }
