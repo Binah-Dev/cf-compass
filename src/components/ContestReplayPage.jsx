@@ -1,4 +1,4 @@
-import { isOverallRatedEntry, virtualReferenceLabel } from "../lib/contest-reference";
+import { isOverallRatedEntry } from "../lib/contest-reference";
 import "../contest-sessions.css";
 import { updateContestQueue } from "../lib/contest-queue";
 import {
@@ -237,8 +237,6 @@ function ContestDetail({
   hasSavedAiReview,
   hasSavedEnhancedAiReview,
   sourceAccess,
-  onReference,
-  referenceBusy,
 }) {
   const unrated = contest.rated === false;
   const attempts = (contest.problems || []).reduce((count, problem) => count + Number(problem.contestAttempts || 0), 0);
@@ -281,29 +279,8 @@ function ContestDetail({
       <div className="contest-session-note">
         <strong>{sessionLabel(contest)}</strong>
         <span>本次开始：{new Date((contest.sessionStartTimeSeconds || contest.startTimeSeconds || contest.dateSeconds) * 1000).toLocaleString(getCurrentLocale())}</span>
-        <span>{contest.rated === false ? "仅统计本次参赛；单场参考分为非官方估计，不改变正式 Rating。" : "场内成绩与当前补题进度分别统计。"}</span>
+        <span>{contest.rated === false ? "仅统计本次参赛的题目与提交，不计算估算分，不改变正式 Rating。" : "场内成绩与当前补题进度分别统计。"}</span>
       </div>
-      {contest.participationType === "VIRTUAL" && (
-        <section className="contest-virtual-reference" aria-label="本场参考表现分">
-          <div><span>本场参考表现分 · 非官方</span>
-            <strong>{virtualReferenceLabel(contest) || "—"}</strong>
-            <small>仅供本场复盘，不计入平均表现分、最佳表现或正式 Rating。</small>
-            {contest.virtualReference?.status === "ready" && <small>
-              {getCurrentLocale() === "en-US"
-                ? `Comparison rank ${contest.virtualReference.referenceRank} / ${contest.virtualReference.participants} · Anchor rating ${contest.virtualReference.assumedRating}`
-                : `对照名次 ${contest.virtualReference.referenceRank} / ${contest.virtualReference.participants} · 计算基准 Rating ${contest.virtualReference.assumedRating}`}
-            </small>}
-            {contest.virtualReference?.assumedRatingSource === "default-1400" && <small>缺少虚拟赛前 Rating 记录，计算基准使用 1400。</small>}
-            {contest.virtualReference?.practicedBefore && <small>这场包含赛前已做过的题，参考分不代表首次参赛水平。</small>}
-            {contest.virtualReference?.status === "unavailable" && <small role="status">{contest.virtualReference.error}</small>}
-            {contest.virtualReference?.refreshError && <small role="status">更新失败，保留上次参考分。</small>}
-          </div>
-          <button type="button" className="contest-ai-button" disabled={referenceBusy} onClick={() => onReference(contest)}>
-            {referenceBusy ? <LoaderCircle size={15} className="is-spinning" /> : <BarChart3 size={15} />}
-            {referenceBusy ? "正在计算参考分…" : contest.virtualReference ? "重新计算参考分" : "计算本场参考分"}
-          </button>
-        </section>
-      )}
       <ProblemTable
         contest={contest}
         queuedProblems={queuedProblems}
@@ -354,15 +331,12 @@ function ContestRow({
   hasSavedAiReview,
   hasSavedEnhancedAiReview,
   sourceAccess,
-  onReference,
-  referenceBusy,
 }) {
   const isVirtual = contest.participationType === "VIRTUAL";
-  const tone = performanceTone(isVirtual ? contest.virtualReference?.performance : contest.performance);
+  const tone = performanceTone(isVirtual ? null : contest.performance);
   const ready = contest.status === "ready";
-  const performanceLabel = ready
-    ? isVirtual ? virtualReferenceLabel(contest) || (contest.virtualReference?.status === "unavailable" ? "暂不可用" : "待计算")
-      : contest.rated === false ? "不计分" : formatPerformance(contest.performance)
+  const performanceLabel = isVirtual ? "不计分" : ready
+    ? contest.rated === false ? "不计分" : formatPerformance(contest.performance)
     : contest.status === "error"
       ? "计算失败"
       : "待计算";
@@ -385,7 +359,7 @@ function ContestRow({
         </span>
         <span className="contest-division">{contest.category?.label || "Rated"}</span>
         <span className="contest-performance">
-          <small>{contest.participationType === "VIRTUAL" ? "本场参考分" : "Carrot 表现分"}</small>
+          <small>{contest.participationType === "VIRTUAL" ? "虚拟参赛" : "Carrot 表现分"}</small>
           <strong>{performanceLabel}</strong>
         </span>
         <span className="contest-rank">
@@ -430,8 +404,6 @@ function ContestRow({
             hasSavedAiReview={hasSavedAiReview}
             hasSavedEnhancedAiReview={hasSavedEnhancedAiReview}
             sourceAccess={sourceAccess}
-            onReference={onReference}
-            referenceBusy={referenceBusy}
           />
         ) : (
           <div className="contest-detail-loading">
@@ -476,8 +448,8 @@ export default function ContestReplayPage({
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
   const [expandedId, setExpandedId] = useState(null);
-  const [calculatingId, setCalculatingId] = useState(null);
-  const [referenceId, setReferenceId] = useState(null);
+  const [calculatingIds, setCalculatingIds] = useState(() => new Set());
+  const replayRequests = useRef(new Set());
   const [aiContest, setAiContest] = useState(null);
   const [aiReview, setAiReview] = useState(null);
   const [aiMode, setAiMode] = useState("summary");
@@ -624,53 +596,37 @@ export default function ContestReplayPage({
     };
   }, [history?.contests]);
 
-  async function requestVirtualReference(contest) {
-    if (referenceId) return;
-    if (!window.cfBridge?.calculateVirtualReference || data?.isDemo) {
-      onToast?.("info", "请在桌面版同步自己的虚拟参赛记录后计算");
-      return;
-    }
-    setReferenceId(replayKey(contest));
+  async function requestReplay(contest, force = false) {
+    const key = replayKey(contest);
+    if (data?.isDemo || replayRequests.current.has(key)) return;
+    replayRequests.current.add(key);
+    setCalculatingIds((current) => new Set(current).add(key));
     try {
-      const next = await window.cfBridge.calculateVirtualReference(replayKey(contest));
-      if (next) setHistory(next);
-    } catch (error) {
-      onToast?.("error", error.message || "参考分暂不可用");
-    } finally {
-      setReferenceId(null);
-    }
-  }
-
-  async function toggleContest(contest) {
-    setExpandedId((current) =>
-      current === replayKey(contest) ? null : replayKey(contest),
-    );
-    if (data?.isDemo || contest.status === "ready" || calculatingId) return;
-    setCalculatingId(replayKey(contest));
-    try {
-      const next = await calculateContest(
-        replayKey(contest),
-        contest.status === "error",
-      );
-      if (next) setHistory(next);
+      await calculateContest(key, force);
+      // Read the latest merged index: another row may have finished meanwhile.
+      const latest = await loadContestReplay(data);
+      if (latest) setHistory(latest);
     } catch (error) {
       onToast?.("error", error.message || "比赛数据计算失败");
     } finally {
-      setCalculatingId(null);
+      replayRequests.current.delete(key);
+      setCalculatingIds((current) => {
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
     }
   }
 
-  async function retryContest(contest) {
-    if (data?.isDemo || calculatingId) return;
-    setCalculatingId(replayKey(contest));
-    try {
-      const next = await calculateContest(replayKey(contest), true);
-      if (next) setHistory(next);
-    } catch (error) {
-      onToast?.("error", error.message || "比赛数据重新计算失败");
-    } finally {
-      setCalculatingId(null);
-    }
+  function toggleContest(contest) {
+    const key = replayKey(contest);
+    const opening = expandedId !== key;
+    setExpandedId(opening ? key : null);
+    if (opening && contest.status !== "ready") void requestReplay(contest, contest.status === "error");
+  }
+
+  function retryContest(contest) {
+    void requestReplay(contest, true);
   }
 
   async function requestAiReview(contest, includeSource = false, confirmSource = true) {
@@ -941,7 +897,7 @@ export default function ContestReplayPage({
                 key={replayKey(contest)}
                 contest={contest}
                 expanded={expandedId === replayKey(contest)}
-                calculating={calculatingId === replayKey(contest)}
+                calculating={calculatingIds.has(replayKey(contest)) || contest.status === "calculating"}
                 queuedProblems={queuedProblems}
                 onToggle={() => toggleContest(contest)}
                 onRetry={() => retryContest(contest)}
@@ -956,8 +912,6 @@ export default function ContestReplayPage({
                   studyData?.aiReviews?.[reviewStorageKey(replayKey(contest), true)],
                 )}
                 sourceAccess={sourceAccess}
-                onReference={requestVirtualReference}
-                referenceBusy={Boolean(referenceId)}
               />
             ))
           ) : (

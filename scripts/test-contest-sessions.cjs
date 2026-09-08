@@ -141,6 +141,7 @@ function mainHarness(fixture, options = {}) {
   const files = { "cache.json": structuredClone(fixture.cache), "contest-center.json": structuredClone(fixture.center), "contest-replay.json": options.previous || { handle: fixture.cache.handle, version: 4, contests: [] } };
   const requests = [];
   const context = {
+    ...require('../electron/services/codeforces-standings.cjs'),
     ...sessions, console, CONTEST_REPLAY_VERSION: 4, CONTEST_AUTO_RETRY_LIMIT: 2, contestCalculationTasks: new Map(),
     classifyContestName: classify, emptyContestReplay: (handle) => ({ handle, version: 4, contests: [] }),
     contestReplayResponse: (value) => value,
@@ -160,29 +161,28 @@ function mainHarness(fixture, options = {}) {
   vm.runInContext(source + "\nthis.api = { refreshContestReplayIndex, calculateContestReplay, calculateNextContestReplay, needsAutomaticVirtualReference };", context);
   return { ...context.api, files, requests };
 }
-test("virtual session metadata step uses only minimal standings before reference calculation", async () => {
+test("virtual session metadata requests exactly the public standings contract", async () => {
   const fixture = makeFixture();
   fixture.cache.submissions = fixture.cache.submissions.filter((s) => s.author.participantType !== "CONTESTANT");
   const h = mainHarness(fixture);
   h.files["contest-center.json"] = {};
   await h.calculateContestReplay(`1900:virtual:${virtualOne}`);
   assert.equal(h.requests.length, 1);
-  assert.match(h.requests[0], /from=1&count=1&showUnofficial=true/);
+  assert.equal(h.requests[0], 'contest.standings?contestId=1900');
   const entry = firstVirtual(h.files["contest-replay.json"]);
   assert.equal(entry.status, "ready");
   assert.equal(entry.solved, 1);
 });
 
-test("automatic replay calculates virtual performance without a separate manual action", async () => {
+test("automatic replay prepares problems without requesting estimated performance", async () => {
   const fixture = require("./fixtures/virtual-reference.cjs").makeReferenceFixture();
   const h = mainHarness(fixture, { onFetch: async (_files, endpoint) =>
     endpoint.startsWith("contest.ratingChanges") ? fixture.ratingChanges : fixture.standings });
   let replay = await h.refreshContestReplayIndex();
-  assert.equal(replay.progress.referencePending, 2);
+  assert.equal(replay.progress.referencePending, 0);
   for (let step = 0; step < 3 && replay.progress.autoRemaining; step++) replay = await h.calculateNextContestReplay();
   const virtual = sessions.findReplayEntry(replay.contests, `1900:virtual:${virtualTwo}`);
-  assert.equal(virtual.virtualReference.status, "ready");
-  assert.equal(virtual.virtualReference.performance, 1868);
+  assert.equal(virtual.virtualReference == null, true);
   assert.equal(virtual.performance, null);
   assert.equal(virtual.ratingDelta, null);
   assert.equal(replay.progress.autoRemaining, 0);
@@ -191,7 +191,7 @@ test("automatic replay calculates virtual performance without a separate manual 
   assert.equal(h.requests.length, count, "cached success or unavailable must not create a polling request loop");
 });
 
-test("automatic reference waits for session end and does not endlessly retry offline failures", async () => {
+test("cached virtual problems remain usable offline without any estimate requests", async () => {
   const fixture = makeFixture();
   const h = mainHarness(fixture, { onFetch: async () => { throw Error("fixture offline"); } });
   const replay = await h.refreshContestReplayIndex();
@@ -201,7 +201,9 @@ test("automatic reference waits for session end and does not endlessly retry off
   await h.calculateNextContestReplay();
   const final = await h.calculateNextContestReplay();
   assert.equal(final.progress.referencePending, 0);
-  assert.equal(final.contests.filter((entry) => entry.virtualReference?.status === "unavailable").length, 2);
+  assert.equal(final.contests.filter((entry) => entry.virtualReference).length, 0);
+  assert.equal(final.contests.every((entry) => entry.status === 'ready'), true);
+  assert.equal(h.requests.length, 0);
   const count = h.requests.length;
   await h.calculateNextContestReplay();
   assert.equal(h.requests.length, count);

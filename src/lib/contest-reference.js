@@ -4,7 +4,7 @@ export function isOverallRatedEntry(contest) {
 }
 export function virtualReferenceLabel(contest) {
   const reference = contest?.virtualReference;
+  if (contest?.participationType === "VIRTUAL" && reference?.status === "unavailable" && reference.reason === "PUBLIC_STANDINGS_ONLY") return "接口受限";
   if (contest?.participationType !== "VIRTUAL" || reference?.status !== "ready" || !Number.isFinite(reference.performance)) return null;
   return `${reference.boundary === "upper" ? "≥" : reference.boundary === "lower" ? "≤" : ""}${Math.round(reference.performance)}`;
 }
-

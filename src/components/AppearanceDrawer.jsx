@@ -35,6 +35,9 @@ const appearanceDefaults = {
   wallpaperVideoPlaybackRate: 100,
   pauseWallpaperWhenUnfocused: true,
   panelOpacity: 72,
+  panelBlur: 12,
+  panelShadow: 30,
+  wallpaperShade: 15,
   wallpaperFavorites: DEFAULT_WALLPAPER_ID ? [DEFAULT_WALLPAPER_ID] : [],
   wallpaperLocked: true,
   randomWallpaperOnPageChange: false,
@@ -68,19 +71,19 @@ const visibilityPresets = [
     id: "balanced",
     label: "大厅平衡",
     hint: "背景鲜明，中央题单保持清楚",
-    values: { wallpaperClarity: 100, wallpaperOpacity: 92, wallpaperBrightness: 100, panelOpacity: 72 },
+    values: { wallpaperClarity: 100, wallpaperOpacity: 100, wallpaperBrightness: 100, panelOpacity: 55, panelBlur: 8, panelShadow: 20, wallpaperShade: 10 },
   },
   {
     id: "focus",
     label: "专注刷题",
     hint: "降低背景存在感，强化面板",
-    values: { wallpaperClarity: 96, wallpaperOpacity: 82, wallpaperBrightness: 88, panelOpacity: 84 },
+    values: { wallpaperClarity: 96, wallpaperOpacity: 90, wallpaperBrightness: 95, panelOpacity: 90, panelBlur: 16, panelShadow: 30, wallpaperShade: 25 },
   },
   {
     id: "showcase",
     label: "大厅展示",
     hint: "最大程度展示当前本地素材",
-    values: { wallpaperClarity: 100, wallpaperOpacity: 100, wallpaperBrightness: 108, panelOpacity: 62 },
+    values: { wallpaperClarity: 100, wallpaperOpacity: 100, wallpaperBrightness: 100, panelOpacity: 0, panelBlur: 0, panelShadow: 0, wallpaperShade: 0 },
   },
 ];
 
@@ -89,8 +92,14 @@ const sliderDefinitions = [
   ["wallpaperOpacity", "背景显示强度", "调节背景在界面中的可见程度", 0, 100],
   ["wallpaperBrightness", "背景亮度", "单独修正偏暗或偏亮的图片", 55, 135],
   ["wallpaperScale", "背景缩放", "放大图片以寻找更合适的构图", 100, 155],
-  ["panelOpacity", "面板透明度", "调节内容面板的遮挡强度与可读性", 58, 96],
+  ["panelOpacity", "面板透明度", "控制所有主界面面板：0% 完全遮挡，100% 透明展示大厅；文字与操作保留", 0, 100],
+  ["panelBlur", "面板磨砂", "只柔化面板后方的背景；完全透明时不再磨砂", 0, 24],
+  ["panelShadow", "面板阴影", "控制面板的悬浮感，向左消除厚重暗边", 0, 60],
+  ["wallpaperShade", "背景遮罩", "独立控制全局压暗程度，0% 保留原图亮度", 0, 60],
 ];
+
+const visibilityKeys = sliderDefinitions.map(([key]) => key);
+const visibilitySnapshot = (settings) => Object.fromEntries(visibilityKeys.map((key) => [key, settings[key]]));
 
 const positions = [
   ["left top", "左上"],
@@ -111,9 +120,9 @@ const fitModes = [
 ];
 
 const accents = [
-  { id: "sky", label: "天空蓝", color: "#2f86f6", hint: "清澈、专注" },
-  { id: "mint", label: "薄荷绿", color: "#43c7a1", hint: "柔和、舒缓" },
-  { id: "coral", label: "珊瑚粉", color: "#f27d9b", hint: "明快、醒目" },
+  { id: "sky", label: "天空蓝", color: "#79d3ff", hint: "清透冰蓝 · 专注有序" },
+  { id: "mint", label: "薄荷绿", color: "#80dfbb", hint: "柔和青绿 · 安静舒缓" },
+  { id: "coral", label: "珊瑚粉", color: "#ffa0b6", hint: "温暖玫瑰 · 轻盈明快" },
 ];
 
 function Toggle({ checked, label, hint, onChange }) {
@@ -170,10 +179,6 @@ export default function AppearanceDrawer({
     });
   }, [deferredWallpaperSearch, wallpaperCategory, wallpapers]);
   const visibleWallpapers = filteredWallpapers.slice(0, visibleWallpaperLimit);
-
-  useEffect(() => {
-    setDraft({ ...appearanceDefaults, ...settings });
-  }, [settings]);
 
   useEffect(() => {
     setVisibleWallpaperLimit(WALLPAPER_PAGE_SIZE);
@@ -259,9 +264,21 @@ export default function AppearanceDrawer({
   }
 
   function finish() {
-    onCommit?.(draft);
+    const keys = [...Object.keys(appearanceDefaults), "language", "customVisibilityPreset"];
+    onCommit?.(Object.fromEntries(keys.filter((key) => draft[key] !== undefined).map((key) => [key, draft[key]])));
     onClose?.();
   }
+
+  function cancel() {
+    onPreview?.(settings);
+    onClose?.();
+  }
+
+  useEffect(() => {
+    const escape = (event) => { if (event.key === "Escape") { event.stopPropagation(); cancel(); } };
+    document.addEventListener("keydown", escape, true);
+    return () => document.removeEventListener("keydown", escape, true);
+  }, [settings, onClose, onPreview]);
 
   const activeVisibilityPreset = visibilityPresets.find(({ values }) =>
     Object.entries(values).every(([key, value]) => draft[key] === value),
@@ -275,7 +292,7 @@ export default function AppearanceDrawer({
   const isFavorite = (draft.wallpaperFavorites || []).includes(activeWallpaperId);
 
   return (
-    <div className="appearance-backdrop" role="presentation" onMouseDown={finish}>
+    <div className="appearance-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) cancel(); }}>
       <aside
         className="appearance-drawer"
         aria-label="外观设置"
@@ -287,7 +304,7 @@ export default function AppearanceDrawer({
             <span>APPEARANCE / 视觉终端</span>
             <strong>外观设置</strong>
           </div>
-          <button type="button" aria-label="关闭外观设置" onClick={finish}><X size={18} /></button>
+          <button type="button" aria-label="关闭外观设置" onClick={cancel}><X size={18} /></button>
         </header>
 
         <div className="appearance-drawer__body">
@@ -407,6 +424,11 @@ export default function AppearanceDrawer({
                 </button>
               ))}
             </div>
+            <div className="appearance-custom-preset">
+              <span>{activeVisibilityPreset ? "预设已应用，可继续微调" : "自定义效果"}</span>
+              <button type="button" onClick={() => updateAppearance({ customVisibilityPreset: visibilitySnapshot(draft) })}>记住当前方案</button>
+              <button type="button" disabled={!draft.customVisibilityPreset} onClick={() => updateAppearance(draft.customVisibilityPreset)}>使用我的方案</button>
+            </div>
           </section>
 
           {previewIsVideo ? (
@@ -441,7 +463,17 @@ export default function AppearanceDrawer({
               <label className="appearance-slider" key={key}>
                 <span className="appearance-slider__heading">
                   <strong>{label}</strong>
-                  <output>{draft[key]}%</output>
+                  <span className="appearance-value">
+                    <input type="number" min={min} max={max} aria-label={`${label}数值`}
+                      value={key === "panelOpacity" ? 100 - draft[key] : draft[key]}
+                      onChange={(event) => {
+                        if (event.target.value === "") return;
+                        const value = Math.min(max, Math.max(min, Number(event.target.value)));
+                        if (Number.isFinite(value)) updateAppearance({ [key]: key === "panelOpacity" ? 100 - value : value });
+                      }} />
+                    <span>{key === "panelBlur" ? "px" : "%"}</span>
+                    <button type="button" aria-label={`重置${label}`} title="恢复默认值" onClick={() => updateAppearance({ [key]: appearanceDefaults[key] })}><RotateCcw size={12} /></button>
+                  </span>
                 </span>
                 <small>{hint}</small>
                 <input
@@ -449,9 +481,9 @@ export default function AppearanceDrawer({
                   aria-label={label}
                   min={min}
                   max={max}
-                  value={draft[key]}
-                  style={{ "--range-progress": `${((draft[key] - min) / (max - min)) * 100}%` }}
-                  onChange={(event) => updateAppearance({ [key]: Number(event.target.value) })}
+                  value={key === "panelOpacity" ? 100 - draft[key] : draft[key]}
+                  style={{ "--range-progress": `${(((key === "panelOpacity" ? 100 - draft[key] : draft[key]) - min) / (max - min)) * 100}%` }}
+                  onChange={(event) => updateAppearance({ [key]: key === "panelOpacity" ? 100 - Number(event.target.value) : Number(event.target.value) })}
                 />
               </label>
             ))}
@@ -581,11 +613,15 @@ export default function AppearanceDrawer({
                   type="button"
                   key={accent.id}
                   className={draft.accentTheme === accent.id ? "is-active" : ""}
+                  aria-label={accent.label}
+                  aria-pressed={draft.accentTheme === accent.id}
+                  data-accent={accent.id}
                   onClick={() => updateAccent(accent.id)}
                   title={accent.hint}
                 >
                   <i style={{ background: accent.color }} />
                   <span>{accent.label}</span>
+                  <small>{accent.hint}</small>
                   {draft.accentTheme === accent.id ? <Check size={13} /> : null}
                 </button>
               ))}
@@ -597,7 +633,8 @@ export default function AppearanceDrawer({
         </div>
 
         <footer className="appearance-drawer__footer">
-          <span>设置仅保存在本机</span>
+          <span>实时预览 · 完成后保存</span>
+          <button type="button" className="appearance-cancel" onClick={cancel}>取消</button>
           <button type="button" className="primary-button" onClick={finish}>
             <Check size={15} />完成
           </button>

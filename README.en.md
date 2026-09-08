@@ -27,9 +27,9 @@
 
 ![CF Compass problem dashboard](./docs/screenshots/dashboard-sky.png)
 
-## Current release: v4.1.0
+## Current release: v4.1.1
 
-v4.1 adds isolated virtual-contest replay and unofficial per-session performance estimates, fixes persistent upsolve queues, and improves free-form panels, readability, and interaction performance. Virtual estimates never enter official Rating or aggregate performance statistics.
+v4.1.1 fixes compatibility with the public Codeforces standings API, unifies lobby transparency and three accent themes, and removes duplicate panel headings. Virtual sessions support problem lists, opening original problems, and persistent upsolving queues. Virtual score/rank estimation is removed from the UI and automatic processing; official contest performance and Rating remain unchanged.
 
 | v4 highlight | What it enables |
 | --- | --- |
@@ -38,7 +38,7 @@ v4.1 adds isolated virtual-contest replay and unofficial per-session performance
 | One learning record | Use the same notes and target list from the problem set, daily training, reviews, contests, and recommendations. |
 | Customizable workbench | Hide, restore, and reorder rail items; choose a UI scale; and review contests in a full-page layout. |
 
-See the [v4.1.0 release notes](./docs/releases/v4.1.0.md), [v4.0.1 release notes](./docs/releases/v4.0.1.md), and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
+See the [v4.1.1 release notes](./docs/releases/v4.1.1.md), [v4.0.1 release notes](./docs/releases/v4.0.1.md), and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
 
 ## Why CF Compass?
 
@@ -192,15 +192,15 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the package for your device:
 
 ```text
-Windows x64 (recommended installer): CF-Compass-4.1.0-Windows-x64-Setup.exe
-Windows x64 (portable):              CF-Compass-4.1.0-Windows-x64-portable.exe
-Linux x64:                           CF-Compass-4.1.0-Linux-x86_64.AppImage
-Linux Debian x64:                    CF-Compass-4.1.0-Linux-amd64.deb
-macOS Intel:                         CF-Compass-4.1.0-macOS-x64.dmg
-macOS Apple Silicon:                 CF-Compass-4.1.0-macOS-arm64.dmg
+Windows x64 (recommended installer): CF-Compass-4.1.1-Windows-x64-Setup.exe
+Windows x64 (portable):              CF-Compass-4.1.1-Windows-x64-portable.exe
+Linux x64:                           CF-Compass-4.1.1-Linux-x86_64.AppImage
+Linux Debian x64:                    CF-Compass-4.1.1-Linux-amd64.deb
+macOS Intel:                         CF-Compass-4.1.1-macOS-x64.dmg
+macOS Apple Silicon:                 CF-Compass-4.1.1-macOS-arm64.dmg
 ```
 
-Windows users should normally choose the `Setup.exe` installer. It extracts the application once during installation, so later launches start directly from the installed files. The `portable.exe` build requires no installation, but it extracts its program files on every launch and can be noticeably slower on low-end disks or while antivirus scanning is active. The Windows, Linux, and macOS v4.1.0 packages are rebuilt from the same release commit on native runners. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
+Windows users should normally choose the `Setup.exe` installer. It extracts the application once during installation, so later launches start directly from the installed files. The `portable.exe` build requires no installation, but it extracts its program files on every launch and can be noticeably slower on low-end disks or while antivirus scanning is active. The Windows, Linux, and macOS v4.1.1 packages are rebuilt from the same release commit on native runners. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
 
 Every package has a matching `.sha256` file and the Release includes `SHA256SUMS.txt`. Verify on Windows with `Get-FileHash -Algorithm SHA256 <file>`, on Linux with `sha256sum -c SHA256SUMS.txt --ignore-missing`, or on macOS with `shasum -a 256 <file>`.
 

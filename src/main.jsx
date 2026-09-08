@@ -9,6 +9,8 @@ import "./study-plan.css";
 import "./study-plan-window.css";
 import "./typography.css";
 import "./interaction-motion.css";
+import "./panel-transparency.css";
+import "./accent-themes.css";
 
 const isStudyPlanWindow = new URLSearchParams(window.location.search).get("studyPlanWindow") === "1";
 

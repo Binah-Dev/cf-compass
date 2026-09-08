@@ -1,0 +1,106 @@
+/* One shared surface strength. The saved panelOpacity remains opacity for
+   compatibility; only the UI presents its inverse as transparency. Never apply
+   opacity to a container: that would also fade its text and controls. */
+.academy-theme.app-shell {
+  --panel-glass: rgba(8, 19, 34, var(--panel-opacity, .72));
+  --panel-center-opacity: var(--panel-opacity, .72);
+  --surface: var(--panel-glass);
+}
+
+/* Include the free-layout wrapper itself: its old .96 solid backing prevented
+   any inner panel from ever revealing the wallpaper. Hover uses the same value. */
+.academy-theme :is(
+  .titlebar, .app-rail, .draggable-panel,
+  .taxonomy-panel, .problem-workspace, .progress-panel, .review-workspace,
+  .feature-card, .insight-summary-card, .stats-strip, .training-stats,
+  .data-summary, .contest-replay-board, .contest-summary-strip,
+  .contest-center-toolbar, .contest-center-row, .contest-upsolve-toolbar,
+  .analytics-panel, .analytics-metric, .template-card, .template-sidebar,
+  .template-toolbar, .ranking-card, .training-card, .study-plan-panel,
+  .template-overview, .template-category-card, .template-file-card,
+  .contest-center-shell, .contest-center-stats, .contest-summary-metric,
+  .analytics-toolbar, .weakness-overview, .recommendation-brief, .recommendation-lane,
+  .settings-box, .data-details, .study-plan-item, .insight-advice, .backup-list,
+  .study-plan-hero, .study-plan-progress, .study-plan-board, .ai-settings,
+  .contest-detail, .contest-center-row__detail, .contest-upsolve-item,
+  .contest-virtual-reference, .contest-session-note
+) {
+  background: var(--panel-glass);
+  backdrop-filter: none;
+  border-color: rgba(var(--accent-rgb, 116, 187, 233), calc(.3 * var(--panel-opacity, .72)));
+  box-shadow: 0 12px 32px rgba(0, 7, 17, calc(var(--panel-shadow, .3) * var(--panel-opacity, .72)));
+}
+
+/* Blur once per major surface, not on every row and nested card. */
+.academy-theme :is(.draggable-panel, .app-rail, .stats-strip, .feature-card,
+  .review-workspace, .contest-replay-board, .contest-center-shell, .analytics-panel) {
+  backdrop-filter: blur(calc(var(--panel-blur, 12px) * var(--panel-opacity, .72)));
+}
+
+/* A workbench panel has exactly one surface, not two stacked dark layers. */
+.academy-theme .workbench-panel-content > :is(.taxonomy-panel, .problem-workspace, .progress-panel) {
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.academy-theme :is(.problem-table thead, .problem-table th,
+  .problem-toolbar, .contest-replay-toolbar, .feature-card__header,
+  .template-library__header, .section-label, .filter-row, .status-row,
+  .problem-table__header, .problem-row, .table-footer,
+  .template-browser__toolbar, .template-browser__resultbar,
+  .contest-center-table-head, .contest-center-pagination, .contest-center-intro,
+  .review-queue-item, .review-list__header, .review-row, .review-footer,
+  .review-policy-banner, .study-plan-filters, .contest-list-header, .contest-record,
+  .contest-problem-table__header, .contest-problem-row, .contest-session-timeline li,
+  .template-level-two__header) {
+  background: rgba(var(--panel-header-rgb, 14, 35, 52), calc(.45 * var(--panel-opacity, .72)));
+  border-color: rgba(var(--accent-rgb, 116, 187, 233), calc(.25 * var(--panel-opacity, .72)));
+  backdrop-filter: none;
+}
+
+.academy-theme :is(.handle-form, .search-box, .rating-range-control,
+  .review-mode-switch, .analytics-range-tabs, .contest-search, .contest-sort,
+  .contest-center-search, .contest-center-select, .template-search, .template-root,
+  .settings-box input, .settings-box select, .settings-box textarea,
+  .ai-settings input, .ai-settings select, .ai-settings textarea, .ai-settings__key-input,
+  .data-details > div) {
+  background: rgba(var(--panel-rgb, 10, 27, 44), var(--panel-opacity, .72));
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.academy-theme .taxonomy-item:not(.is-active) {
+  background: rgba(12, 29, 47, calc(.58 * var(--panel-opacity, .72)));
+}
+
+.academy-theme :is(.taxonomy-panel, .problem-workspace, .progress-panel,
+  .review-workspace, .feature-card)::after {
+  opacity: var(--panel-opacity, .72);
+}
+.academy-theme::before { background: #040d19; opacity: var(--wallpaper-shade, .15); }
+.academy-theme .academy-grid { opacity: calc(.14 * var(--panel-opacity, .72)); }
+
+/* Recovery controls stay readable even with a completely clear workspace. */
+.academy-theme :is(.appearance-drawer, .note-drawer, [role="dialog"]) {
+  --panel-opacity: .96;
+  --panel-glass: rgba(8, 19, 34, .96);
+}
+
+.workbench-hint { position: relative; z-index: 10; }
+.workbench-layer-menu { flex: 0 0 auto; position: relative; }
+.workbench-layer-menu summary { cursor: pointer; padding: 3px 8px; color: var(--text-2); }
+.workbench-layer-menu .workbench-layer-picker {
+  position: absolute; top: 100%; right: 0; padding: 8px;
+  border: 1px solid #5184a355; border-radius: 8px; background: #0b1b2a;
+  box-shadow: 0 8px 24px #0005;
+}
+
+.appearance-value { display: flex; align-items: center; gap: 4px; color: var(--accent); }
+.appearance-value input[type="number"] { width: 54px; padding: 3px; color: inherit; background: #ee779714; border: 1px solid #ffffff20; border-radius: 5px; text-align: right; font: inherit; }
+.appearance-value button { border: 0; background: transparent; color: var(--text-3); cursor: pointer; }
+.appearance-custom-preset { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; font-size: 12px; color: var(--text-3); }
+.appearance-custom-preset button, .appearance-cancel { padding: 6px 8px; border: 1px solid #5184a355; border-radius: 6px; background: #0b1b2a; color: var(--text-2); }
+.appearance-custom-preset button:disabled { opacity: .4; }
+
+/* Do not dim or blur the very scene the user is trying to adjust. */
+.academy-theme .appearance-backdrop { background: transparent; backdrop-filter: none; }

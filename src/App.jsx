@@ -163,6 +163,7 @@ export default function App() {
   const [layoutResetVersion, setLayoutResetVersion] = useState(0);
   const [noteProblem, setNoteProblem] = useState(null);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [appearancePreview, setAppearancePreview] = useState(null);
   const [immersive, setImmersive] = useState(false);
   const [customWallpaper, setCustomWallpaper] = useState(null);
   const [localWallpaperLibrary, setLocalWallpaperLibrary] = useState(() => ({
@@ -566,10 +567,8 @@ export default function App() {
 
   function previewAppearance(patch) {
     if (patch.language) setLocale(patch.language);
-    setStudyData((current) => ({
-      ...current,
-      settings: { ...current.settings, ...patch },
-    }));
+    // Preview must not leak into background sync or unrelated study saves.
+    setAppearancePreview((current) => ({ ...current, ...patch }));
   }
 
   function saveAppearance(settings) {
@@ -673,7 +672,7 @@ export default function App() {
   const plannedKeys = new Set(planItems.map((item) => item.problemKey));
   const hasGlobalStats = isWorkbench || isReviewLibrary;
   const [title, subtitle] = pageMeta[activeNav] || pageMeta.library;
-  const appearance = studyData.settings;
+  const appearance = { ...studyData.settings, ...appearancePreview };
   const activeWallpaperId = appearance.usePageWallpapers
     ? appearance.pageWallpapers?.[activeNav] || appearance.wallpaperId
     : appearance.wallpaperId;
@@ -691,6 +690,9 @@ export default function App() {
     "--wallpaper-scale": (appearance.wallpaperScale ?? 100) / 100,
     "--wallpaper-position": appearance.wallpaperPosition || "center center",
     "--panel-opacity": (appearance.panelOpacity ?? 72) / 100,
+    "--panel-blur": `${appearance.panelBlur ?? 12}px`,
+    "--panel-shadow": (appearance.panelShadow ?? 30) / 100,
+    "--wallpaper-shade": (appearance.wallpaperShade ?? 15) / 100,
   };
   const handleWallpaperError = (event) => {
     const previewUrl = activeWallpaper?.previewUrl;
@@ -918,7 +920,7 @@ export default function App() {
             onChooseCustom={handleChooseCustomWallpaper}
             onClearCustom={handleClearCustomWallpaper}
             activePage={activeNav}
-            onClose={() => setAppearanceOpen(false)}
+            onClose={() => { setAppearanceOpen(false); setAppearancePreview(null); }}
           />
         </Suspense>
       ) : null}

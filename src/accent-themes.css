@@ -1,0 +1,94 @@
+/* Decorative theme tokens only. Verdicts, warnings and CF rating colors retain
+   their semantic palette; wallpaper selection and surface strength stay intact. */
+.academy-theme.accent-sky {
+  --accent: #79d3ff; --accent-strong: #46b3ed; --accent-highlight: #c6edff;
+  --accent-rgb: 121, 211, 255; --accent-ink: #08273c;
+  --panel-rgb: 8, 23, 39; --panel-header-rgb: 17, 43, 63;
+}
+.academy-theme.accent-mint {
+  --accent: #80dfbb; --accent-strong: #46bf9e; --accent-highlight: #c5f4dc;
+  --accent-rgb: 128, 223, 187; --accent-ink: #092d27;
+  --panel-rgb: 10, 27, 28; --panel-header-rgb: 20, 47, 44;
+}
+.academy-theme.accent-coral {
+  --accent: #ffa0b6; --accent-strong: #ec789b; --accent-highlight: #ffdae2;
+  --accent-rgb: 255, 160, 182; --accent-ink: #381827;
+  --panel-rgb: 28, 19, 32; --panel-header-rgb: 48, 31, 45;
+}
+.academy-theme.app-shell {
+  --cyan: var(--accent); --cyan-strong: var(--accent-strong);
+  --accent-soft: rgba(var(--accent-rgb), .14); --cyan-soft: var(--accent-soft);
+  --panel-glass: rgba(var(--panel-rgb), var(--panel-opacity, .72));
+  --surface: var(--panel-glass);
+}
+
+.academy-theme :is(.primary-button, .brand-mark, .appearance-drawer__icon) {
+  color: var(--accent-ink);
+  background: linear-gradient(135deg, var(--accent-highlight), var(--accent) 48%, var(--accent-strong));
+  border-color: rgba(var(--accent-rgb), .6);
+  box-shadow: inset 0 1px 0 #ffffff70, 0 5px 16px rgba(var(--accent-rgb), .12);
+}
+.academy-theme .primary-button:hover:not(:disabled) {
+  color: var(--accent-ink);
+  background: linear-gradient(135deg, var(--accent-highlight), var(--accent));
+  box-shadow: inset 0 1px 0 #ffffff80, 0 6px 20px rgba(var(--accent-rgb), .2);
+}
+.academy-theme :is(.rail-button.is-active, .taxonomy-item.is-active,
+  .visibility-presets button.is-active, .wallpaper-fit-picker button.is-active, .position-picker button.is-active,
+  .density-picker button.is-active, .language-picker button.is-active,
+  .analytics-range-tabs button.is-active, .workbench-layer-picker button[aria-pressed="true"]) {
+  color: var(--accent-highlight);
+  border-color: rgba(var(--accent-rgb), .55);
+  background: linear-gradient(125deg, rgba(var(--accent-rgb), .23), rgba(var(--panel-rgb), .88));
+  box-shadow: inset 0 1px 0 rgba(var(--accent-rgb), .1);
+}
+.academy-theme .rail-button.is-active::before,
+.academy-theme .taxonomy-item.is-active::before,
+.academy-theme .toggle.is-on { background: var(--accent); }
+.academy-theme .toggle.is-on { border-color: var(--accent); }
+.academy-theme :is(.ghost-button, .layout-button, .rail-button, .workbench-panel-bar button):hover {
+  color: var(--accent-highlight); border-color: rgba(var(--accent-rgb), .4);
+  background-color: rgba(var(--accent-rgb), .12);
+}
+.academy-theme :is(button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.academy-theme .search-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.academy-theme .status-tabs button.is-active { color: var(--accent-highlight); border-bottom-color: var(--accent); }
+.academy-theme :is(.section-label, .workspace-kicker, .section-kicker) { color: var(--accent); }
+.academy-theme .rating-chart-line { stroke: var(--accent); }
+.academy-theme .appearance-slider input::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, var(--accent) var(--range-progress), rgba(var(--accent-rgb), .2) var(--range-progress));
+}
+.academy-theme .appearance-slider input::-webkit-slider-thumb {
+  background: var(--accent); border-color: var(--accent-highlight);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .13);
+}
+.academy-theme .appearance-value input[type="number"] { background: var(--accent-soft); border-color: rgba(var(--accent-rgb), .2); }
+
+/* Recovery drawers remain readable, with the same restrained theme tint. */
+.academy-theme :is(.appearance-drawer, .note-drawer, [role="dialog"]) {
+  --panel-glass: rgba(var(--panel-rgb), .96);
+}
+.academy-theme .appearance-drawer {
+  background: linear-gradient(165deg, rgba(var(--panel-header-rgb), .98), rgba(var(--panel-rgb), .98) 42%);
+  border-left-color: rgba(var(--accent-rgb), .25);
+}
+.academy-theme :is(.appearance-drawer__header, .appearance-drawer__footer) {
+  background: rgba(var(--panel-rgb), .96); border-color: rgba(var(--accent-rgb), .18);
+}
+.academy-theme .appearance-section { border-color: rgba(var(--accent-rgb), .18); }
+.academy-theme .accent-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.academy-theme .accent-picker button {
+  position: relative; display: grid; grid-template-columns: 1fr; justify-items: start;
+  gap: 7px; height: auto; min-height: 112px; padding: 12px 9px;
+  border: 1px solid #b9cee026; border-radius: 11px; background: #09152080;
+  text-align: left; color: #dfeaf2;
+}
+.academy-theme .accent-picker button i { width: 28px; height: 8px; border: 0; border-radius: 8px; box-shadow: none; }
+.academy-theme .accent-picker button small { font-size: 12px; line-height: 1.5; color: #a9bdcc; }
+.academy-theme .accent-picker button svg { position: absolute; top: 10px; right: 8px; color: var(--accent); }
+.academy-theme .accent-picker button.is-active {
+  border-color: var(--accent); background: linear-gradient(145deg, var(--accent-soft), rgba(var(--panel-rgb), .85));
+  box-shadow: inset 0 1px 0 rgba(var(--accent-rgb), .16);
+}

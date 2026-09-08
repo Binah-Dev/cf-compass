@@ -1,4 +1,5 @@
 const { estimateVirtualReference } = require("./services/virtual-reference.cjs");
+const { publicStandingsEndpoint, recoverStandingsFailure } = require("./services/codeforces-standings.cjs");
 const { writeAtomicJson } = require("./services/atomic-json.cjs");
 const { replayKey, findReplayEntry, summarizeProblem, enrichSession, mergeSessions } = require("./services/contest-session.cjs");
 const {
@@ -79,6 +80,9 @@ const DEFAULT_SETTINGS = {
   wallpaperVideoPlaybackRate: 100,
   pauseWallpaperWhenUnfocused: true,
   panelOpacity: 72,
+  panelBlur: 12,
+  panelShadow: 30,
+  wallpaperShade: 15,
   wallpaperFavorites: [],
   wallpaperLocked: true,
   randomWallpaperOnPageChange: false,
@@ -725,6 +729,7 @@ async function fetchCodeforcesNow(endpoint) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       const response = await fetch(`https://codeforces.com/api/${endpoint}`, {
+        signal: AbortSignal.timeout(20000),
         headers: {
           "User-Agent": "CF-Compass/2.0",
           Accept: "application/json",
@@ -738,11 +743,13 @@ async function fetchCodeforcesNow(endpoint) {
         } catch {
           failureBody = null;
         }
-        throw new Error(
+        const failure = new Error(
           failureBody?.comment
             ? `Codeforces：${failureBody.comment}`
             : `Codeforces 请求失败（HTTP ${response.status}）`,
         );
+        failure.httpStatus = response.status;
+        throw failure;
       }
       const body = await response.json();
       if (body.status !== "OK") {
@@ -751,6 +758,7 @@ async function fetchCodeforcesNow(endpoint) {
       return body.result;
     } catch (error) {
       lastError = error;
+      if (error.httpStatus >= 400 && error.httpStatus < 500 && error.httpStatus !== 429) break;
       if (attempt < 2) await wait(900 * (attempt + 1));
     }
   }
@@ -932,7 +940,7 @@ async function loadContestCenterDetail(contestIdValue, force = false) {
   }
 
   const standings = await fetchCodeforces(
-    `contest.standings?contestId=${contestId}&from=1&count=1&showUnofficial=true`,
+    publicStandingsEndpoint(contestId),
   );
   const ratingChanges = contest.isRated
     ? await fetchCodeforces(`contest.ratingChanges?contestId=${contestId}`).catch(() => [])
@@ -983,7 +991,7 @@ function contestReplayResponse(replay) {
       Number(contest.retryCount || 0) < CONTEST_AUTO_RETRY_LIMIT,
   ).length;
   const processed = completed + failed;
-  const referencePending = contests.filter(needsAutomaticVirtualReference).length;
+  const referencePending = 0; // Virtual replay/upsolving does not request estimated scores.
   return {
     ...replay,
     contests,
@@ -1019,6 +1027,7 @@ async function refreshContestReplayIndex() {
     if (!cache?.handle) return contestReplayResponse(emptyContestReplay(cache?.handle));
     const previous = await readJson("contest-replay.json", emptyContestReplay(cache.handle));
     for (const entry of previous.contests || []) {
+      recoverStandingsFailure(entry);
       if (entry.status === "calculating" && !contestCalculationTasks.has(replayKey(entry))) entry.status = "pending";
     }
     const center = await readJson("contest-center.json", {});
@@ -1052,7 +1061,16 @@ function problemSubmissionSummary(problem, contest, submissions) {
 async function calculateContestReplayEntry(entry, cache) {
   const contestId = Number(entry.contestId);
   if (entry.rated === false) {
-    const standings = await fetchCodeforces(`contest.standings?contestId=${contestId}&from=1&count=1&showUnofficial=true`);
+    // A complete cached contest detail is sufficient for replay and upsolving.
+    // Do not make these actions wait for a standings/rating request.
+    const center = await readJson("contest-center.json", {});
+    const metadata = center.contests?.find((contest) => Number(contest.id) === contestId);
+    const detail = center.details?.[contestId];
+    const cachedProblems = detail?.problems;
+    const standings = Number(metadata?.durationSeconds) > 0 && Array.isArray(cachedProblems) && cachedProblems.length > 0 &&
+      cachedProblems.every((problem) => Number(problem.contestId) === contestId && problem.index)
+      ? { contest: metadata, problems: cachedProblems }
+      : await fetchCodeforces(publicStandingsEndpoint(contestId));
     if (!standings?.contest || !standings.problems?.length) throw new Error("比赛题目或时长暂不可用，请稍后重试");
     const global = new Map((cache?.problems || []).filter((p) => Number(p.contestId) === contestId).map((p) => [p.index, p]));
     return {
@@ -1062,7 +1080,7 @@ async function calculateContestReplayEntry(entry, cache) {
     };
   }
   const [standings, ratingChanges] = await Promise.all([
-    fetchCodeforces(`contest.standings?contestId=${contestId}`),
+    fetchCodeforces(publicStandingsEndpoint(contestId)),
     fetchCodeforces(`contest.ratingChanges?contestId=${contestId}`),
   ]);
   if (!standings?.contest || !Array.isArray(standings.rows)) {
@@ -1264,8 +1282,7 @@ async function calculateNextContestReplay() {
         Number(contest.retryCount || 0) < CONTEST_AUTO_RETRY_LIMIT,
     );
   if (next) return calculateContestReplay(replayKey(next));
-  const virtual = replay.contests.find(needsAutomaticVirtualReference);
-  return virtual ? calculateVirtualReference(replayKey(virtual)) : replay;
+  return replay;
 }
 
 function needsAutomaticVirtualReference(contest) {
@@ -1290,12 +1307,12 @@ async function calculateVirtualReference(id) {
     let reference;
     try {
       const [standings, ratingChanges] = await Promise.all([
-        fetchCodeforces(`contest.standings?contestId=${entry.contestId}&showUnofficial=true`),
+        fetchCodeforces(publicStandingsEndpoint(entry.contestId)),
         fetchCodeforces(`contest.ratingChanges?contestId=${entry.contestId}`),
       ]);
       reference = await estimateVirtualReference({ entry, cache, standings, ratingChanges });
     } catch (error) {
-      reference = { status: "unavailable", error: String(error.message || "参考分暂不可用").slice(0, 300),
+      reference = { status: "unavailable", reason: error.code || null, error: String(error.message || "参考分暂不可用").slice(0, 300),
         submissionFingerprint: entry.submissionFingerprint, calculatedAt: new Date().toISOString() };
     }
     return withContestReplayLock(async () => {
@@ -1626,10 +1643,21 @@ function sanitizeStudyData(input) {
           : needsLobbyVisibilityUpgrade && Number(settings.panelOpacity) === 82
             ? DEFAULT_SETTINGS.panelOpacity
             : settings.panelOpacity,
-        58,
-        96,
+        0,
+        100,
         DEFAULT_SETTINGS.panelOpacity,
       ),
+      panelBlur: clampNumber(settings.panelBlur, 0, 24, DEFAULT_SETTINGS.panelBlur),
+      panelShadow: clampNumber(settings.panelShadow, 0, 60, DEFAULT_SETTINGS.panelShadow),
+      wallpaperShade: clampNumber(settings.wallpaperShade, 0, 60, DEFAULT_SETTINGS.wallpaperShade),
+      customVisibilityPreset: settings.customVisibilityPreset && typeof settings.customVisibilityPreset === "object"
+        ? Object.fromEntries([
+            ["wallpaperClarity", 0, 100, 100], ["wallpaperOpacity", 0, 100, 100],
+            ["wallpaperBrightness", 55, 135, 100], ["wallpaperScale", 100, 155, 100],
+            ["panelOpacity", 0, 100, 72], ["panelBlur", 0, 24, 12],
+            ["panelShadow", 0, 60, 30], ["wallpaperShade", 0, 60, 15],
+          ].map(([key, min, max, fallback]) => [key, clampNumber(settings.customVisibilityPreset[key], min, max, fallback)]))
+        : null,
       wallpaperFavorites: Array.isArray(settings.wallpaperFavorites)
         ? settings.wallpaperFavorites.slice(0, 500).map((item) => String(item).slice(0, 80))
         : DEFAULT_SETTINGS.wallpaperFavorites,

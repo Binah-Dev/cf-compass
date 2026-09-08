@@ -110,7 +110,7 @@ async function measure(id, selector) {
       for (const [density, index] of [["compact", 0], ["large", 2]]) {
         await page.getByRole("button", { name: language === "zh-CN" ? "外观设置" : "Appearance", exact: true }).click();
         await page.locator(".density-picker button").nth(index).click();
-        await page.getByRole("button", { name: language === "zh-CN" ? "关闭外观设置" : "Close appearance settings", exact: true }).click();
+        await page.locator(".appearance-drawer__footer .primary-button").click();
         await page.waitForSelector(`.density-${density}`);
         for (const [id, zh, en, selector] of pages.filter(([id]) => ["problems", "replay", "data"].includes(id))) {
           await page.getByRole("button", { name: language === "zh-CN" ? zh : en, exact: true }).click();

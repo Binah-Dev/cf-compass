@@ -20,6 +20,11 @@ async function launch() {
 }
 async function drag(locator, dx, dy, cancel = false) {
   const box = await locator.boundingBox();
+  assert.ok(await locator.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    return el === hit || el.contains(hit);
+  }), 'drag handle must receive pointer events');
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + dx, box.y + box.height / 2 + dy, { steps: 12 });
   if (cancel) await page.keyboard.press("Escape");
@@ -42,6 +47,9 @@ async function inside() {
 }
 (async () => {
   await launch(); await inside();
+  assert.equal(await page.locator('.workbench-move span, .workbench-layer-menu').count(), 0);
+  const content = await panel('taxonomy').locator('.workbench-panel-content').boundingBox();
+  near(content.y, (await rect('taxonomy')).y + 1);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   const search = page.locator("#problem-search");
   await search.fill("1901"); assert.equal(await search.inputValue(), "1901");
@@ -71,9 +79,11 @@ async function inside() {
   near((await rect("taxonomy")).height, moved.height + 10);
   const final = await rect("taxonomy");
   await page.screenshot({ path: path.join(output, "02-free-layout.png") });
-  await page.locator(".workbench-layer-picker button").nth(2).click();
+  await panel("progress").locator(".workbench-move").click();
   assert.equal(await panel("progress").evaluate((el) => getComputedStyle(el).zIndex), "3");
-  await page.locator(".workbench-layer-picker button").first().click();
+  // Click the exposed original heading to raise an overlapped panel first.
+  await panel("taxonomy").click({ position: { x: 24, y: 20 } });
+  await panel("taxonomy").locator(".workbench-move").click();
   await panel("taxonomy").locator(".workbench-expand").click();
   near((await rect("taxonomy")).width, (await page.locator(".workbench-canvas").boundingBox()).width);
   await page.screenshot({ path: path.join(output, "03-expanded.png") });
@@ -86,6 +96,11 @@ async function inside() {
   await page.waitForFunction((key) => !localStorage.getItem(key), key);
   await inside();
   const small = await rect("progress"); assert.ok(small.height > 100);
+  await page.waitForFunction(() => {
+    const panel = document.querySelector('[data-panel-id="problems"]').getBoundingClientRect();
+    const range = document.querySelector('[data-panel-id="problems"] .rating-range-control').getBoundingClientRect();
+    return range.right <= panel.right + 1;
+  });
   const problemBox = await rect("problems"), rangeBox = await panel("problems").locator(".rating-range-control").boundingBox();
   assert.ok(rangeBox.x + rangeBox.width <= problemBox.x + problemBox.width + 1, "small panel must adapt its filter controls instead of clipping them");
   await page.screenshot({ path: path.join(output, "04-small-reset-three-panels.png") });

@@ -83,12 +83,7 @@ export default function WorkbenchLayout({ order, panels, resetVersion = 0 }) {
   });
   return <div className="workbench workbench--free" aria-label="可拖动工作台">
     <div className="workbench-hint">
-      <span title="拖动标题移动 · 拖动边角缩放 · 智能复位恢复预设">拖动标题移动 · 拖动边角缩放 · 智能复位恢复预设</span>
-      <div className="workbench-layer-picker" role="group" aria-label="显示面板">
-        {PANEL_IDS.map((id) => <button key={id} type="button" aria-pressed={front === id}
-          aria-label={`${translateText("显示面板")} · ${translateText(LABELS[id])}`}
-          title="被遮挡时点击置顶" onClick={() => { setMaximized(null); setFront(id); }}>{LABELS[id]}</button>)}
-      </div>
+      <span title="拖动角标移动 · 拖动边角缩放 · 智能复位恢复预设">拖动角标移动 · 拖动边角缩放 · 智能复位恢复预设</span>
       <span role="status">{saveError ? "布局仅在当前窗口生效，保存失败" : active ? "松开保存 · Esc 取消" : "布局自动记忆"}</span>
     </div>
     <div className="workbench-canvas" ref={canvasRef}>
@@ -101,7 +96,7 @@ export default function WorkbenchLayout({ order, panels, resetVersion = 0 }) {
           <header className="workbench-panel-bar">
             <button type="button" className="workbench-move" aria-label={`${translateText("移动面板")} · ${translateText(LABELS[id])}`}
               title={translateText("拖动移动，方向键微调，Shift 加速，Esc 取消")} disabled={full} {...handlers(id, "move")}>
-              <GripHorizontal size={16} /><span>{LABELS[id]}</span>
+              <GripHorizontal size={16} />
             </button>
             {active?.id === id && <output className="workbench-size">{Math.round(f.width)} × {Math.round(f.height)}</output>}
             <button type="button" className="workbench-expand" aria-label={`${translateText(full ? "还原面板" : "展开面板")} · ${translateText(LABELS[id])}`}

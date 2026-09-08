@@ -1,5 +1,6 @@
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
+const { PUBLIC_STANDINGS_ONLY, PUBLIC_STANDINGS_MESSAGE } = require('./codeforces-standings.cjs');
 const METHOD = "carrot-virtual-insertion-v1";
 const normalized = (value) => String(value || "").toLowerCase();
 const validScore = (row) => row && Number.isFinite(row.points) && Number.isFinite(row.penalty);
@@ -18,6 +19,9 @@ async function estimateVirtualReference({ entry, cache, standings, ratingChanges
   const handle = normalized(cache.handle);
   const virtualRows = (standings.rows || []).filter((row) => singleHandle(row) === handle &&
     row.party.participantType === "VIRTUAL" && Number(row.party.startTimeSeconds) === Number(entry.sessionStartTimeSeconds));
+  if (virtualRows.length === 0 && (standings.rows || []).every(row => row.party?.participantType === 'CONTESTANT')) {
+    const error = Error(PUBLIC_STANDINGS_MESSAGE); error.code = PUBLIC_STANDINGS_ONLY; throw error;
+  }
   if (virtualRows.length !== 1) throw Error("官方榜单没有唯一对应这次虚拟赛的成绩，无法可靠估分");
   const targetRow = virtualRows[0];
   if (!validScore(targetRow) || !Array.isArray(targetRow.problemResults) ||
