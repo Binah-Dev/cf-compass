@@ -718,7 +718,7 @@ export default function App() {
         onMetadata={activeWallpaperId === "custom" ? handleCustomWallpaperMetadata : undefined}
       />
       <div className="academy-grid" aria-hidden="true" />
-      <TitleBar />
+      <TitleBar immersive={immersive} />
       <AppRail
         active={activeNav}
         onNavigate={navigate}

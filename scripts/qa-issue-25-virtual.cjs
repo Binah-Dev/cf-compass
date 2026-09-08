@@ -110,10 +110,10 @@ async function layout(name) {
   await page.waitForSelector(".contest-record");
   await page.locator(".contest-participation-tabs").getByRole("button", { name: "虚拟参赛", exact: true }).click();
   assert.equal(await page.locator(".contest-record").count(), 2);
-  await page.waitForFunction(() => document.querySelector(".contest-record .contest-performance strong")?.textContent === "不计分");
+  await page.waitForFunction(() => document.querySelector(".contest-record .contest-performance strong")?.textContent === "未估分");
   const secondSession = page.locator(".contest-record").first();
-  assert.equal(await secondSession.locator(".contest-performance strong").innerText(), "不计分");
-  assert.equal(await page.locator(".contest-virtual-reference").count(), 0);
+  assert.equal(await secondSession.locator(".contest-performance strong").innerText(), "未估分");
+  assert.equal(await page.locator(".contest-virtual-reference").count(), 1);
   if (await secondSession.locator(".contest-detail").count()) await secondSession.locator(".contest-record__row").click();
   await snapshot("04a-automatic-reference-collapsed-list");
   if (await secondSession.locator(".contest-detail").count() === 0) await secondSession.locator(".contest-record__row").click();
@@ -197,7 +197,7 @@ async function layout(name) {
   assert.equal(await page.locator(".contest-record").count(), 2);
   if (await page.locator(".contest-detail").count() === 0) await page.locator(".contest-record__row").first().click();
   assert.match(await page.locator(".contest-detail-metrics").innerText(), /In-Session Submissions/);
-  assert.equal(await page.locator(".contest-virtual-reference").count(), 0);
+  assert.equal(await page.locator(".contest-virtual-reference").count(), 1);
   await snapshot("08-english-virtual-replay");
   const replayResiduals = await page.locator(".contest-replay-page").evaluate((root) => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);

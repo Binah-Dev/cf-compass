@@ -41,8 +41,8 @@ let app;
   }
   await row.locator('.contest-problem-row').first().waitFor({ timeout: 45000 });
   assert.equal(await row.locator('.contest-problem-row').count(), 4);
-  assert.equal(await page.locator('.contest-virtual-reference').count(), 0);
-  assert.equal(await row.locator('.contest-performance strong').innerText(), '不计分');
+  assert.equal(await page.locator('.contest-virtual-reference').count(), 1);
+  assert.equal(await row.locator('.contest-performance strong').innerText(), '未估分');
   const problem = row.locator('.contest-problem-row').filter({ hasText: 'Fixture 1900C' });
   await problem.getByRole('button', { name: '打开题目', exact: true }).click();
   assert.deepEqual(await app.evaluate(() => globalThis.openedProblems), ['https://codeforces.com/contest/1900/problem/C']);
@@ -56,6 +56,6 @@ let app;
   assert.deepEqual(await app.evaluate(() => globalThis.ratingQueries), []);
   const requests = await app.evaluate(() => ({ count: globalThis.standingsQueries.length, invalid: globalThis.invalidStandingsQueries }));
   assert.ok(requests.count > 0); assert.deepEqual(requests.invalid, []); assert.deepEqual(errors, []);
-  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ passed: true, requests, errors, replayReady: true, upsolveVisible: true, estimatedScoreHidden: true }, null, 2));
+  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ passed: true, requests, errors, replayReady: true, upsolveVisible: true, estimationOnDemandOnly: true }, null, 2));
   console.log(JSON.stringify({ passed: true, output, requests }));
 })().catch(e => { console.error(e); process.exitCode = 1; }).finally(async () => { if (app) await app.close(); });

@@ -1,6 +1,7 @@
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 const { PUBLIC_STANDINGS_ONLY, PUBLIC_STANDINGS_MESSAGE } = require('./codeforces-standings.cjs');
+const { reconstructVirtualScore } = require('./virtual-score.cjs');
 const METHOD = "carrot-virtual-insertion-v1";
 const normalized = (value) => String(value || "").toLowerCase();
 const validScore = (row) => row && Number.isFinite(row.points) && Number.isFinite(row.penalty);
@@ -19,11 +20,12 @@ async function estimateVirtualReference({ entry, cache, standings, ratingChanges
   const handle = normalized(cache.handle);
   const virtualRows = (standings.rows || []).filter((row) => singleHandle(row) === handle &&
     row.party.participantType === "VIRTUAL" && Number(row.party.startTimeSeconds) === Number(entry.sessionStartTimeSeconds));
-  if (virtualRows.length === 0 && (standings.rows || []).every(row => row.party?.participantType === 'CONTESTANT')) {
+  const publicOnly = virtualRows.length === 0 && (standings.rows || []).every(row => row.party?.participantType === 'CONTESTANT');
+  if (publicOnly && cache.virtualSubmissionsComplete !== true) {
     const error = Error(PUBLIC_STANDINGS_MESSAGE); error.code = PUBLIC_STANDINGS_ONLY; throw error;
   }
-  if (virtualRows.length !== 1) throw Error("官方榜单没有唯一对应这次虚拟赛的成绩，无法可靠估分");
-  const targetRow = virtualRows[0];
+  if (!publicOnly && virtualRows.length !== 1) throw Error("官方榜单没有唯一对应这次虚拟赛的成绩，无法可靠估分");
+  const targetRow = publicOnly ? reconstructVirtualScore({ entry, cache, standings }) : virtualRows[0];
   if (!validScore(targetRow) || !Array.isArray(targetRow.problemResults) ||
       targetRow.problemResults.length !== standings.problems?.length ||
       targetRow.problemResults.some((result) => result.type !== "FINAL")) throw Error("这次虚拟赛的最终成绩尚不完整");
@@ -36,6 +38,7 @@ async function estimateVirtualReference({ entry, cache, standings, ratingChanges
   }
   const module = await import(pathToFileURL(path.join(__dirname, "../carrot/predict.mjs")).href);
   const contestants = [];
+  let missingRatedCount = 0;
   const seen = new Set();
   for (const change of ratingChanges) {
     const name = normalized(change.handle);
@@ -43,6 +46,10 @@ async function estimateVirtualReference({ entry, cache, standings, ratingChanges
     seen.add(name);
     if (name === handle) continue; // Do not compete with an earlier official version of yourself.
     const row = official.get(name);
+    // Public standings can change after the historical rating update. For a
+    // reconstructed estimate use only the current visible Rated intersection,
+    // with explicit coverage; never invent scores for absent participants.
+    if (!row && publicOnly) { missingRatedCount++; continue; }
     if (!validScore(row) || !Array.isArray(row.problemResults) || row.problemResults.length !== standings.problems.length ||
         row.problemResults.some((result) => result.type !== "FINAL")) throw Error("原比赛 Rated 选手榜单不完整，暂不估分");
     const rating = entry.contestId >= 1360 && change.oldRating === 0 ? 1400 : change.oldRating;
@@ -67,11 +74,16 @@ async function estimateVirtualReference({ entry, cache, standings, ratingChanges
   );
   if (!Number.isFinite(performance)) throw Error("参考分计算未得到有效结果");
   return {
-    status: "ready", method: METHOD, performance, referenceRank: target.rank,
+    status: "ready", method: publicOnly ? "carrot-virtual-reconstructed-v1" : METHOD, performance, referenceRank: target.rank,
+    scoreSource: targetRow.scoreSource || "official-virtual-row", scoringModel: targetRow.scoringModel || null,
+    scoringEvidence: targetRow.scoringEvidence || null,
+    matchedRatedCount: contestants.length - 1, missingRatedCount,
+    historicalRatedCount: ratingChanges.filter(change => normalized(change.handle) !== handle).length,
     participants: contestants.length, points: targetRow.points, penalty: targetRow.penalty,
     assumedRating, assumedRatingSource: past ? "rating-history-before-session" : "default-1400",
     boundary: performance >= module.MAX_RATING_LIMIT ? "upper" : performance <= module.MIN_RATING_LIMIT ? "lower" : null,
-    practicedBefore: (entry.problems || []).some((problem) => problem.previouslySolved),
+    practicedBefore: (entry.problems || []).some((problem) => problem.previouslySolved) ||
+      (cache.submissions || []).some(s => Number(s.contestId) === Number(entry.contestId) && s.verdict === 'OK' && Number(s.creationTimeSeconds) < Number(entry.sessionStartTimeSeconds)),
     submissionFingerprint: entry.submissionFingerprint,
     calculatedAt: new Date(nowSeconds * 1000).toISOString(),
   };

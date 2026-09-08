@@ -10,7 +10,7 @@
 /* Include the free-layout wrapper itself: its old .96 solid backing prevented
    any inner panel from ever revealing the wallpaper. Hover uses the same value. */
 .academy-theme :is(
-  .titlebar, .app-rail, .draggable-panel,
+  .app-rail, .draggable-panel,
   .taxonomy-panel, .problem-workspace, .progress-panel, .review-workspace,
   .feature-card, .insight-summary-card, .stats-strip, .training-stats,
   .data-summary, .contest-replay-board, .contest-summary-strip,
@@ -30,6 +30,32 @@
   border-color: rgba(var(--accent-rgb, 116, 187, 233), calc(.3 * var(--panel-opacity, .72)));
   box-shadow: 0 12px 32px rgba(0, 7, 17, calc(var(--panel-shadow, .3) * var(--panel-opacity, .72)));
 }
+
+/* Keep wallpaper coverage continuous, with a single consistent dark titlebar.
+   Window chrome stays readable independently of content-panel transparency. */
+.academy-theme .app-wallpaper {
+  inset: 0;
+  height: 100%;
+}
+.academy-theme .titlebar {
+  background: rgba(var(--panel-rgb, 8, 23, 39), .86);
+  border-bottom-color: rgba(var(--accent-rgb, 121, 211, 255), .12);
+  box-shadow: none;
+  backdrop-filter: none;
+  transition: opacity 260ms ease, visibility 0s linear;
+}
+.academy-theme.is-immersive .titlebar {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 260ms ease, visibility 0s linear 260ms;
+}
+.academy-theme.is-immersive .titlebar__drag { -webkit-app-region: no-drag; }
+.academy-theme .titlebar::after { content: none; }
+.academy-theme .titlebar__brand { text-shadow: 0 1px 3px #000b; }
+.academy-theme .window-actions button { text-shadow: 0 1px 3px #000b; }
+/* Preserve keyboard focus, but keep its outline inside the window buttons. */
+.academy-theme .window-actions button:focus-visible { outline-offset: -3px; }
 
 /* Blur once per major surface, not on every row and nested card. */
 .academy-theme :is(.draggable-panel, .app-rail, .stats-strip, .feature-card,

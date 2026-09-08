@@ -29,7 +29,7 @@
 
 ## Current release: v4.1.1
 
-v4.1.1 fixes compatibility with the public Codeforces standings API, unifies lobby transparency and three accent themes, and removes duplicate panel headings. Virtual sessions support problem lists, opening original problems, and persistent upsolving queues. Virtual score/rank estimation is removed from the UI and automatic processing; official contest performance and Rating remain unchanged.
+v4.1.1 fixes compatibility with the public Codeforces standings API, unifies lobby transparency and three accent themes, and removes duplicate panel headings. Virtual sessions support problem lists, original problem links, persistent upsolving queues, and on-demand Carrot performance estimates. Estimated performance and placement are unofficial, excluded from overall statistics, and never change official Rating. Incomplete historical Rated coverage is disclosed. The titlebar follows the accent theme and disappears in immersive lobby mode.
 
 | v4 highlight | What it enables |
 | --- | --- |

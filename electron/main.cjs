@@ -1,4 +1,5 @@
 const { estimateVirtualReference } = require("./services/virtual-reference.cjs");
+const { loadVirtualSubmissions } = require("./services/virtual-score.cjs");
 const { publicStandingsEndpoint, recoverStandingsFailure } = require("./services/codeforces-standings.cjs");
 const { writeAtomicJson } = require("./services/atomic-json.cjs");
 const { replayKey, findReplayEntry, summarizeProblem, enrichSession, mergeSessions } = require("./services/contest-session.cjs");
@@ -1310,7 +1311,8 @@ async function calculateVirtualReference(id) {
         fetchCodeforces(publicStandingsEndpoint(entry.contestId)),
         fetchCodeforces(`contest.ratingChanges?contestId=${entry.contestId}`),
       ]);
-      reference = await estimateVirtualReference({ entry, cache, standings, ratingChanges });
+      const submissions = await loadVirtualSubmissions(fetchCodeforces, entry.contestId, cache.handle);
+      reference = await estimateVirtualReference({ entry, cache: { ...cache, submissions, virtualSubmissionsComplete: true }, standings, ratingChanges });
     } catch (error) {
       reference = { status: "unavailable", reason: error.code || null, error: String(error.message || "参考分暂不可用").slice(0, 300),
         submissionFingerprint: entry.submissionFingerprint, calculatedAt: new Date().toISOString() };

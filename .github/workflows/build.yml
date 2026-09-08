@@ -39,7 +39,7 @@ jobs:
           pnpm exec node scripts/test-study-plan-service.cjs
           pnpm exec node scripts/test-material-library.cjs
           pnpm exec node scripts/test-performance.mjs
-          pnpm exec node --test scripts/test-contest-sessions.cjs scripts/test-virtual-reference.cjs scripts/test-workbench-layout.mjs scripts/test-frame-queue.mjs
+          pnpm exec node --test scripts/test-contest-sessions.cjs scripts/test-virtual-reference.cjs scripts/test-virtual-score.cjs scripts/test-workbench-layout.mjs scripts/test-frame-queue.mjs
       - name: Build renderer
         run: pnpm verify
 
@@ -93,7 +93,7 @@ jobs:
           }
           $env:CF_COMPASS_PLAYWRIGHT = 'playwright-core'
           $env:CF_COMPASS_QA_EXECUTABLE = $executable.FullName
-          $checks = @('qa-material-quarantine.cjs', 'qa-issue-13-layout.cjs', 'qa-template-summary-persistence.cjs', 'qa-study-plan.cjs', 'qa-electron.cjs', 'qa-issue-25-virtual.cjs', 'qa-workbench-layout.cjs', 'benchmark-interactions.cjs', 'qa-appearance-controls.cjs', 'qa-public-standings.cjs')
+          $checks = @('qa-material-quarantine.cjs', 'qa-issue-13-layout.cjs', 'qa-template-summary-persistence.cjs', 'qa-study-plan.cjs', 'qa-electron.cjs', 'qa-issue-25-virtual.cjs', 'qa-workbench-layout.cjs', 'benchmark-interactions.cjs', 'qa-appearance-controls.cjs', 'qa-public-standings.cjs', 'qa-titlebar.cjs', 'qa-virtual-score.cjs')
           foreach ($check in $checks) {
             pnpm exec node "scripts/$check"
             if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }

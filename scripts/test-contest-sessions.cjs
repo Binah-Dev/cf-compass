@@ -146,6 +146,7 @@ function mainHarness(fixture, options = {}) {
     classifyContestName: classify, emptyContestReplay: (handle) => ({ handle, version: 4, contests: [] }),
     contestReplayResponse: (value) => value,
     estimateVirtualReference: require("../electron/services/virtual-reference.cjs").estimateVirtualReference,
+    loadVirtualSubmissions: require("../electron/services/virtual-score.cjs").loadVirtualSubmissions,
     readJson: async (file, fallback) => structuredClone(files[file] || fallback),
     writeJson: async (file, value) => { await new Promise((resolve) => setTimeout(resolve, 2)); files[file] = structuredClone(value); },
     fetchCodeforces: async (endpoint) => {
@@ -158,9 +159,29 @@ function mainHarness(fixture, options = {}) {
     },
   };
   vm.createContext(context);
-  vm.runInContext(source + "\nthis.api = { refreshContestReplayIndex, calculateContestReplay, calculateNextContestReplay, needsAutomaticVirtualReference };", context);
+  vm.runInContext(source + "\nthis.api = { refreshContestReplayIndex, calculateContestReplay, calculateNextContestReplay, needsAutomaticVirtualReference, calculateVirtualReference };", context);
   return { ...context.api, files, requests };
 }
+
+test("on-demand reconstruction persists separately and rejects an account switch during fetch", async () => {
+  const f = require('./fixtures/virtual-score.cjs').makeScoreFixture();
+  f.center.details[1900].problems = f.standings.problems;
+  const response = endpoint => endpoint.startsWith('contest.status') ? f.cache.submissions
+    : endpoint.startsWith('contest.ratingChanges') ? f.ratingChanges : f.standings;
+  const h = mainHarness(f, { onFetch: async (_files, endpoint) => response(endpoint) });
+  await h.calculateContestReplay(f.entry.replayId);
+  await Promise.all([h.calculateVirtualReference(f.entry.replayId), h.calculateVirtualReference(f.entry.replayId)]);
+  const entry = sessions.findReplayEntry(h.files['contest-replay.json'].contests, f.entry.replayId);
+  assert.equal(entry.virtualReference.status, 'ready');
+  assert.equal(entry.performance, null); assert.equal(entry.ratingDelta, null);
+  assert.equal(h.requests.filter(q => q.startsWith('contest.status')).length, 1);
+  const switched = mainHarness(f, { onFetch: async (files, endpoint) => {
+    if (endpoint.startsWith('contest.status')) files['cache.json'].handle = 'different';
+    return response(endpoint);
+  } });
+  await switched.calculateContestReplay(f.entry.replayId);
+  await assert.rejects(switched.calculateVirtualReference(f.entry.replayId), /参赛数据已更新/);
+});
 test("virtual session metadata requests exactly the public standings contract", async () => {
   const fixture = makeFixture();
   fixture.cache.submissions = fixture.cache.submissions.filter((s) => s.author.participantType !== "CONTESTANT");

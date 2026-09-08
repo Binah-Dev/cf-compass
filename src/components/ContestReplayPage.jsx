@@ -1,4 +1,4 @@
-import { isOverallRatedEntry } from "../lib/contest-reference";
+import { isOverallRatedEntry, virtualReferenceLabel } from "../lib/contest-reference";
 import "../contest-sessions.css";
 import { updateContestQueue } from "../lib/contest-queue";
 import {
@@ -227,6 +227,8 @@ function ProblemTable({
 
 function ContestDetail({
   contest,
+  estimating,
+  onEstimate,
   queuedProblems,
   onToggleQueue,
   onOpenNote,
@@ -279,8 +281,23 @@ function ContestDetail({
       <div className="contest-session-note">
         <strong>{sessionLabel(contest)}</strong>
         <span>本次开始：{new Date((contest.sessionStartTimeSeconds || contest.startTimeSeconds || contest.dateSeconds) * 1000).toLocaleString(getCurrentLocale())}</span>
-        <span>{contest.rated === false ? "仅统计本次参赛的题目与提交，不计算估算分，不改变正式 Rating。" : "场内成绩与当前补题进度分别统计。"}</span>
+        <span>{contest.rated === false ? "仅统计本次参赛的题目与提交，不改变正式 Rating。" : "场内成绩与当前补题进度分别统计。"}</span>
       </div>
+      {contest.participationType === "VIRTUAL" && <section className="contest-virtual-reference" aria-label="虚拟赛估计分">
+        <div aria-live="polite">
+          <span>Carrot 本场估计分</span>
+          <strong>{contest.virtualReference?.status === "ready" ? virtualReferenceLabel(contest) : estimating ? "计算中…" : "—"}</strong>
+          {contest.virtualReference?.status === "ready" && <small>参考位次：{formatNumber(contest.virtualReference.referenceRank)} / {formatNumber(contest.virtualReference.participants)}</small>}
+          {contest.virtualReference?.missingRatedCount > 0 && <small>历史 Rated 匹配：{formatNumber(contest.virtualReference.matchedRatedCount)} / {formatNumber(contest.virtualReference.historicalRatedCount)}。仅按当前可见选手估计，不是完整历史榜单复算。</small>}
+          <small>按本场成绩插入原比赛 Rated 榜单；并非官方虚拟排名，不计入总体统计。</small>
+          <small>{contest.virtualReference?.refreshError || contest.virtualReference?.error || "仅在点击时获取榜单和本场提交，计算结果保存在本机。"}</small>
+          {contest.virtualReference?.practicedBefore && <small>本场包含赛前已通过的题目，参考分不能视为盲打表现。</small>}
+        </div>
+        <button type="button" className="ghost-button" disabled={estimating} onClick={() => onEstimate(contest)}>
+          {estimating ? <LoaderCircle size={14} className="is-spinning" /> : <RefreshCw size={14} />}
+          {estimating ? "计算中…" : contest.virtualReference ? "重新估分" : "计算估计分"}
+        </button>
+      </section>}
       <ProblemTable
         contest={contest}
         queuedProblems={queuedProblems}
@@ -317,6 +334,8 @@ function ContestDetail({
 
 function ContestRow({
   contest,
+  estimating,
+  onEstimate,
   expanded,
   calculating,
   queuedProblems,
@@ -335,7 +354,7 @@ function ContestRow({
   const isVirtual = contest.participationType === "VIRTUAL";
   const tone = performanceTone(isVirtual ? null : contest.performance);
   const ready = contest.status === "ready";
-  const performanceLabel = isVirtual ? "不计分" : ready
+  const performanceLabel = isVirtual ? (contest.virtualReference?.status === "ready" ? virtualReferenceLabel(contest) : estimating ? "计算中…" : "未估分") : ready
     ? contest.rated === false ? "不计分" : formatPerformance(contest.performance)
     : contest.status === "error"
       ? "计算失败"
@@ -359,7 +378,7 @@ function ContestRow({
         </span>
         <span className="contest-division">{contest.category?.label || "Rated"}</span>
         <span className="contest-performance">
-          <small>{contest.participationType === "VIRTUAL" ? "虚拟参赛" : "Carrot 表现分"}</small>
+          <small>{contest.participationType === "VIRTUAL" ? "本场估计分" : "Carrot 表现分"}</small>
           <strong>{performanceLabel}</strong>
         </span>
         <span className="contest-rank">
@@ -394,6 +413,8 @@ function ContestRow({
         ready ? (
           <ContestDetail
             contest={contest}
+            estimating={estimating}
+            onEstimate={onEstimate}
             queuedProblems={queuedProblems}
             onToggleQueue={onToggleQueue}
             onOpenNote={onOpenNote}
@@ -441,6 +462,10 @@ export default function ContestReplayPage({
   onToggleFavorite,
 }) {
   const [history, setHistory] = useState(null);
+  const [estimatingIds, setEstimatingIds] = useState(() => new Set());
+  const referenceRequests = useRef(new Set());
+  const activeHandle = useRef(data?.handle);
+  activeHandle.current = data?.handle;
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [participationFilter, setParticipationFilter] = useState("all");
@@ -595,6 +620,24 @@ export default function ContestReplayPage({
       averageRankPercent,
     };
   }, [history?.contests]);
+
+  async function requestReference(contest) {
+    const key = replayKey(contest), handle = data?.handle;
+    const requestKey = `${handle}:${key}`;
+    if (data?.isDemo || referenceRequests.current.has(requestKey)) return;
+    referenceRequests.current.add(requestKey);
+    setEstimatingIds(current => new Set(current).add(key));
+    try {
+      await window.cfBridge.calculateVirtualReference(key);
+      const latest = await loadContestReplay(data);
+      if (activeHandle.current === handle && latest) setHistory(latest);
+    } catch (error) {
+      if (activeHandle.current === handle) onToast?.("error", error.message || "参考分暂不可用");
+    } finally {
+      referenceRequests.current.delete(requestKey);
+      setEstimatingIds(current => { const next = new Set(current); next.delete(key); return next; });
+    }
+  }
 
   async function requestReplay(contest, force = false) {
     const key = replayKey(contest);
@@ -894,6 +937,8 @@ export default function ContestReplayPage({
           {visibleContests.length ? (
             visibleContests.map((contest) => (
               <ContestRow
+                estimating={estimatingIds.has(replayKey(contest))}
+                onEstimate={requestReference}
                 key={replayKey(contest)}
                 contest={contest}
                 expanded={expandedId === replayKey(contest)}
