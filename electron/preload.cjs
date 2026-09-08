@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("cfBridge", {
   getCache: () => ipcRenderer.invoke("data:get-cache"),
   sync: (handle) => ipcRenderer.invoke("data:sync", handle),
   getContestReplay: () => ipcRenderer.invoke("contests:get"),
+  calculateVirtualReference: (replayId) => ipcRenderer.invoke("contests:virtual-reference", replayId),
   calculateContestReplay: (contestId, force = false) =>
     ipcRenderer.invoke("contests:calculate", contestId, force),
   calculateNextContestReplay: () => ipcRenderer.invoke("contests:calculate-next"),

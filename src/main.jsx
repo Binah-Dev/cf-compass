@@ -7,6 +7,8 @@ import "./styles.css";
 import "./academy-theme.css";
 import "./study-plan.css";
 import "./study-plan-window.css";
+import "./typography.css";
+import "./interaction-motion.css";
 
 const isStudyPlanWindow = new URLSearchParams(window.location.search).get("studyPlanWindow") === "1";
 

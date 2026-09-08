@@ -50,10 +50,6 @@ const WALLPAPER_PAGE_SIZE = 36;
 
 const wallpaperCategories = [
   { id: "all", label: "全部", countKey: "total" },
-  { id: "curated", label: "精选", countKey: "curated" },
-  { id: "student", label: "学生大厅", countKey: "student" },
-  { id: "scenario", label: "剧情原图", countKey: "scenario" },
-  { id: "custom", label: "角色素材", countKey: "custom" },
 ];
 
 const autoRotateOptions = [

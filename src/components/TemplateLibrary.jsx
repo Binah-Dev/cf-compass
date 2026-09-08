@@ -125,6 +125,7 @@ export default function TemplateLibrary({ onToast }) {
   const [savingSummaryId, setSavingSummaryId] = useState(null);
   const [summaryOptimized, setSummaryOptimized] = useState(false);
   const deferredSearch = useDeferredValue(search.trim().toLocaleLowerCase("zh-CN"));
+  const [renderBatch, setRenderBatch] = useState({ source: null, count: 60 });
 
   useEffect(() => {
     let alive = true;
@@ -175,6 +176,7 @@ export default function TemplateLibrary({ onToast }) {
     }
     return result;
   }, [library?.items, categoryId, language, deferredSearch, categoryMap]);
+  const renderCount = renderBatch.source === visibleItems ? renderBatch.count : 60;
   const activeCategory = categoryId === "all" ? null : categoryMap.get(categoryId);
   const showCategoryLibraries = categoryId === "all" && !deferredSearch;
   const selectedSummaryItem = useMemo(
@@ -421,7 +423,7 @@ export default function TemplateLibrary({ onToast }) {
             </div>
             {visibleItems.length ? (
               <div className="template-grid">
-            {visibleItems.map((item) => {
+            {visibleItems.slice(0, renderCount).map((item) => {
               const category = categoryMap.get(item.categoryId) || { label: "待整理", tone: "muted" };
               return (
                 <article
@@ -481,6 +483,10 @@ export default function TemplateLibrary({ onToast }) {
                 </article>
               );
             })}
+                {renderCount < visibleItems.length && <button type="button" className="template-load-more"
+                  onClick={() => setRenderBatch({ source: visibleItems, count: renderCount + 60 })}>
+                  加载更多模板
+                </button>}
               </div>
             ) : (
               <div className="template-empty template-empty--compact">

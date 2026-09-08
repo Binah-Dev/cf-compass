@@ -9,6 +9,7 @@ export const DEFAULT_STUDY_DATA = {
   reviews: {},
   aiReviews: {},
   contestQueue: [],
+  contestQueueProblems: {},
   plan: null,
   settings: {
     language: "zh-CN",
@@ -100,6 +101,7 @@ export function normalizeStudyData(value) {
     aiReviews[String(key).slice(0, 80)] = {
       ...normalizeAiReview(review),
       contestId: Number(review.contestId) || null,
+      replayId: String(review.replayId || review.contestId || "").slice(0, 80),
       contestName: String(review.contestName || "").slice(0, 240),
       provider: String(review.provider || "deepseek").slice(0, 40),
       model: String(review.model || "").slice(0, 100),

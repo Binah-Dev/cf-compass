@@ -67,6 +67,10 @@ let app;
   await page.getByRole("button", { name: "外观设置", exact: true }).click();
   const hint = page.locator(".wallpaper-library__hint");
   await hint.waitFor();
+  const categories = page.locator('.wallpaper-category-tabs [role="tab"]');
+  if (await categories.count() !== 1 || !(await categories.first().textContent()).startsWith('全部')) {
+    throw new Error('Imported materials must expose only the All category');
+  }
   const hintText = await hint.textContent();
   if (!hintText.includes("已隔离 1 张不完整素材")) {
     throw new Error(`隔离数量未展示：${hintText}`);

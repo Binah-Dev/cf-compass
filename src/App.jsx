@@ -110,7 +110,7 @@ const pageMeta = {
   today: ["今日训练", "复习该复习的，补强最值得补强的"],
   plan: ["计划题单", "把想刷的题排进清单，用完成轨迹推动下一步"],
   review: ["复习库", "回看刷过的题，让每次 AC 都留下轨迹"],
-  contests: ["赛事复盘", "有效参加的 Rated 比赛与表现分记录"],
+  contests: ["赛事复盘", "正式与虚拟参赛的独立复盘、时间线和补题进度"],
   "contest-center": ["赛事中心", "浏览全部 Codeforces 场次，找到最适合现在的下一场"],
   templates: ["模板库", "自动整理本地算法模板，点击即达 VS Code"],
   analytics: ["训练分析", "用真实数据看见长期进步与下一步突破口"],
@@ -160,6 +160,7 @@ export default function App() {
     contestDiffMockEnabled() ? "contests" : "library",
   );
   const [panelOrder, setPanelOrder] = useState(loadPanelOrder);
+  const [layoutResetVersion, setLayoutResetVersion] = useState(0);
   const [noteProblem, setNoteProblem] = useState(null);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [immersive, setImmersive] = useState(false);
@@ -181,6 +182,7 @@ export default function App() {
   const syncingRef = useRef(false);
   const lastAutoAttemptRef = useRef(0);
   const studyDataRef = useRef(null);
+  const studySaveVersionRef = useRef(0);
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
   const deferredRatingRange = useDeferredValue(ratingRange);
   const showToast = useCallback((type, message) => setToast({ type, message }), []);
@@ -545,14 +547,20 @@ export default function App() {
   }
 
   async function persistStudy(next, message) {
+    const version = ++studySaveVersionRef.current;
     setStudyData(next);
     try {
       const saved = await saveStudyData(next);
-      setStudyData(saved);
+      if (version === studySaveVersionRef.current) setStudyData(saved);
       if (message) setToast({ type: "success", message });
       if (activeNav === "data") await refreshStatus().catch(() => undefined);
+      return saved;
     } catch (error) {
+      // Do not leave an optimistic queue entry visible as if it was saved.
+      const restored = await loadStudyData().catch(() => null);
+      if (restored && version === studySaveVersionRef.current) setStudyData(restored);
       setToast({ type: "error", message: error.message || "学习记录保存失败" });
+      return null;
     }
   }
 
@@ -644,13 +652,9 @@ export default function App() {
     }
   }
 
-  function changePanelOrder(nextOrder) {
-    setPanelOrder(nextOrder);
-    setToast({ type: "success", message: "布局已调整并自动保存" });
-  }
-
   function optimizePanelLayout() {
     setPanelOrder([...DEFAULT_PANEL_ORDER]);
+    setLayoutResetVersion((value) => value + 1);
     setToast({ type: "success", message: "已恢复推荐布局" });
   }
 
@@ -820,7 +824,7 @@ export default function App() {
         ) : (
           <WorkbenchLayout
             order={panelOrder}
-            onOrderChange={changePanelOrder}
+            resetVersion={layoutResetVersion}
             panels={{
               taxonomy: (
                 <Taxonomy
@@ -841,7 +845,7 @@ export default function App() {
                   onAddToPlan={addProblemToPlan}
                   onOpenNote={setNoteProblem}
                   search={search}
-                  onSearchChange={(value) => resetPage(() => setSearch(value))}
+                  onSearchChange={(value) => { setSearch(value); setPage(1); }}
                   ratingRange={ratingRange}
                   onRatingRangeChange={(value) => {
                     setRatingRange(value);

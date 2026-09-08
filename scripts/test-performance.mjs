@@ -17,7 +17,7 @@ const {
 const vite = await createServer({
   configFile: false,
   root: process.cwd(),
-  server: { middlewareMode: true },
+  server: { middlewareMode: true, watch: null },
   appType: "custom",
   optimizeDeps: { noDiscovery: true },
 });

@@ -1,7 +1,7 @@
 {
   "name": "cf-compass",
   "desktopName": "cf-compass.desktop",
-  "version": "4.0.2",
+  "version": "4.1.0",
   "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": {
@@ -39,6 +39,14 @@
     "qa:wallpaper": "node scripts/qa-wallpaper-engine.cjs",
     "benchmark:startup": "node scripts/benchmark-startup.cjs",
     "test:analytics": "node scripts/test-analytics.mjs",
+    "test:contest-sessions": "node --test scripts/test-contest-sessions.cjs",
+    "test:virtual-reference": "node --test scripts/test-virtual-reference.cjs",
+    "qa:contest-sessions": "node scripts/qa-issue-25-virtual.cjs",
+    "qa:typography": "pnpm run build && node scripts/qa-typography.cjs",
+    "qa:workbench": "pnpm run build && node scripts/qa-workbench-layout.cjs",
+    "test:workbench": "node --test scripts/test-workbench-layout.mjs",
+    "test:interaction": "node --test scripts/test-frame-queue.mjs",
+    "benchmark:interactions": "node scripts/benchmark-interactions.cjs",
     "test:avatar": "node scripts/test-avatar-sources.mjs",
     "test:ai": "node scripts/test-ai-service.cjs",
     "test:recommendations": "node scripts/test-contest-recommendations.cjs",

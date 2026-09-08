@@ -38,9 +38,9 @@
 
 <p align="center"><sub>题库工作台 · 天空蓝主题 · 仓库内置虚构演示数据</sub></p>
 
-## 当前版本：v4.0.2
+## 当前版本：v4.1.0
 
-v4 把 CF Compass 从一组训练页面升级为一套可持续使用的桌面工作台；v4.0.2 修复了 Codeforces 头像源暂时不可用时个人进度页头像空白的问题。
+v4.1 增加虚拟赛独立复盘与本场参考表现分，修复补题队列可见性，并完善自由布局、可读性和交互性能。虚拟赛估算不计入正式 Rating 与总体表现。
 
 | v4 重点 | 现在可以做什么 |
 | --- | --- |
@@ -49,7 +49,7 @@ v4 把 CF Compass 从一组训练页面升级为一套可持续使用的桌面�
 | 全局学习记录 | 在题库、今日训练、复习、比赛和推荐结果中使用同一套笔记与目标题单。 |
 | 可定制桌面工作台 | 隐藏、恢复和调整左侧功能入口顺序，切换字号与全页赛事复盘布局。 |
 
-完整变化见 [v4.0.2 发布说明](./docs/releases/v4.0.2.md)、[v4.0.1 发布说明](./docs/releases/v4.0.1.md) 与 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
+完整变化见 [v4.1.0 发布说明](./docs/releases/v4.1.0.md)、[v4.0.1 发布说明](./docs/releases/v4.0.1.md) 与 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
 
 ## 为什么是 CF Compass
 
@@ -308,20 +308,20 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 打开 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)，按设备下载：
 
 ```text
-Windows x64（推荐安装版）: CF-Compass-4.0.2-Windows-x64-Setup.exe
-Windows x64（便携版）:     CF-Compass-4.0.2-Windows-x64-portable.exe
-Linux x64:                CF-Compass-4.0.2-Linux-x86_64.AppImage
-Linux Debian x64:         CF-Compass-4.0.2-Linux-amd64.deb
-macOS Intel:              CF-Compass-4.0.2-macOS-x64.dmg
-macOS Apple 芯片:          CF-Compass-4.0.2-macOS-arm64.dmg
+Windows x64（推荐安装版）: CF-Compass-4.1.0-Windows-x64-Setup.exe
+Windows x64（便携版）:     CF-Compass-4.1.0-Windows-x64-portable.exe
+Linux x64:                CF-Compass-4.1.0-Linux-x86_64.AppImage
+Linux Debian x64:         CF-Compass-4.1.0-Linux-amd64.deb
+macOS Intel:              CF-Compass-4.1.0-macOS-x64.dmg
+macOS Apple 芯片:          CF-Compass-4.1.0-macOS-arm64.dmg
 ```
 
-Windows 用户推荐下载 `Setup.exe` 安装版：应用只在安装时解压，之后从已安装目录直接启动，速度更稳定。`portable.exe` 便携版无需安装，但每次启动都要先释放程序文件，在机械硬盘、低速设备或杀毒软件扫描环境下会明显更慢。v4.0.2 的 Windows、Linux 与 macOS 包均由同一版本提交在对应原生环境重新构建。Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
+Windows 用户推荐下载 `Setup.exe` 安装版：应用只在安装时解压，之后从已安装目录直接启动，速度更稳定。`portable.exe` 便携版无需安装，但每次启动都要先释放程序文件，在机械硬盘、低速设备或杀毒软件扫描环境下会明显更慢。v4.1.0 的 Windows、Linux 与 macOS 包均由同一版本提交在对应原生环境重新构建。Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
 
 每个安装包旁都有同名 `.sha256`，Release 还提供汇总文件 `SHA256SUMS.txt`。例如 Windows 可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\CF-Compass-4.0.2-Windows-x64-Setup.exe
+Get-FileHash -Algorithm SHA256 .\CF-Compass-4.1.0-Windows-x64-Setup.exe
 ```
 
 Linux 或 macOS 可运行：

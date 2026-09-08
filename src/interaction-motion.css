@@ -1,0 +1,53 @@
+/* Short feedback, not delayed input. Geometry stays synchronous with the pointer. */
+:root {
+  --motion-feedback: 110ms;
+  --motion-enter: 160ms;
+  --motion-ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* The desktop shell is not a scroll container. Focus/resize must not move
+   the entire navigation and title bar; nested content remains scrollable. */
+.academy-theme.app-shell { overflow: clip; }
+.template-load-more { grid-column: 1 / -1; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; }
+
+.app-shell :is(.rail-button, .taxonomy-item, .status-tabs button, .contest-center-quick button,
+  .favorite-button, .plan-button, .tag-visibility-toggle,
+  .workbench-layer-picker button, .workbench-expand) {
+  transition: color var(--motion-feedback) ease,
+    background-color var(--motion-feedback) ease,
+    border-color var(--motion-feedback) ease;
+}
+
+/* Opacity only: do not create a transformed ancestor for fixed dialogs. */
+@keyframes compass-page-enter { from { opacity: .72; } to { opacity: 1; } }
+.app-content > :is(.workbench, .contest-center-page, .template-library-page,
+  .today-page, .review-library, .data-center, .contest-replay-page) {
+  animation: compass-page-enter var(--motion-enter) var(--motion-ease);
+}
+
+/* Native smooth keyboard/programmatic scrolling; wheel/touch input is never intercepted. */
+.app-shell :is(.workbench-panel-content, .problem-table__body, .template-grid,
+  .contest-center-list, .taxonomy-list) {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+.workbench--free .draggable-panel.is-manipulating {
+  /* No trailing geometry animation while moving/resizing. */
+  transition: none;
+}
+
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after {
+  animation-duration: .001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

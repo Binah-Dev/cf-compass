@@ -1,3 +1,6 @@
+import { isOverallRatedEntry, virtualReferenceLabel } from "../lib/contest-reference";
+import "../contest-sessions.css";
+import { updateContestQueue } from "../lib/contest-queue";
 import {
   Award,
   BarChart3,
@@ -30,6 +33,7 @@ import {
   useState,
 } from "react";
 import { openProblem } from "../lib/codeforces";
+import { getCurrentLocale } from "../i18n";
 import {
   calculateContest,
   CONTEST_FILTERS,
@@ -59,6 +63,18 @@ const SORT_OPTIONS = [
   { id: "delta", label: "Rating 涨幅从高到低" },
 ];
 
+function replayKey(contest) {
+  return String(contest?.replayId || contest?.contestId || "");
+}
+function sessionLabel(contest) {
+  return contest.participationType === "VIRTUAL" ? "虚拟参赛"
+    : contest.participationType === "OUT_OF_COMPETITION" ? "非正式参赛"
+    : contest.rated === false ? "正式参赛 · 未计分" : "正式参赛 · Rated";
+}
+function formatSessionTime(seconds) {
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  return [Math.floor(total / 3600), Math.floor(total / 60) % 60, total % 60].map((value) => String(value).padStart(2, "0")).join(":");
+}
 function average(values) {
   return values.length
     ? values.reduce((sum, value) => sum + value, 0) / values.length
@@ -86,7 +102,7 @@ function ContestResult({ problem }) {
       <span className="contest-result contest-result--accepted">
         <Check size={13} />
         比赛内 AC
-        {problem.firstAcTimeSeconds
+        {problem.firstAcTimeSeconds != null
           ? ` · ${formatSolveTime(problem.firstAcTimeSeconds)}`
           : ""}
       </span>
@@ -103,7 +119,7 @@ function ContestResult({ problem }) {
   return (
     <span className="contest-result contest-result--idle">
       <span />
-      比赛时未做
+      无场内提交
     </span>
   );
 }
@@ -116,6 +132,12 @@ function CurrentProblemStatus({ status }) {
         比赛内已掌握
       </span>
     );
+  }
+  if (status === "outside-session-ac") {
+    return <span className="contest-current-status contest-current-status--upsolved"><CheckCircle2 size={13} />场外已通过</span>;
+  }
+  if (status === "pre-solved") {
+    return <span className="contest-current-status contest-current-status--upsolved"><CheckCircle2 size={13} />赛前已通过</span>;
   }
   if (status === "upsolved") {
     return (
@@ -184,9 +206,10 @@ function ProblemTable({
                   type="button"
                   className={queued ? "is-active" : ""}
                   onClick={() => onToggleQueue(problem)}
+                  disabled={!queued && problem.currentStatus !== "unsolved"}
                 >
                   {queued ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
-                  {queued ? "已加入" : "加入复习"}
+                  {queued ? "移出补题" : problem.currentStatus !== "unsolved" ? "已通过" : "加入补题"}
                 </button>
                 <button type="button" onClick={() => onOpenNote(problem)}>
                   <NotebookPen size={13} />
@@ -214,7 +237,14 @@ function ContestDetail({
   hasSavedAiReview,
   hasSavedEnhancedAiReview,
   sourceAccess,
+  onReference,
+  referenceBusy,
 }) {
+  const unrated = contest.rated === false;
+  const attempts = (contest.problems || []).reduce((count, problem) => count + Number(problem.contestAttempts || 0), 0);
+  const rejected = (contest.problems || []).reduce((count, problem) => count + Number(problem.rejectedAttempts || 0), 0);
+  const acTimes = (contest.problems || []).map((problem) => problem.firstAcTimeSeconds).filter((time) => time != null && Number.isFinite(Number(time)));
+  const firstAc = acTimes.length ? Math.min(...acTimes) : null;
   return (
     <div className="contest-detail">
       <div className="contest-detail-metrics">
@@ -225,30 +255,55 @@ function ContestDetail({
         </div>
         <div>
           <BarChart3 size={17} />
-          <span>赛前 Rating</span>
-          <strong><RatingScore value={contest.oldRating} /></strong>
+          <span>{unrated ? "首次 AC" : "赛前 Rating"}</span>
+          <strong>{unrated ? firstAc == null ? "—" : formatSessionTime(firstAc) : <RatingScore value={contest.oldRating} />}</strong>
         </div>
         <div>
           <Award size={17} />
-          <span>赛后 Rating</span>
-          <strong><RatingScore value={contest.newRating} /></strong>
+          <span>{unrated ? "场内提交" : "赛后 Rating"}</span>
+          <strong>{unrated ? attempts : <RatingScore value={contest.newRating} />}</strong>
         </div>
         <div>
           <Medal size={17} />
-          <span>Rating 变化</span>
-          <strong className={contest.ratingDelta >= 0 ? "is-positive" : "is-negative"}>
-            {contest.ratingDelta > 0 ? "+" : ""}
-            {contest.ratingDelta}
+          <span>{unrated ? "未通过尝试" : "Rating 变化"}</span>
+          <strong className={unrated ? "" : contest.ratingDelta >= 0 ? "is-positive" : "is-negative"}>
+            {unrated ? rejected : `${contest.ratingDelta > 0 ? "+" : ""}${contest.ratingDelta ?? "—"}`}
           </strong>
         </div>
         <div>
           <CheckCircle2 size={17} />
-          <span>比赛通过</span>
+          <span>场内 AC（已同步）</span>
           <strong>
             {contest.solved} / {contest.totalProblems}
           </strong>
         </div>
       </div>
+      <div className="contest-session-note">
+        <strong>{sessionLabel(contest)}</strong>
+        <span>本次开始：{new Date((contest.sessionStartTimeSeconds || contest.startTimeSeconds || contest.dateSeconds) * 1000).toLocaleString(getCurrentLocale())}</span>
+        <span>{contest.rated === false ? "仅统计本次参赛；单场参考分为非官方估计，不改变正式 Rating。" : "场内成绩与当前补题进度分别统计。"}</span>
+      </div>
+      {contest.participationType === "VIRTUAL" && (
+        <section className="contest-virtual-reference" aria-label="本场参考表现分">
+          <div><span>本场参考表现分 · 非官方</span>
+            <strong>{virtualReferenceLabel(contest) || "—"}</strong>
+            <small>仅供本场复盘，不计入平均表现分、最佳表现或正式 Rating。</small>
+            {contest.virtualReference?.status === "ready" && <small>
+              {getCurrentLocale() === "en-US"
+                ? `Comparison rank ${contest.virtualReference.referenceRank} / ${contest.virtualReference.participants} · Anchor rating ${contest.virtualReference.assumedRating}`
+                : `对照名次 ${contest.virtualReference.referenceRank} / ${contest.virtualReference.participants} · 计算基准 Rating ${contest.virtualReference.assumedRating}`}
+            </small>}
+            {contest.virtualReference?.assumedRatingSource === "default-1400" && <small>缺少虚拟赛前 Rating 记录，计算基准使用 1400。</small>}
+            {contest.virtualReference?.practicedBefore && <small>这场包含赛前已做过的题，参考分不代表首次参赛水平。</small>}
+            {contest.virtualReference?.status === "unavailable" && <small role="status">{contest.virtualReference.error}</small>}
+            {contest.virtualReference?.refreshError && <small role="status">更新失败，保留上次参考分。</small>}
+          </div>
+          <button type="button" className="contest-ai-button" disabled={referenceBusy} onClick={() => onReference(contest)}>
+            {referenceBusy ? <LoaderCircle size={15} className="is-spinning" /> : <BarChart3 size={15} />}
+            {referenceBusy ? "正在计算参考分…" : contest.virtualReference ? "重新计算参考分" : "计算本场参考分"}
+          </button>
+        </section>
+      )}
       <ProblemTable
         contest={contest}
         queuedProblems={queuedProblems}
@@ -257,9 +312,13 @@ function ContestDetail({
         plannedKeys={plannedKeys}
         onAddToPlan={onAddToPlan}
       />
+      {contest.timeline?.length > 0 && <details className="contest-session-timeline">
+        <summary>本场提交时间线 · {contest.timeline.length} 次</summary>
+        <ol>{contest.timeline.map((event) => <li key={event.id}><time>{formatSessionTime(event.timeSeconds)}</time><strong>{event.index}</strong><span className={event.verdict === "OK" ? "is-positive" : ""}>{event.verdict}</span></li>)}</ol>
+      </details>}
       <footer className="contest-detail-source">
-        <span>表现分由 Carrot Plus 算法计算，通常与精确值相差 0～4 分。</span>
-        <span>官方排名：第 {formatNumber(contest.officialRank)} 名</span>
+        <span>{contest.rated === false ? "虚拟 / 未计分场次独立于 Rated 表现分统计。" : "表现分由 Carrot Plus 算法计算，通常与精确值相差 0～4 分。"}</span>
+        {contest.rated !== false && <span>官方排名：第 {formatNumber(contest.officialRank)} 名</span>}
         <div className="contest-ai-actions">
           <button type="button" className="contest-ai-button" onClick={() => onAiReview(contest)}>
             <Sparkles size={14} />{hasSavedAiReview ? "查看 AI 复盘" : "AI 复盘"}
@@ -295,11 +354,15 @@ function ContestRow({
   hasSavedAiReview,
   hasSavedEnhancedAiReview,
   sourceAccess,
+  onReference,
+  referenceBusy,
 }) {
-  const tone = performanceTone(contest.performance);
+  const isVirtual = contest.participationType === "VIRTUAL";
+  const tone = performanceTone(isVirtual ? contest.virtualReference?.performance : contest.performance);
   const ready = contest.status === "ready";
   const performanceLabel = ready
-    ? formatPerformance(contest.performance)
+    ? isVirtual ? virtualReferenceLabel(contest) || (contest.virtualReference?.status === "unavailable" ? "暂不可用" : "待计算")
+      : contest.rated === false ? "不计分" : formatPerformance(contest.performance)
     : contest.status === "error"
       ? "计算失败"
       : "待计算";
@@ -318,27 +381,27 @@ function ContestRow({
         <time>{formatContestDate(contest.dateSeconds)}</time>
         <span className="contest-record__title">
           <strong>{contest.contestName}</strong>
-          <small>{contest.category?.label || "Rated"}</small>
+          <small>{sessionLabel(contest)}{contest.participationType === "VIRTUAL" ? ` · ${new Date(contest.dateSeconds * 1000).toLocaleTimeString(getCurrentLocale(), { hour: "2-digit", minute: "2-digit" })}` : ""}</small>
         </span>
         <span className="contest-division">{contest.category?.label || "Rated"}</span>
         <span className="contest-performance">
-          <small>Carrot 表现分</small>
+          <small>{contest.participationType === "VIRTUAL" ? "本场参考分" : "Carrot 表现分"}</small>
           <strong>{performanceLabel}</strong>
         </span>
         <span className="contest-rank">
           <small>实际排名</small>
           <strong>
-            {ready ? formatNumber(contest.officialRank) : "—"}
+            {ready && contest.rated !== false ? formatNumber(contest.officialRank) : "—"}
           </strong>
-          <span>{ready ? `/ ${formatNumber(contest.participants)}` : ""}</span>
+          <span>{ready && contest.rated !== false ? `/ ${formatNumber(contest.participants)}` : ""}</span>
         </span>
         <span
           className={`contest-delta ${
-            contest.ratingDelta >= 0 ? "is-positive" : "is-negative"
+            contest.ratingDelta == null ? "" : contest.ratingDelta >= 0 ? "is-positive" : "is-negative"
           }`}
         >
           {contest.ratingDelta > 0 ? "+" : ""}
-          {contest.ratingDelta}
+          {contest.ratingDelta ?? "—"}
         </span>
         <span className="contest-solved">
           {ready ? `${contest.solved} / ${contest.totalProblems}` : "—"}
@@ -367,14 +430,16 @@ function ContestRow({
             hasSavedAiReview={hasSavedAiReview}
             hasSavedEnhancedAiReview={hasSavedEnhancedAiReview}
             sourceAccess={sourceAccess}
+            onReference={onReference}
+            referenceBusy={referenceBusy}
           />
         ) : (
           <div className="contest-detail-loading">
             {calculating ? (
               <>
                 <LoaderCircle size={22} className="is-spinning" />
-                <strong>正在计算本场 Carrot 表现分</strong>
-                <span>正在获取完整榜单与官方 Rating 变化，请稍候。</span>
+                <strong>正在整理本场复盘数据</strong>
+                <span>正在获取比赛信息并核对本场提交，请稍候。</span>
               </>
             ) : (
               <>
@@ -406,11 +471,13 @@ export default function ContestReplayPage({
   const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [participationFilter, setParticipationFilter] = useState("all");
   const [specialFilter, setSpecialFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
   const [expandedId, setExpandedId] = useState(null);
   const [calculatingId, setCalculatingId] = useState(null);
+  const [referenceId, setReferenceId] = useState(null);
   const [aiContest, setAiContest] = useState(null);
   const [aiReview, setAiReview] = useState(null);
   const [aiMode, setAiMode] = useState("summary");
@@ -450,9 +517,7 @@ export default function ContestReplayPage({
         if (!alive) return;
         setHistory(next);
         setExpandedId(
-          next?.contests?.find((contest) => contest.status === "ready")?.contestId ||
-            next?.contests?.[0]?.contestId ||
-            null,
+          replayKey(next?.contests?.find((contest) => contest.status === "ready") || next?.contests?.[0]) || null,
         );
       })
       .catch((error) => {
@@ -486,10 +551,7 @@ export default function ContestReplayPage({
   }, [
     data?.handle,
     data?.isDemo,
-    history?.progress?.autoRemaining,
-    history?.progress?.completed,
-    history?.progress?.failed,
-    history?.syncedAt,
+    history,
   ]);
 
   const queuedProblems = useMemo(
@@ -501,6 +563,9 @@ export default function ContestReplayPage({
     const result = [];
     for (const contest of history?.contests || []) {
       if (!matchesContestFilter(contest, filter, specialFilter)) continue;
+      if (participationFilter === "virtual" && contest.participationType !== "VIRTUAL") continue;
+      if (participationFilter === "rated" && contest.rated === false) continue;
+      if (participationFilter === "unrated" && (contest.rated !== false || contest.participationType === "VIRTUAL")) continue;
       if (
         deferredSearch &&
         !`${contest.contestId} ${contest.contestName} ${contest.category?.label || ""}`
@@ -525,15 +590,15 @@ export default function ContestReplayPage({
           (second.officialRank || Number.POSITIVE_INFINITY)
         );
       }
-      if (sort === "delta") return second.ratingDelta - first.ratingDelta;
+      if (sort === "delta") return (second.ratingDelta ?? Number.NEGATIVE_INFINITY) - (first.ratingDelta ?? Number.NEGATIVE_INFINITY);
       return second.dateSeconds - first.dateSeconds;
     });
     return result;
-  }, [history?.contests, filter, specialFilter, deferredSearch, sort]);
+  }, [history?.contests, filter, specialFilter, deferredSearch, sort, participationFilter]);
 
   const summary = useMemo(() => {
     const ready = (history?.contests || []).filter(
-      (contest) => contest.status === "ready",
+      isOverallRatedEntry,
     );
     const numericPerformances = ready
       .map((contest) =>
@@ -559,15 +624,32 @@ export default function ContestReplayPage({
     };
   }, [history?.contests]);
 
+  async function requestVirtualReference(contest) {
+    if (referenceId) return;
+    if (!window.cfBridge?.calculateVirtualReference || data?.isDemo) {
+      onToast?.("info", "请在桌面版同步自己的虚拟参赛记录后计算");
+      return;
+    }
+    setReferenceId(replayKey(contest));
+    try {
+      const next = await window.cfBridge.calculateVirtualReference(replayKey(contest));
+      if (next) setHistory(next);
+    } catch (error) {
+      onToast?.("error", error.message || "参考分暂不可用");
+    } finally {
+      setReferenceId(null);
+    }
+  }
+
   async function toggleContest(contest) {
     setExpandedId((current) =>
-      Number(current) === Number(contest.contestId) ? null : contest.contestId,
+      current === replayKey(contest) ? null : replayKey(contest),
     );
     if (data?.isDemo || contest.status === "ready" || calculatingId) return;
-    setCalculatingId(contest.contestId);
+    setCalculatingId(replayKey(contest));
     try {
       const next = await calculateContest(
-        contest.contestId,
+        replayKey(contest),
         contest.status === "error",
       );
       if (next) setHistory(next);
@@ -580,9 +662,9 @@ export default function ContestReplayPage({
 
   async function retryContest(contest) {
     if (data?.isDemo || calculatingId) return;
-    setCalculatingId(contest.contestId);
+    setCalculatingId(replayKey(contest));
     try {
-      const next = await calculateContest(contest.contestId, true);
+      const next = await calculateContest(replayKey(contest), true);
       if (next) setHistory(next);
     } catch (error) {
       onToast?.("error", error.message || "比赛数据重新计算失败");
@@ -605,7 +687,7 @@ export default function ContestReplayPage({
     setAiError("");
     setAiLoading(true);
     try {
-      const result = await analyzeContestWithAi(contest.contestId, { includeSource });
+      const result = await analyzeContestWithAi(replayKey(contest), { includeSource });
       setAiReview(result);
     } catch (error) {
       setAiError(error.message || "AI 复盘失败");
@@ -642,7 +724,7 @@ export default function ContestReplayPage({
       openMockSourceReview(contest);
       return;
     }
-    const saved = studyData?.aiReviews?.[reviewStorageKey(contest.contestId, includeSource)];
+    const saved = studyData?.aiReviews?.[reviewStorageKey(replayKey(contest), includeSource)];
     const savedSourceIsComplete = !includeSource || (
       Array.isArray(saved?.sourceTimeline) &&
       saved.sourceTimeline.length > 0 &&
@@ -664,7 +746,7 @@ export default function ContestReplayPage({
     if (!review?.contestId) return;
     const saved = { ...review, savedAt: new Date().toISOString() };
     const storageKey = reviewStorageKey(
-      review.contestId,
+      review.replayId || review.contestId,
       review.analysisMode === "source" || review.sourceIncluded === true,
     );
     onStudyChange(
@@ -682,7 +764,7 @@ export default function ContestReplayPage({
     setRecommendationLoading(true);
     setRecommendationError("");
     try {
-      setRecommendation(await recommendContestProblems(aiContest.contestId, { review: aiReview }));
+      setRecommendation(await recommendContestProblems(replayKey(aiContest), { review: aiReview }));
     } catch (error) {
       setRecommendationError(error.message || "推荐题单生成失败");
     } finally {
@@ -697,13 +779,13 @@ export default function ContestReplayPage({
 
   function toggleQueue(problem) {
     const key = contestProblemKey(problem);
-    const current = new Set(studyData?.contestQueue || []);
-    const removing = current.has(key);
-    removing ? current.delete(key) : current.add(key);
-    onStudyChange(
-      { ...studyData, contestQueue: [...current] },
-      removing ? "已移出赛事复习队列" : "已加入赛事复习队列",
-    );
+    const removing = queuedProblems.has(key);
+    const next = updateContestQueue(studyData, removing ? [] : [problem], removing ? [key] : []);
+    if (!removing && next.contestQueue.length === (studyData?.contestQueue || []).length) {
+      onToast?.("info", "补题队列已满，请先移除不再需要的题目");
+      return;
+    }
+    onStudyChange(next, removing ? "已移出补题队列" : "已加入补题队列，可在赛事中心“待补题”查看");
   }
 
   if (loading || !history) {
@@ -711,7 +793,7 @@ export default function ContestReplayPage({
       <section className="contest-replay-loading">
         <LoaderCircle size={26} className="is-spinning" />
         <strong>正在读取有效参赛记录</strong>
-        <span>同步官方 Rating 历史与本地复盘缓存。</span>
+        <span>读取正式与虚拟参赛记录及本地复盘缓存。</span>
       </section>
     );
   }
@@ -723,7 +805,7 @@ export default function ContestReplayPage({
           Icon={Trophy}
           label="有效参赛"
           value={formatNumber(history.contests.length)}
-          hint="仅统计官方 Rated 记录"
+          hint="正式、虚拟与非正式参赛"
           tone="green"
         />
         <SummaryMetric
@@ -736,7 +818,7 @@ export default function ContestReplayPage({
                 <RatingScore value={Math.round(summary.averagePerformance)} />
                 )
           }
-          hint="Carrot Plus 计算"
+          hint="仅正式 Rated 场次"
         />
         <SummaryMetric
           Icon={Award}
@@ -751,7 +833,7 @@ export default function ContestReplayPage({
               </RatingScore>
             ) : "—"
           }
-          hint={summary.best ? formatContestDate(summary.best.dateSeconds) : "等待计算"}
+          hint={summary.best ? formatContestDate(summary.best.dateSeconds) : "暂无 Rated 表现分"}
           tone="amber"
         />
         <SummaryMetric
@@ -803,7 +885,9 @@ export default function ContestReplayPage({
           </label>
           <div className="contest-sync-progress">
             <span>
-              {history.progress.autoRemaining
+              {history.progress.referencePending && !history.progress.pending && !history.progress.retryable
+                ? "正在自动计算虚拟赛表现分…"
+                : history.progress.autoRemaining
                 ? `自动计算 ${history.progress.processed}/${history.progress.total}${
                     history.progress.failed
                       ? ` · ${history.progress.failed} 场重试中`
@@ -811,7 +895,7 @@ export default function ContestReplayPage({
                   }`
                 : history.progress.failed
                   ? `${history.progress.completed}/${history.progress.total} 已完成 · ${history.progress.failed} 场需重试`
-                  : "表现分已自动同步"}
+                  : "复盘数据已同步"}
             </span>
             <i>
               <b style={{ width: `${history.progress.percent}%` }} />
@@ -834,6 +918,11 @@ export default function ContestReplayPage({
           </div>
         ) : null}
 
+        <div className="contest-participation-tabs" aria-label="参赛方式筛选">
+          {[["all", "全部参赛"], ["rated", "正式 Rated"], ["virtual", "虚拟参赛"], ["unrated", "其他未计分"]].map(([id, label]) =>
+            <button type="button" key={id} aria-pressed={participationFilter === id} className={participationFilter === id ? "is-active" : ""} onClick={() => setParticipationFilter(id)}>{label}</button>)}
+          <span>虚拟参赛以同步到的提交识别；未提交或历史未同步的场次暂不可见。</span>
+        </div>
         <header className="contest-list-header">
           <span>日期</span>
           <span>比赛名称</span>
@@ -849,10 +938,10 @@ export default function ContestReplayPage({
           {visibleContests.length ? (
             visibleContests.map((contest) => (
               <ContestRow
-                key={contest.contestId}
+                key={replayKey(contest)}
                 contest={contest}
-                expanded={Number(expandedId) === Number(contest.contestId)}
-                calculating={Number(calculatingId) === Number(contest.contestId)}
+                expanded={expandedId === replayKey(contest)}
+                calculating={calculatingId === replayKey(contest)}
                 queuedProblems={queuedProblems}
                 onToggle={() => toggleContest(contest)}
                 onRetry={() => retryContest(contest)}
@@ -862,11 +951,13 @@ export default function ContestReplayPage({
                 onAddToPlan={onAddToPlan}
                 onAiReview={openAiReview}
                 onEnhancedAiReview={(item) => openAiReview(item, true)}
-                hasSavedAiReview={Boolean(studyData?.aiReviews?.[reviewStorageKey(contest.contestId)])}
+                hasSavedAiReview={Boolean(studyData?.aiReviews?.[reviewStorageKey(replayKey(contest))])}
                 hasSavedEnhancedAiReview={Boolean(
-                  studyData?.aiReviews?.[reviewStorageKey(contest.contestId, true)],
+                  studyData?.aiReviews?.[reviewStorageKey(replayKey(contest), true)],
                 )}
                 sourceAccess={sourceAccess}
+                onReference={requestVirtualReference}
+                referenceBusy={Boolean(referenceId)}
               />
             ))
           ) : (

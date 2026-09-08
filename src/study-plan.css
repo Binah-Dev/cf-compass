@@ -22,19 +22,19 @@
 .study-plan-hero__copy { display: flex; align-items: center; gap: 15px; }
 .study-plan-hero__icon { width: 46px; height: 46px; flex: 0 0 auto; display: grid; place-items: center; color: #79e6bd; border: 1px solid rgba(92, 225, 179, 0.24); border-radius: 14px; background: rgba(39, 145, 111, 0.17); }
 .study-plan-hero__copy > div { display: grid; gap: 4px; }
-.study-plan-hero__copy > div > span { color: #61cfa9; font-size: 9px; font-weight: 850; letter-spacing: 0.14em; }
+.study-plan-hero__copy > div > span { color: #61cfa9; font-size: var(--font-caption); line-height: 1.45; font-weight: 850; letter-spacing: 0.14em; }
 .study-plan-hero h2 { margin: 0; color: #e5f6ff; font-size: clamp(20px, 2vw, 28px); }
-.study-plan-hero p { margin: 0; color: #7896aa; font-size: 11px; }
+.study-plan-hero p { margin: 0; color: var(--text-3); font-size: var(--font-caption); line-height: 1.45; }
 .study-plan-add,
-.study-plan-empty button { min-height: 38px; padding: 0 15px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: #073b2b; border: 0; border-radius: 11px; background: linear-gradient(135deg, #87efcb, #4ed8a8); font-size: 11px; font-weight: 820; cursor: pointer; }
+.study-plan-empty button { min-height: 38px; padding: 0 15px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: var(--text-3); border: 0; border-radius: 11px; background: linear-gradient(135deg, #87efcb, #4ed8a8); font-size: var(--font-caption); line-height: 1.45; font-weight: 820; cursor: pointer; }
 .study-plan-hero__actions { display: flex; align-items: center; gap: 8px; }
-.study-plan-float-toggle { min-height: 38px; padding: 0 13px; display: inline-flex; align-items: center; gap: 7px; color: #8cafc4; border: 1px solid rgba(105, 190, 236, 0.18); border-radius: 11px; background: rgba(9, 30, 47, 0.66); font-size: 10px; font-weight: 760; cursor: pointer; }
+.study-plan-float-toggle { min-height: 38px; padding: 0 13px; display: inline-flex; align-items: center; gap: 7px; color: #8cafc4; border: 1px solid rgba(105, 190, 236, 0.18); border-radius: 11px; background: rgba(9, 30, 47, 0.66); font-size: var(--font-caption); line-height: 1.45; font-weight: 760; cursor: pointer; }
 .study-plan-float-toggle:hover,
 .study-plan-float-toggle.is-active { color: #dff8ef; border-color: rgba(86, 221, 172, 0.32); background: rgba(43, 145, 111, 0.2); }
 
 .study-plan-progress { min-height: 76px; padding: 14px 20px; display: grid; grid-template-columns: 125px minmax(120px, 1fr) 55px; align-items: center; gap: 18px; border-radius: 15px; }
 .study-plan-progress > div:first-child { display: grid; gap: 3px; }
-.study-plan-progress > div:first-child span { color: #708da1; font-size: 10px; }
+.study-plan-progress > div:first-child span { color: #708da1; font-size: var(--font-caption); line-height: 1.45; }
 .study-plan-progress > div:first-child strong { color: #d9eef9; font-size: 22px; }
 .study-plan-progress > div:first-child small { color: #648298; font-size: 12px; }
 .study-plan-progress__track { height: 8px; overflow: hidden; border-radius: 99px; background: rgba(72, 112, 139, 0.25); }
@@ -44,10 +44,10 @@
 .study-plan-board { min-height: 0; flex: 1; overflow: hidden; display: flex; flex-direction: column; border-radius: 18px; }
 .study-plan-board > header { min-height: 68px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-bottom: 1px solid rgba(100, 185, 235, 0.12); }
 .study-plan-board > header > div:first-child { display: grid; gap: 4px; }
-.study-plan-board > header span { color: #6b8ba1; font-size: 9px; font-weight: 820; letter-spacing: 0.1em; }
+.study-plan-board > header span { color: #6b8ba1; font-size: var(--font-caption); line-height: 1.45; font-weight: 820; letter-spacing: 0.1em; }
 .study-plan-board > header strong { color: #d6eaf5; font-size: 13px; }
 .study-plan-filters { padding: 3px; display: flex; gap: 3px; border-radius: 10px; background: rgba(7, 25, 40, 0.65); }
-.study-plan-filters button { min-height: 30px; padding: 0 12px; color: #7190a4; border: 0; border-radius: 8px; background: transparent; font-size: 10px; cursor: pointer; }
+.study-plan-filters button { min-height: 30px; padding: 0 12px; color: var(--text-3); border: 0; border-radius: 8px; background: transparent; font-size: var(--font-caption); line-height: 1.45; cursor: pointer; }
 .study-plan-filters button.is-active { color: #dff7ef; background: rgba(61, 189, 146, 0.2); }
 
 .study-plan-list { min-height: 0; padding: 12px; overflow: auto; display: grid; align-content: start; gap: 8px; }
@@ -64,12 +64,12 @@
 .study-plan-item__check:hover { color: #70dfb8; background: rgba(66, 199, 151, 0.08); }
 .study-plan-item.is-done .study-plan-item__check { color: #65d7ae; background: rgba(66, 199, 151, 0.08); }
 .study-plan-item__problem { min-width: 0; padding: 11px 13px; display: grid; grid-template-columns: 72px minmax(170px, 1fr) minmax(220px, 1.2fr); align-items: center; gap: 12px; color: inherit; border: 0; background: transparent; text-align: left; cursor: pointer; }
-.study-plan-item__id { color: #6cc9fa; font-size: 11px; font-weight: 830; }
+.study-plan-item__id { color: #6cc9fa; font-size: var(--font-caption); line-height: 1.45; font-weight: 830; }
 .study-plan-item__title { min-width: 0; display: flex; align-items: center; gap: 6px; overflow: hidden; color: #d8eaf5; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .study-plan-item__title svg { flex: 0 0 auto; color: #527b95; }
 .study-plan-item__meta { min-width: 0; display: flex; align-items: center; gap: 7px; overflow: hidden; }
-.study-plan-item__meta em { padding: 3px 7px; color: #87a8bc; border-radius: 99px; background: rgba(83, 132, 164, 0.12); font-size: 9px; font-style: normal; white-space: nowrap; }
-.study-plan-item__meta small { overflow: hidden; color: #607f94; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.study-plan-item__meta em { padding: 3px 7px; color: #87a8bc; border-radius: 99px; background: rgba(83, 132, 164, 0.12); font-size: var(--font-caption); line-height: 1.45; font-style: normal; white-space: nowrap; }
+.study-plan-item__meta small { overflow: hidden; color: var(--text-3); font-size: var(--font-caption); line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
 .study-plan-item.is-done .study-plan-item__title,
 .study-plan-item.is-done .study-plan-item__id { color: #6c8c83; text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .study-plan-item.is-done .study-plan-item__meta { opacity: 0.55; }
@@ -82,13 +82,13 @@
 .study-plan-empty { min-height: 260px; flex: 1; display: grid; place-items: center; align-content: center; gap: 9px; text-align: center; }
 .study-plan-empty > span { width: 58px; height: 58px; display: grid; place-items: center; color: #65d6ad; border: 1px solid rgba(76, 207, 160, 0.18); border-radius: 18px; background: rgba(49, 150, 115, 0.12); }
 .study-plan-empty strong { color: #c8dce8; font-size: 14px; }
-.study-plan-empty p { margin: 0 0 6px; color: #668499; font-size: 10px; }
+.study-plan-empty p { margin: 0 0 6px; color: var(--text-3); font-size: var(--font-caption); line-height: 1.45; }
 
 .problem-row-actions { display: flex; align-items: center; gap: 2px; }
 .plan-button { width: 25px; height: 25px; padding: 0; display: grid; place-items: center; color: #617585; border: 0; background: transparent; cursor: pointer; }
 .plan-button:hover { color: #6eddb6; }
 .plan-button.is-active { color: #6eddb6; cursor: default; }
-.plan-queue-action { min-height: 29px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex: 0 0 auto; color: #7390a3; border: 1px solid rgba(105, 182, 228, 0.14); border-radius: 8px; background: rgba(11, 35, 52, 0.54); font-size: 9px; font-weight: 730; cursor: pointer; }
+.plan-queue-action { min-height: 29px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex: 0 0 auto; color: var(--text-3); border: 1px solid rgba(105, 182, 228, 0.14); border-radius: 8px; background: rgba(11, 35, 52, 0.54); font-size: var(--font-caption); line-height: 1.45; font-weight: 730; cursor: pointer; }
 .plan-queue-action:hover { color: #8de9c8; border-color: rgba(93, 219, 174, 0.3); background: rgba(49, 150, 115, 0.14); }
 .plan-queue-action.is-active { color: #6bcaa9; cursor: default; opacity: 0.7; }
 .plan-queue-action.is-compact { width: 28px; min-height: 28px; padding: 0; }

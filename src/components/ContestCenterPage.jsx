@@ -1,3 +1,6 @@
+import "../contest-sessions.css";
+import ContestUpsolveQueue from "./ContestUpsolveQueue";
+import { buildContestQueue, updateContestQueue } from "../lib/contest-queue";
 import {
   CheckCircle2,
   ChevronDown,
@@ -174,10 +177,10 @@ function ProblemStrip({ contest, problems, submissionMap, onAddQueue, queueSet, 
         <button
           className="is-primary"
           type="button"
-          onClick={() => onAddQueue(problems)}
-          disabled={problems.every((problem) => queueSet.has(problemKey(problem)))}
+          onClick={() => onAddQueue(problems.filter((problem) => !contest.demoSolved?.includes(problem.index)))}
+          disabled={contest.phaseGroup !== "finished" || problems.every((problem) => queueSet.has(problemKey(problem)) || submissionMap.get(problemKey(problem))?.accepted || contest.demoSolved?.includes(problem.index))}
         >
-          <Target size={15} />加入补题
+          <Target size={15} />{problems.every((problem) => submissionMap.get(problemKey(problem))?.accepted || contest.demoSolved?.includes(problem.index)) ? "全部已通过" : problems.every((problem) => queueSet.has(problemKey(problem)) || submissionMap.get(problemKey(problem))?.accepted || contest.demoSolved?.includes(problem.index)) ? "已加入补题" : "加入补题"}
         </button>
       </div>
     </div>
@@ -267,6 +270,7 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState(null);
   const [loadingDetailId, setLoadingDetailId] = useState(null);
+  const [savingQueue, setSavingQueue] = useState(false);
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
 
   async function refresh(force = false) {
@@ -276,7 +280,7 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
       const next = await loadContestCenter(data, force);
       setCenter(next);
       if (next.warning) onToast?.("warning", next.warning);
-      if (force) onToast?.("success", "场次列表已更新");
+      if (force && !next.stale) onToast?.("success", "场次列表已更新");
     } catch (refreshError) {
       setError(refreshError.message || "场次列表加载失败");
     } finally {
@@ -324,7 +328,7 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
   const participatedIds = useMemo(() => {
     const ids = new Set((data?.ratingHistory || []).map((entry) => Number(entry.contestId)));
     for (const submission of data?.submissions || []) {
-      if (submission?.author?.participantType === "CONTESTANT") {
+      if (["CONTESTANT", "VIRTUAL", "OUT_OF_COMPETITION"].includes(submission?.author?.participantType)) {
         const contestId = Number(submission.problem?.contestId || submission.contestId);
         if (contestId) ids.add(contestId);
       }
@@ -332,6 +336,7 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
     return ids;
   }, [data?.ratingHistory, data?.submissions]);
 
+  const queueEntries = useMemo(() => buildContestQueue(studyData, data, center), [studyData?.contestQueue, studyData?.contestQueueProblems, data?.problems, data?.submissions, center]);
   const queueSet = useMemo(() => new Set(studyData?.contestQueue || []), [studyData?.contestQueue]);
   const context = useMemo(() => ({
     rating: Number(data?.user?.rating) || 1200,
@@ -362,8 +367,8 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
     total: enriched.length,
     suitable: enriched.filter((item) => item.recommendation.key === "suitable" || item.recommendation.key === "register" || item.recommendation.key === "live").length,
     participated: enriched.filter((item) => item.participated).length,
-    upsolve: enriched.filter((item) => item.recommendation.key === "upsolve").length,
-  }), [enriched]);
+    upsolve: new Set(queueEntries.filter((entry) => !entry.solved).map((entry) => entry.problem.contestId)).size,
+  }), [enriched, queueEntries]);
 
   const filtered = useMemo(() => {
     const result = enriched.filter((item) => {
@@ -412,14 +417,22 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
     }
   }
 
-  function addToQueue(problems) {
+  async function addToQueue(problems) {
+    if (savingQueue) return;
     const unsolved = problems.filter((problem) => !submissionMap.get(problemKey(problem))?.accepted);
-    const nextQueue = [...new Set([...(studyData?.contestQueue || []), ...unsolved.map(problemKey)])];
-    if (nextQueue.length === (studyData?.contestQueue || []).length) {
-      onToast?.("info", "这些题已经在补题队列中");
+    const next = updateContestQueue(studyData, unsolved);
+    const count = next.contestQueue.length - (studyData?.contestQueue || []).length;
+    if (!count) {
+      onToast?.("info", !unsolved.length ? "这些题已经全部通过" : next.contestQueue.length >= 1000 ? "补题队列已满，请先移除不再需要的题目" : "这些题已经在补题队列中，可在“待补题”查看");
       return;
     }
-    onStudyChange({ ...studyData, contestQueue: nextQueue }, `已加入 ${nextQueue.length - (studyData?.contestQueue || []).length} 道待补题`);
+    setSavingQueue(true);
+    try {
+      const saved = await onStudyChange(next, `已加入 ${count} 道待补题`);
+      if (saved !== null) setQuickFilter("upsolve");
+    } finally {
+      setSavingQueue(false);
+    }
   }
 
   function resetFilters() {
@@ -433,31 +446,25 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
     });
   }
 
-  if (loading) {
-    return <section className="contest-center-state"><LoaderCircle size={28} /><strong>正在整理全部 Codeforces 场次</strong><span>首次加载后会在本地缓存 30 分钟</span></section>;
-  }
-  if (error && !center) {
-    return <section className="contest-center-state is-error"><Trophy size={30} /><strong>赛事中心加载失败</strong><span>{error}</span><button type="button" onClick={() => refresh(true)}>重新获取</button></section>;
-  }
 
   return (
     <section className="contest-center-page">
       <div className="contest-center-stats">
         <StatCard icon={Trophy} tone="sky" label="官方场次" value={stats.total.toLocaleString(getCurrentLocale())} detail="全量 contest.list" />
         <StatCard icon={Sparkles} tone="mint" label="适合当前水平" value={stats.suitable.toLocaleString(getCurrentLocale())} detail={`按 Rating ${context.rating} 匹配`} />
-        <StatCard icon={CheckCircle2} tone="violet" label="我参加过" value={stats.participated.toLocaleString(getCurrentLocale())} detail="Rated 与正式参赛" />
-        <StatCard icon={Flame} tone="amber" label="待补题场次" value={stats.upsolve.toLocaleString(getCurrentLocale())} detail="优先补齐训练缺口" />
+        <StatCard icon={CheckCircle2} tone="violet" label="我参加过" value={stats.participated.toLocaleString(getCurrentLocale())} detail="正式、虚拟与非正式参赛" />
+        <StatCard icon={Flame} tone="amber" label="待补题场次" value={stats.upsolve.toLocaleString(getCurrentLocale())} detail="实际队列中的未完成场次" />
       </div>
 
       <div className="contest-center-shell">
         <header className="contest-center-intro">
           <div>
-            <span className="section-kicker">CONTEST NAVIGATOR</span>
-            <h2>从全部场次里，找到下一场值得打的比赛</h2>
-            <p>按你的 Rating、参赛记录和补题进度自动排序；默认始终优先展示最新场次。</p>
+            <span className="section-kicker">{quickFilter === "upsolve" ? "UPSOLVE WORKSPACE" : "CONTEST NAVIGATOR"}</span>
+            <h2>{quickFilter === "upsolve" ? "我的补题队列" : "从全部场次里，找到下一场值得打的比赛"}</h2>
+            <p>{quickFilter === "upsolve" ? "集中查看从任意场次加入的题目；是否正式参赛，不影响补题。" : "按你的 Rating、参赛记录和补题进度自动排序；默认始终优先展示最新场次。"}</p>
           </div>
           <div className="contest-center-sync">
-            <span><span className="status-dot" />{center?.stale ? "使用本地缓存" : "已连接官方场次列表"}</span>
+            <span><span className="status-dot" />{error || center?.stale ? "离线 · 本地队列可用" : loading ? "正在读取场次" : "已连接官方场次列表"}</span>
             <small>更新于 {center?.syncedAt ? new Date(center.syncedAt).toLocaleString(getCurrentLocale(), { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}</small>
             <button type="button" onClick={() => refresh(true)} disabled={refreshing}><RefreshCw size={16} />{refreshing ? "更新中" : "更新场次"}</button>
           </div>
@@ -469,6 +476,13 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
           ))}
         </div>
 
+        {savingQueue && <p className="contest-queue-notice" role="status">正在保存补题队列…</p>}
+        {loading && <p className="contest-queue-notice" role="status">正在更新场次；本地补题队列可以继续使用。</p>}
+        {error && <p className="contest-queue-notice" role="status">场次更新失败，仍可查看本地补题队列。{error}</p>}
+        {quickFilter === "upsolve" ? (
+          <ContestUpsolveQueue entries={queueEntries} studyData={studyData} onStudyChange={onStudyChange}
+            plannedKeys={plannedKeys} onAddToPlan={onAddToPlan} onOpenNote={onOpenNote} />
+        ) : <>
         <div className="contest-center-toolbar">
           <label className="contest-center-search">
             <Search size={17} />
@@ -520,6 +534,7 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
             <button type="button" disabled={page >= pageCount} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}><ChevronRight size={17} /></button>
           </div>
         </footer>
+        </>}
       </div>
     </section>
   );

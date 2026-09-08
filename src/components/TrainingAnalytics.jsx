@@ -17,6 +17,7 @@ import {
 } from "../lib/analytics";
 import { getCurrentLocale } from "../i18n";
 import { formatNumber } from "../lib/stats";
+import { createFrameQueue } from "../lib/frame-queue";
 
 const presets = [
   ["career", "生涯"],
@@ -69,8 +70,23 @@ function RatingChart({ history }) {
   const [draggingHandle, setDraggingHandle] = useState(null);
   const chartSurfaceRef = useRef(null);
   const navigatorRef = useRef(null);
+  const dragRef = useRef(null);
+  const frameQueue = useRef(null);
+  if (!frameQueue.current) frameQueue.current = createFrameQueue(({ type, index }) => {
+    setViewWindow((current) => {
+      const [start, end] = current;
+      const next = type === "start" ? [Math.min(index, end - 1), end] : [start, Math.max(index, start + 1)];
+      return next[0] === start && next[1] === end ? current : next;
+    });
+  });
+  useEffect(() => {
+    const cancelDrag = () => { frameQueue.current.cancel(); dragRef.current = null; setDraggingHandle(null); };
+    window.addEventListener("resize", cancelDrag);
+    return () => { window.removeEventListener("resize", cancelDrag); frameQueue.current.cancel(); };
+  }, []);
 
   useEffect(() => {
+    frameQueue.current.cancel(); dragRef.current = null; setDraggingHandle(null);
     setViewWindow([0, Math.max(0, history.length - 1)]);
     setActivePoint(null);
   }, [history.length, history[0]?.ratingUpdateTimeSeconds, history.at(-1)?.ratingUpdateTimeSeconds]);
@@ -143,31 +159,35 @@ function RatingChart({ history }) {
   const showingAll = viewStart === 0 && viewEnd === lastIndex;
 
   function updateHandle(type, clientX) {
-    const bounds = navigatorRef.current?.getBoundingClientRect();
-    if (!bounds || !lastIndex) return;
+    const bounds = dragRef.current?.bounds;
+    if (!bounds?.width || !lastIndex) return;
     const ratio = Math.max(0, Math.min(1, (clientX - bounds.left) / bounds.width));
     const index = Math.round(ratio * lastIndex);
-    setViewWindow(([start, end]) => {
-      if (type === "start") return [Math.min(index, end - 1), end];
-      return [start, Math.max(index, start + 1)];
-    });
-    setActivePoint(null);
+    frameQueue.current.push({ type, index });
   }
 
   function beginHandleDrag(type, event) {
-    if (!lastIndex) return;
+    if (!lastIndex || event.button !== 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = { type, pointerId: event.pointerId, bounds: navigatorRef.current.getBoundingClientRect(), initial: viewWindow };
     setDraggingHandle(type);
+    setActivePoint(null);
     updateHandle(type, event.clientX);
   }
 
   function moveHandle(type, event) {
-    if (draggingHandle !== type) return;
+    if (dragRef.current?.type !== type || dragRef.current.pointerId !== event.pointerId) return;
     updateHandle(type, event.clientX);
   }
 
   function endHandleDrag(event) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (event.type === "pointercancel" || event.type === "lostpointercapture") {
+      frameQueue.current.cancel(); setViewWindow(drag.initial);
+    } else frameQueue.current.flush();
+    dragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -270,6 +290,7 @@ function RatingChart({ history }) {
           onPointerMove={(event) => moveHandle("start", event)}
           onPointerUp={endHandleDrag}
           onPointerCancel={endHandleDrag}
+          onLostPointerCapture={endHandleDrag}
           onKeyDown={(event) => {
             if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
               event.preventDefault();
@@ -286,6 +307,7 @@ function RatingChart({ history }) {
           onPointerMove={(event) => moveHandle("end", event)}
           onPointerUp={endHandleDrag}
           onPointerCancel={endHandleDrag}
+          onLostPointerCapture={endHandleDrag}
           onKeyDown={(event) => {
             if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
               event.preventDefault();

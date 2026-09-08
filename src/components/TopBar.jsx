@@ -83,10 +83,10 @@ export default function TopBar({
           className="layout-button"
           type="button"
           onClick={onOptimizeLayout}
-          title="恢复推荐布局"
+          title="恢复三个面板的预设位置和大小"
         >
           <LayoutDashboard size={15} />
-          <span>智能排列</span>
+          <span>智能复位</span>
         </button>
       ) : null}
       <button className="primary-button" type="button" onClick={onSync} disabled={syncing}>

@@ -1,0 +1,93 @@
+/* Readable auxiliary text. Density may add room, never shrink captions below 12px. */
+:root {
+  --font-caption: 12px;
+  --font-explanation: 13px;
+  --text-3: #a1b6c8;
+}
+
+.app-shell,
+.study-plan-window-shell {
+  --font-caption: max(12px, var(--ui-secondary-size, 12px));
+  --font-explanation: max(13px, var(--ui-secondary-size, 12px));
+}
+
+/* The browser's default small = 0.833em must not undo the caption floor. */
+:where(.app-shell, .study-plan-window-shell) small {
+  font-size: var(--font-caption);
+  line-height: 1.45;
+}
+
+.contest-center-sync small {
+  color: var(--text-3);
+}
+
+:is(.app-shell, .study-plan-window-shell) :is(
+  .appearance-slider > small,
+  .appearance-select-row small,
+  .appearance-toggle-row small,
+  .appearance-readable-note,
+  .appearance-drawer__footer > span,
+  .settings-box small,
+  .transfer-actions small,
+  .data-summary small,
+  .activity-list article p,
+  .review-policy-banner small,
+  .review-value-reason,
+  .recommendation-brief p,
+  .recommendation-lane__description,
+  .template-summary-editor__notice,
+  .template-summary-dialog__footer > span,
+  .contest-session-note,
+  .contest-virtual-reference small,
+  .contest-detail-source,
+  .study-plan-empty p,
+  .study-plan-window-empty p
+) {
+  font-size: var(--font-explanation);
+  line-height: 1.6;
+  color: var(--text-3);
+}
+
+/* Long metadata is allowed to wrap; main titles retain their existing hierarchy. */
+.appearance-toggle-row > span,
+.appearance-select-row > span,
+.settings-box > span,
+.transfer-actions button > span {
+  min-width: 0;
+}
+
+.template-card__path,
+.template-root,
+.contest-session-note,
+.contest-virtual-reference small {
+  overflow-wrap: anywhere;
+}
+
+.contest-participation-tabs > span {
+  font-size: var(--font-caption);
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+.contest-list-header,
+.contest-center-table-head,
+.contest-problem-table__header,
+.problem-table__header {
+  min-height: 36px;
+  line-height: 1.4;
+}
+
+.contest-center-problems__actions,
+.template-card__actions {
+  flex-wrap: wrap;
+}
+
+/* Two-row summaries must grow with captions, especially in large-text mode. */
+.contest-replay-page {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.contest-summary-metric {
+  min-height: 76px;
+  padding-block: 8px;
+}

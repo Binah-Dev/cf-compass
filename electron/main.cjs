@@ -1,3 +1,6 @@
+const { estimateVirtualReference } = require("./services/virtual-reference.cjs");
+const { writeAtomicJson } = require("./services/atomic-json.cjs");
+const { replayKey, findReplayEntry, summarizeProblem, enrichSession, mergeSessions } = require("./services/contest-session.cjs");
 const {
   app,
   BrowserWindow,
@@ -41,7 +44,7 @@ const API_MIN_INTERVAL_MS = 2100;
 const SUBMISSION_PAGE_SIZE = 1000;
 const MAX_SUBMISSIONS = 100000;
 const RATING_STANDING_CACHE_MS = 6 * 60 * 60 * 1000;
-const CONTEST_REPLAY_VERSION = 2;
+const CONTEST_REPLAY_VERSION = 4;
 const CONTEST_AUTO_RETRY_LIMIT = 2;
 const CONTEST_CENTER_VERSION = 1;
 const CONTEST_CENTER_CACHE_MS = 30 * 60 * 1000;
@@ -317,6 +320,7 @@ async function writeJsonPath(target, value, { pretty = true } = {}) {
 }
 
 async function writeJson(filename, value, options) {
+  if (["study.json", "contest-replay.json"].includes(filename)) return writeAtomicJson(dataPath(filename), value, options);
   await writeJsonPath(dataPath(filename), value, options);
 }
 
@@ -979,6 +983,7 @@ function contestReplayResponse(replay) {
       Number(contest.retryCount || 0) < CONTEST_AUTO_RETRY_LIMIT,
   ).length;
   const processed = completed + failed;
+  const referencePending = contests.filter(needsAutomaticVirtualReference).length;
   return {
     ...replay,
     contests,
@@ -988,7 +993,8 @@ function contestReplayResponse(replay) {
       failed,
       pending,
       retryable,
-      autoRemaining: pending + retryable,
+      referencePending,
+      autoRemaining: pending + retryable + referencePending,
       processed,
       percent: contests.length
         ? Math.round((processed / contests.length) * 100)
@@ -997,72 +1003,29 @@ function contestReplayResponse(replay) {
   };
 }
 
-function mergeContestReplayHistory(cache, previous) {
-  const handle = String(cache?.handle || cache?.user?.handle || "");
-  const sameHandle =
-    String(previous?.handle || "").toLowerCase() === handle.toLowerCase();
-  const previousMap = new Map(
-    (sameHandle && Array.isArray(previous?.contests) ? previous.contests : []).map(
-      (contest) => [Number(contest.contestId), contest],
-    ),
-  );
-  const previousVersion = Number(previous?.version || 0);
-  const contests = (Array.isArray(cache?.ratingHistory) ? cache.ratingHistory : [])
-    .map((change) => {
-      const contestId = Number(change.contestId);
-      const existing = previousMap.get(contestId);
-      return {
-        ...(existing || {}),
-        contestId,
-        contestName: String(change.contestName || existing?.contestName || `Contest ${contestId}`),
-        dateSeconds:
-          Number(existing?.startTimeSeconds) ||
-          Number(change.ratingUpdateTimeSeconds) ||
-          0,
-        oldRating: Number(change.oldRating) || 0,
-        newRating: Number(change.newRating) || 0,
-        ratingDelta: (Number(change.newRating) || 0) - (Number(change.oldRating) || 0),
-        officialRank: Number(change.rank) || Number(existing?.officialRank) || null,
-        category: classifyContestName(change.contestName || existing?.contestName),
-        status:
-          existing?.status === "ready"
-            ? "ready"
-            : existing?.status === "error" &&
-                previousVersion >= CONTEST_REPLAY_VERSION
-              ? "error"
-              : "pending",
-        error:
-          existing?.status === "error" &&
-          previousVersion >= CONTEST_REPLAY_VERSION
-            ? existing.error || null
-            : null,
-        retryCount:
-          existing?.status === "error" &&
-          previousVersion >= CONTEST_REPLAY_VERSION
-            ? Number(existing.retryCount || 0)
-            : 0,
-      };
-    })
-    .filter((contest) => Number.isInteger(contest.contestId) && contest.contestId > 0)
-    .sort((first, second) => second.dateSeconds - first.dateSeconds);
-
-  return {
-    version: CONTEST_REPLAY_VERSION,
-    handle,
-    syncedAt: new Date().toISOString(),
-    contests,
-  };
+function mergeContestReplayHistory(cache, previous, center) {
+  return mergeSessions(cache, previous, center, classifyContestName, CONTEST_REPLAY_VERSION);
 }
 
+let contestReplayWriteQueue = Promise.resolve();
+function withContestReplayLock(operation) {
+  const task = contestReplayWriteQueue.then(operation);
+  contestReplayWriteQueue = task.catch(() => undefined);
+  return task;
+}
 async function refreshContestReplayIndex() {
-  const cache = await readJson("cache.json", null);
-  if (!cache?.handle || !Array.isArray(cache?.ratingHistory)) {
-    return contestReplayResponse(emptyContestReplay(cache?.handle));
-  }
-  const previous = await readJson("contest-replay.json", emptyContestReplay(cache.handle));
-  const replay = mergeContestReplayHistory(cache, previous);
-  await writeJson("contest-replay.json", replay);
-  return contestReplayResponse(replay);
+  return withContestReplayLock(async () => {
+    const cache = await readJson("cache.json", null);
+    if (!cache?.handle) return contestReplayResponse(emptyContestReplay(cache?.handle));
+    const previous = await readJson("contest-replay.json", emptyContestReplay(cache.handle));
+    for (const entry of previous.contests || []) {
+      if (entry.status === "calculating" && !contestCalculationTasks.has(replayKey(entry))) entry.status = "pending";
+    }
+    const center = await readJson("contest-center.json", {});
+    const replay = mergeContestReplayHistory(cache, previous, center);
+    await writeJson("contest-replay.json", replay);
+    return contestReplayResponse(replay);
+  });
 }
 
 async function loadCarrotModule() {
@@ -1083,55 +1046,21 @@ function findRatedHandle(row, ratingByHandle) {
 }
 
 function problemSubmissionSummary(problem, contest, submissions) {
-  const problemSubmissions = submissions.filter(
-    (submission) =>
-      Number(submission?.problem?.contestId || submission?.contestId) ===
-        Number(problem.contestId) &&
-      String(submission?.problem?.index || "") === String(problem.index),
-  );
-  const contestStart = Number(contest.startTimeSeconds) || 0;
-  const contestEnd = contestStart + (Number(contest.durationSeconds) || 0);
-  const officialSubmissions = problemSubmissions.filter((submission) => {
-    const participantType = submission?.author?.participantType;
-    if (participantType && participantType !== "CONTESTANT") return false;
-    const relative = Number(submission?.relativeTimeSeconds);
-    if (Number.isFinite(relative)) {
-      return relative >= 0 && relative <= Number(contest.durationSeconds || 0);
-    }
-    const timestamp = Number(submission?.creationTimeSeconds) || 0;
-    return timestamp >= contestStart && timestamp <= contestEnd;
-  });
-  const contestAccepted = officialSubmissions.find(
-    (submission) => submission.verdict === "OK",
-  );
-  const allAccepted = problemSubmissions.filter(
-    (submission) => submission.verdict === "OK",
-  );
-  return {
-    contestResult: contestAccepted
-      ? "accepted"
-      : officialSubmissions.length
-        ? "attempted"
-        : "not-attempted",
-    contestAttempts: officialSubmissions.length,
-    rejectedAttempts: officialSubmissions.filter(
-      (submission) => submission.verdict && submission.verdict !== "OK",
-    ).length,
-    firstAcTimeSeconds: contestAccepted
-      ? Number(contestAccepted.relativeTimeSeconds) ||
-        Math.max(0, Number(contestAccepted.creationTimeSeconds) - contestStart)
-      : null,
-    currentStatus: contestAccepted
-      ? "contest-ac"
-      : allAccepted.length
-        ? "upsolved"
-        : "unsolved",
-    currentAcCount: allAccepted.length,
-  };
+  return summarizeProblem(problem, contest, submissions);
 }
 
 async function calculateContestReplayEntry(entry, cache) {
   const contestId = Number(entry.contestId);
+  if (entry.rated === false) {
+    const standings = await fetchCodeforces(`contest.standings?contestId=${contestId}&from=1&count=1&showUnofficial=true`);
+    if (!standings?.contest || !standings.problems?.length) throw new Error("比赛题目或时长暂不可用，请稍后重试");
+    const global = new Map((cache?.problems || []).filter((p) => Number(p.contestId) === contestId).map((p) => [p.index, p]));
+    return {
+      ...enrichSession(entry, standings.contest, standings.problems.map((p) => ({ ...global.get(p.index), ...p })), cache?.submissions || []),
+      category: classifyContestName(standings.contest.name || entry.contestName),
+      calculatedAt: new Date().toISOString(),
+    };
+  }
   const [standings, ratingChanges] = await Promise.all([
     fetchCodeforces(`contest.standings?contestId=${contestId}`),
     fetchCodeforces(`contest.ratingChanges?contestId=${contestId}`),
@@ -1147,12 +1076,6 @@ async function calculateContestReplayEntry(entry, cache) {
   const targetChange =
     ratingChanges.find(
       (change) => String(change.handle || "").toLowerCase() === handle,
-    ) ||
-    ratingChanges.find(
-      (change) =>
-        Number(change.oldRating) === Number(entry.oldRating) &&
-        Number(change.newRating) === Number(entry.newRating) &&
-        Number(change.rank) === Number(entry.officialRank),
     );
   if (!targetChange) throw new Error("无法在官方 Rating 变化中定位当前用户");
 
@@ -1258,11 +1181,10 @@ async function calculateContestReplayEntry(entry, cache) {
 }
 
 async function calculateContestReplay(contestId, force = false) {
-  const numericContestId = Number(contestId);
-  if (!Number.isInteger(numericContestId) || numericContestId <= 0) {
-    throw new Error("无效的比赛编号");
+  const key = String(contestId);
+  if (!/^[1-9]\d*(?::virtual:[1-9]\d*|:unofficial)?$/.test(key)) {
+    throw new Error("无效的参赛记录编号");
   }
-  const key = String(numericContestId);
   if (contestCalculationTasks.has(key)) return contestCalculationTasks.get(key);
 
   const task = (async () => {
@@ -1274,7 +1196,7 @@ async function calculateContestReplay(contestId, force = false) {
       contests: indexed.contests,
     };
     const index = replay.contests.findIndex(
-      (contest) => Number(contest.contestId) === numericContestId,
+      (contest) => replayKey(contest) === key,
     );
     if (index < 0) throw new Error("比赛不在当前用户的有效参赛记录中");
     if (!force && replay.contests[index].status === "ready") {
@@ -1288,7 +1210,12 @@ async function calculateContestReplay(contestId, force = false) {
       error: null,
       retryCount: force ? 0 : Number(replay.contests[index].retryCount || 0),
     };
-    await writeJson("contest-replay.json", replay);
+    await withContestReplayLock(async () => {
+      const latest = await readJson("contest-replay.json", replay);
+      if (latest.handle !== replay.handle) throw new Error("当前账号已变化，请重新打开复盘");
+      latest.contests = latest.contests.map((item) => replayKey(item) === key ? replay.contests[index] : item);
+      await writeJson("contest-replay.json", latest);
+    });
     try {
       replay.contests[index] = await calculateContestReplayEntry(
         replay.contests[index],
@@ -1303,10 +1230,24 @@ async function calculateContestReplay(contestId, force = false) {
         failedAt: new Date().toISOString(),
       };
     }
-    replay.syncedAt = new Date().toISOString();
-    replay.contests.sort((first, second) => second.dateSeconds - first.dateSeconds);
-    await writeJson("contest-replay.json", replay);
-    return contestReplayResponse(replay);
+    // Network work can overlap other calculations or an account switch.
+    // Merge only this result into the latest index, never overwrite another session.
+    return withContestReplayLock(async () => {
+      const latest = await readJson("contest-replay.json", replay);
+      const currentCache = await readJson("cache.json", {});
+      if (String(currentCache.handle || "").toLowerCase() !== replay.handle.toLowerCase() ||
+          String(latest.handle || "").toLowerCase() !== replay.handle.toLowerCase()) {
+        return contestReplayResponse(latest);
+      }
+      const latestEntry = findReplayEntry(latest.contests, key);
+      if (latestEntry?.submissionFingerprint === replay.contests[index].submissionFingerprint) {
+        latest.contests = latest.contests.map((item) => replayKey(item) === key ? replay.contests[index] : item);
+      }
+      latest.syncedAt = new Date().toISOString();
+      latest.contests.sort((first, second) => second.dateSeconds - first.dateSeconds);
+      await writeJson("contest-replay.json", latest);
+      return contestReplayResponse(latest);
+    });
   })().finally(() => contestCalculationTasks.delete(key));
 
   contestCalculationTasks.set(key, task);
@@ -1322,10 +1263,61 @@ async function calculateNextContestReplay() {
         contest.status === "error" &&
         Number(contest.retryCount || 0) < CONTEST_AUTO_RETRY_LIMIT,
     );
-  return next
-    ? calculateContestReplay(next.contestId)
-    : replay;
+  if (next) return calculateContestReplay(replayKey(next));
+  const virtual = replay.contests.find(needsAutomaticVirtualReference);
+  return virtual ? calculateVirtualReference(replayKey(virtual)) : replay;
 }
+
+function needsAutomaticVirtualReference(contest) {
+  return contest.participationType === "VIRTUAL" && contest.status === "ready" &&
+    !contest.virtualReference && Number(contest.durationSeconds) > 0 &&
+    Number(contest.sessionStartTimeSeconds) > 0 &&
+    Date.now() / 1000 >= Number(contest.sessionStartTimeSeconds) + Number(contest.durationSeconds);
+}
+
+const virtualReferenceTasks = new Map();
+async function calculateVirtualReference(id) {
+  const key = String(id);
+  if (!/^[1-9]\d*:virtual:[1-9]\d*$/.test(key)) throw Error("无效的虚拟参赛编号");
+  const indexed = await refreshContestReplayIndex();
+  const entry = findReplayEntry(indexed.contests, key);
+  if (!entry || entry.participationType !== "VIRTUAL" || entry.status !== "ready") throw Error("本次虚拟复盘尚未准备好");
+  const cache = await readJson("cache.json", {});
+  if (normalizedReplayHandle(cache.handle) !== normalizedReplayHandle(indexed.handle)) throw Error("当前账号已变化，请重新打开复盘");
+  const taskKey = `${normalizedReplayHandle(indexed.handle)}:${key}`;
+  if (virtualReferenceTasks.has(taskKey)) return virtualReferenceTasks.get(taskKey);
+  const task = (async () => {
+    let reference;
+    try {
+      const [standings, ratingChanges] = await Promise.all([
+        fetchCodeforces(`contest.standings?contestId=${entry.contestId}&showUnofficial=true`),
+        fetchCodeforces(`contest.ratingChanges?contestId=${entry.contestId}`),
+      ]);
+      reference = await estimateVirtualReference({ entry, cache, standings, ratingChanges });
+    } catch (error) {
+      reference = { status: "unavailable", error: String(error.message || "参考分暂不可用").slice(0, 300),
+        submissionFingerprint: entry.submissionFingerprint, calculatedAt: new Date().toISOString() };
+    }
+    return withContestReplayLock(async () => {
+      const latest = await readJson("contest-replay.json", {});
+      const latestCache = await readJson("cache.json", {});
+      const current = findReplayEntry(latest.contests, key);
+      if (normalizedReplayHandle(latest.handle) !== normalizedReplayHandle(indexed.handle) ||
+          normalizedReplayHandle(latestCache.handle) !== normalizedReplayHandle(indexed.handle) ||
+          latestCache.syncedAt !== cache.syncedAt || current?.submissionFingerprint !== entry.submissionFingerprint) {
+        throw Error("参赛数据已更新，请重新计算本场参考分");
+      }
+      current.virtualReference = reference.status === "unavailable" && current.virtualReference?.status === "ready"
+        ? { ...current.virtualReference, refreshError: reference.error }
+        : reference;
+      await writeJson("contest-replay.json", latest);
+      return contestReplayResponse(latest);
+    });
+  })().finally(() => virtualReferenceTasks.delete(taskKey));
+  virtualReferenceTasks.set(taskKey, task);
+  return task;
+}
+function normalizedReplayHandle(value) { return String(value || "").toLowerCase(); }
 
 function startContestReplayAutoCalculation() {
   if (contestAutoCalculationPromise) return contestAutoCalculationPromise;
@@ -1362,6 +1354,7 @@ function sanitizeAiReviews(input) {
     reviews[String(key).slice(0, 80)] = {
       ...normalized,
       contestId: Number(value.contestId) || null,
+      replayId: String(value.replayId || value.contestId || "").slice(0, 80),
       contestName: String(value.contestName || "").slice(0, 240),
       provider: String(value.provider || "deepseek").slice(0, 40),
       model: String(value.model || "").slice(0, 100),
@@ -1456,6 +1449,18 @@ function sanitizeStudyData(input) {
   const contestQueue = Array.isArray(source.contestQueue)
     ? [...new Set(source.contestQueue.slice(0, 1000).map((key) => String(key).slice(0, 80)))]
     : [];
+  const contestQueueProblems = {};
+  for (const key of contestQueue) {
+    const value = source.contestQueueProblems?.[key];
+    if (!value || typeof value !== "object" || !/^[1-9]\d*-[A-Za-z0-9]+$/.test(key)) continue;
+    const [contestId, index] = key.split("-");
+    contestQueueProblems[key] = {
+      contestId: Number(contestId), index,
+      name: String(value.name || "").slice(0, 240),
+      rating: Number.isFinite(Number(value.rating)) && Number(value.rating) > 0 ? Number(value.rating) : null,
+      tags: Array.isArray(value.tags) ? value.tags.slice(0, 20).map((tag) => String(tag).slice(0, 80)) : [],
+    };
+  }
   const aiReviews = sanitizeAiReviews(source.aiReviews);
 
   return {
@@ -1464,6 +1469,7 @@ function sanitizeStudyData(input) {
     reviews,
     aiReviews,
     contestQueue,
+    contestQueueProblems,
     plan,
     settings: {
       language: ["zh-CN", "en-US"].includes(settings.language)
@@ -1741,7 +1747,7 @@ function validContestReplay(value) {
   return Boolean(
     value &&
       typeof value === "object" &&
-      value.version === CONTEST_REPLAY_VERSION &&
+      Number.isInteger(value.version) && value.version >= 1 && value.version <= CONTEST_REPLAY_VERSION &&
       Array.isArray(value.contests),
   );
 }
@@ -1846,6 +1852,7 @@ async function fetchIncrementalSubmissions(encodedHandle, cached) {
   const existing = canIncrement ? cached.submissions : [];
   const existingIds = new Set(existing.map((submission) => submission.id));
   const added = [];
+  const refreshed = new Map();
   let from = 1;
   let reachedKnown = false;
 
@@ -1856,8 +1863,10 @@ async function fetchIncrementalSubmissions(encodedHandle, cached) {
     if (!Array.isArray(page) || page.length === 0) break;
     for (const submission of page) {
       if (existingIds.has(submission.id)) {
+        // A recently cached TESTING verdict can become OK without a new submission ID.
+        refreshed.set(submission.id, submission);
         reachedKnown = true;
-        break;
+        continue;
       }
       added.push(submission);
     }
@@ -1865,7 +1874,7 @@ async function fetchIncrementalSubmissions(encodedHandle, cached) {
     from += SUBMISSION_PAGE_SIZE;
   }
 
-  const merged = [...added, ...existing];
+  const merged = [...added, ...existing.map((submission) => refreshed.get(submission.id) || submission)];
   const seen = new Set();
   const submissions = merged.filter((submission) => {
     if (seen.has(submission.id)) return false;
@@ -1907,7 +1916,7 @@ async function syncHandle(handle) {
     : fetchCodeforces("problemset.problems");
   const ratingPromise = study.settings.syncRatingHistory
     ? fetchCodeforces(`user.rating?handle=${encoded}`)
-    : Promise.resolve(cached?.ratingHistory || []);
+    : Promise.resolve(String(cached?.handle || "").toLowerCase() === safeHandle.toLowerCase() ? cached?.ratingHistory || [] : []);
   const ratingStandingFresh =
     cached?.ratingStanding?.syncedAt &&
     String(cached?.handle || "").toLowerCase() === safeHandle.toLowerCase() &&
@@ -1930,7 +1939,7 @@ async function syncHandle(handle) {
   const now = new Date().toISOString();
   const ratingStanding = Array.isArray(ratedUsers)
     ? buildRatingStanding(ratedUsers, users[0]?.rating)
-    : cached?.ratingStanding || null;
+    : String(cached?.handle || "").toLowerCase() === safeHandle.toLowerCase() ? cached?.ratingStanding || null : null;
   const payload = {
     version: 2,
     handle: safeHandle,
@@ -2226,6 +2235,7 @@ app.whenReady().then(() => {
     calculateContestReplay(contestId, force),
   );
   handleTrusted("contests:calculate-next", () => calculateNextContestReplay());
+  handleTrusted("contests:virtual-reference", (_event, id) => calculateVirtualReference(id));
   handleTrusted("contest-center:get", (_event, force = false) =>
     loadContestCenter(force),
   );

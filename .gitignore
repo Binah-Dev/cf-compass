@@ -6,6 +6,7 @@ release-candidate/
 release-candidate-*/
 coverage/
 .qa-output/
+output/
 .vite/
 .env
 .env.*
