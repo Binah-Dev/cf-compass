@@ -101,8 +101,13 @@ async function inside() {
     const range = document.querySelector('[data-panel-id="problems"] .rating-range-control').getBoundingClientRect();
     return range.right <= panel.right + 1;
   });
-  const problemBox = await rect("problems"), rangeBox = await panel("problems").locator(".rating-range-control").boundingBox();
-  assert.ok(rangeBox.x + rangeBox.width <= problemBox.x + problemBox.width + 1, "small panel must adapt its filter controls instead of clipping them");
+  // Read both rectangles in one renderer turn: native resize can land between
+  // separate boundingBox calls and make a correctly fitted control look clipped.
+  const filterGeometry = await page.evaluate(() => ({
+    panel: document.querySelector('[data-panel-id="problems"]').getBoundingClientRect().toJSON(),
+    range: document.querySelector('[data-panel-id="problems"] .rating-range-control').getBoundingClientRect().toJSON(),
+  }));
+  assert.ok(filterGeometry.range.right <= filterGeometry.panel.right + 1, JSON.stringify(filterGeometry));
   await page.screenshot({ path: path.join(output, "04-small-reset-three-panels.png") });
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.getByRole("button", { name: "智能复位", exact: true }).click();
