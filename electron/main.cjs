@@ -1,5 +1,22 @@
 const { estimateVirtualReference } = require("./services/virtual-reference.cjs");
 const { cachedVirtualRating: buildVirtualRating } = require("./services/virtual-rating.cjs");
+const { createCombinedRatingService } = require("./services/combined-rating-service.cjs");
+let combinedRatingService;
+function getCombinedRatingService() {
+  if (!combinedRatingService) combinedRatingService = createCombinedRatingService({
+    fetchJson: fetchCodeforces,
+    loadContext: async () => ({ cache: await readJson('cache.json', {}), replay: await readJson('contest-replay.json', {}), center: await readJson('contest-center.json', {}) }),
+    mergeReplay: mergeContestReplayHistory,
+    readStore: () => readJson('combined-rating.json', {}),
+    writeStore: value => writeJson('combined-rating.json', value),
+    onChanged: value => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        if (!window.isDestroyed()) window.webContents.send('rating:combined-changed', value);
+      }
+    },
+  });
+  return combinedRatingService;
+}
 const { loadVirtualSubmissions } = require("./services/virtual-score.cjs");
 const { publicStandingsEndpoint, recoverStandingsFailure } = require("./services/codeforces-standings.cjs");
 const { writeAtomicJson } = require("./services/atomic-json.cjs");
@@ -762,7 +779,9 @@ async function fetchCodeforcesNow(endpoint) {
     } catch (error) {
       lastError = error;
       if (error.httpStatus >= 400 && error.httpStatus < 500 && error.httpStatus !== 429) break;
-      if (attempt < 2) await wait(900 * (attempt + 1));
+      // An unpublished rating is expected state, not a transient transport fault.
+      if (endpoint.startsWith('contest.ratingChanges?') && /rating changes (?:are )?(?:unavailable|not available)|has not been rated|not rated yet/i.test(error.message || '')) break;
+      if (attempt < 2) await wait(Math.max(API_MIN_INTERVAL_MS, 900 * (attempt + 1)));
     }
   }
   throw lastError;
@@ -1768,10 +1787,12 @@ const aiService = createAiService({
   net,
   getCache: async () => {
     const cache = await readJson("cache.json", null);
-    const replay = await readJson("contest-replay.json", {});
     const study = await readStudyData();
     const { selectRatingView } = await import("./shared/rating-view.mjs");
-    return selectRatingView(cache, study, await buildVirtualRating(cache, replay));
+    const { getTrainingProfile } = await import("./shared/training-profile.mjs");
+    const profile = getTrainingProfile(cache?.user, study);
+    const combined = profile?.displayRatingMode === 'combined' || profile?.ratingMode === 'combined' ? await getCombinedRatingService().get() : null;
+    return selectRatingView(cache, study, null, combined);
   },
   getStudy: () => readStudyData(),
   getReplay: () => readJson("contest-replay.json", null),
@@ -2283,6 +2304,9 @@ app.whenReady().then(async () => {
   );
   handleTrusted("contests:calculate-next", () => calculateNextContestReplay());
   handleTrusted("contests:virtual-reference", (_event, id) => calculateVirtualReference(id));
+  handleTrusted("rating:combined", async (_event, retry = false) => {
+    return getCombinedRatingService().get(retry === true);
+  });
   handleTrusted("rating:estimated", async (_event, retry = false) => {
     if (retry === true) await withContestReplayLock(async () => {
       const replay = await readJson("contest-replay.json", {});

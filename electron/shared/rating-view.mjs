@@ -12,9 +12,13 @@ export function estimatedRank(rating) {
   if (rating < 3000) return 'international grandmaster';
   return 'legendary grandmaster';
 }
-export function selectRatingView(data, study, estimate) {
+export function selectRatingView(data, study, estimate, combined) {
   if (!data) return data;
-  const selected = getTrainingProfile(data.user, study || {}).displayRatingMode === 'estimated';
+  const mode = getTrainingProfile(data.user, study || {}).displayRatingMode;
+  const trainingEstimate = normalized(combined?.handle) === normalized(data.handle || data.user?.handle) ? combined : null;
+  data = { ...data, user: { ...data.user, trainingEstimate, officialRating: data.user?.rating } };
+  if (mode === 'combined') estimate = trainingEstimate;
+  const selected = mode === 'combined';
   if (!selected || normalized(estimate?.handle) !== normalized(data.handle || data.user?.handle) || !Number.isFinite(estimate?.rating)) return {...data, user:{...data.user,ratingMode:'official'}, ratingMode:'official', estimatedPending:selected};
   const rating = estimate.rating;
   const ratings = normalized(data.ratingDistribution?.handle) === normalized(data.handle) ? data.ratingDistribution?.ratings : null;

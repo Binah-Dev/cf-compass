@@ -147,24 +147,32 @@ export default function App() {
   const { locale, setLocale } = useI18n();
   const [rawData, setData] = useState(null);
   const [studyData, setStudyData] = useState(null);
-  const [estimate, setEstimate] = useState(null);
   const [estimateError, setEstimateError] = useState('');
   const [estimateReload, setEstimateReload] = useState(0);
-  const data = useMemo(() => selectRatingView(rawData, studyData, estimate), [rawData, studyData, estimate]);
+  const [combinedEstimate, setCombinedEstimate] = useState(null);
+  const combinedProfile = getTrainingProfile(rawData?.user, studyData || {});
+  const combinedEnabled = combinedProfile?.ratingMode === 'combined' || combinedProfile?.displayRatingMode === 'combined';
+  const data = useMemo(() => selectRatingView(rawData, studyData, null, combinedEstimate), [rawData, studyData, combinedEstimate]);
   useEffect(() => {
     let alive = true, timer;
-    setEstimate(null); setEstimateError('');
-    if (!rawData?.handle || rawData.isDemo || !window.cfBridge?.getEstimatedRating) return;
+    setCombinedEstimate(null);
+    if (!combinedEnabled || !rawData?.handle || rawData.isDemo || !window.cfBridge?.getCombinedRating) return;
+    const receive = value => {
+      if (alive && normalizeHandle(value?.handle) === normalizeHandle(rawData.handle)) setCombinedEstimate(current => JSON.stringify(current) === JSON.stringify(value) ? current : value);
+    };
+    const unsubscribe = window.cfBridge.onCombinedRatingChanged?.(receive);
     async function poll() {
       try {
-        const value = await window.cfBridge.getEstimatedRating();
-        if (alive && normalizeHandle(value?.handle) === normalizeHandle(rawData.handle)) { setEstimate(current => JSON.stringify(current) === JSON.stringify(value) ? current : value); setEstimateError(''); }
-      } catch { if (alive) setEstimateError('估分读取失败，请重试 / Estimate unavailable; retry'); }
+        const value = await window.cfBridge.getCombinedRating();
+        if (alive && normalizeHandle(value?.handle) === normalizeHandle(rawData.handle)) setCombinedEstimate(current => JSON.stringify(current) === JSON.stringify(value) ? current : value);
+      } catch (error) {
+        if (alive) setCombinedEstimate(current => ({ ...current, handle: rawData.handle, discoveryError: error.message, status: 'partial' }));
+      }
       if (alive) timer = setTimeout(poll, 15000);
     }
     void poll();
-    return () => { alive=false; clearTimeout(timer); };
-  }, [rawData?.handle, rawData?.syncedAt, rawData?.isDemo, estimateReload]);
+    return () => { alive = false; clearTimeout(timer); unsubscribe?.(); };
+  }, [combinedEnabled, rawData?.handle, rawData?.syncedAt, rawData?.isDemo, estimateReload]);
   const [dataStatus, setDataStatus] = useState(null);
   const [handle, setHandle] = useState("tourist");
   const [favorites, setFavorites] = useState(() => new Set());
@@ -906,13 +914,13 @@ export default function App() {
                 <ProgressPanel
                   ratingControl={<RatingModeControl
                     mode={getTrainingProfile(rawData.user, studyData).displayRatingMode}
-                    officialRating={rawData.user?.rating} estimate={estimate} error={estimateError}
+                    officialRating={rawData.user?.rating} estimate={combinedEstimate} error={combinedEstimate?.discoveryError || estimateError}
                     onChange={async mode => {
                       const account = normalizeHandle(rawData.handle || rawData.user?.handle);
                       await persistStudy({ ...studyData, plan:null, trainingProfiles:{ ...studyData.trainingProfiles,
                         [account]:{...getTrainingProfile(rawData.user,studyData),displayRatingMode:mode} } });
                     }}
-                    onRetry={async () => { try { await window.cfBridge?.getEstimatedRating(true); setEstimateReload(n=>n+1); } catch { setEstimateError('估分重试失败 / Retry failed'); } }}
+                    onRetry={async () => { try { setEstimateError(''); await window.cfBridge?.getCombinedRating(true); setEstimateReload(n=>n+1); } catch { setEstimateError('估分重试失败 / Retry failed'); } }}
                   />}
                   user={data.user}
                   ratingStanding={data.ratingStanding}

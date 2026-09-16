@@ -6,7 +6,10 @@ const units = ['test-virtual-score.cjs', 'test-codeforces-standings.cjs', 'test-
 const ui = ['qa-titlebar.cjs', 'qa-virtual-score.cjs', 'qa-public-standings.cjs', 'qa-issue-25-virtual.cjs', 'qa-workbench-layout.cjs', 'benchmark-interactions.cjs', 'qa-material-quarantine.cjs', 'qa-template-summary-persistence.cjs', 'qa-study-plan.cjs', 'qa-issue-13-layout.cjs', 'qa-typography.cjs', 'qa-electron.cjs', 'qa-appearance-controls.cjs'];
 const results = [];
 units.push('test-ai-review-storage.cjs');
+units.push('test-training-profile.mjs', 'test-virtual-rating.cjs', 'test-combined-rating.cjs', 'test-combined-reference.cjs', 'test-combined-service.cjs');
 ui.push('qa-issue-27.cjs');
+ui.push('qa-issue-31-training.cjs', 'qa-dual-rating.cjs', 'qa-combined-rating.cjs');
+ui.push('qa-unified-replay.cjs', 'qa-combined-unsettled.cjs');
 for (const file of process.argv.includes('--ui') ? ui : units) {
   const started = Date.now();
   const run = spawnSync(process.execPath, [path.join(root, 'scripts', file)], { cwd: root, encoding: 'utf8', timeout: 180000 });

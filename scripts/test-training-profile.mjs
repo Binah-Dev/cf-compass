@@ -40,10 +40,35 @@ test("official and unrated defaults match old behavior; manual reference never m
   assert.equal(resolveTrainingRating({ ...user, handle: "Other" }, withProfile({ ratingMode: "manual", manualRating: 2500 })).rating, 1200);
 });
 
-test("legacy selected averages are retired; estimated mode wins over manual training override", () => {
+test("combined estimates use the same difficulty bounds as an equivalent manual rating and preserve defaults", () => {
+  const estimate = {handle:'fixture',rating:1800,entries:[{id:'1900',status:'counted',performance:1900}]};
+  const combinedUser = {...user,trainingEstimate:estimate};
+  const combinedStudy = withProfile({ratingMode:'combined'});
+  const manualStudy = withProfile({ratingMode:'manual',manualRating:1800});
+  for (const tier of p.RECOMMENDATION_TIERS) assert.deepEqual(p.getRecommendationBand(combinedUser,tier,combinedStudy),p.getRecommendationBand(user,tier,manualStudy));
+  assert.equal(p.getReviewRatingFloor(combinedUser,combinedStudy),p.getReviewRatingFloor(user,manualStudy));
+  assert.equal(resolveTrainingRating({...user,rating:0},combinedStudy).rating,1200);
+  assert.equal(resolveTrainingRating(combinedUser,study).rating,1200);
+  const before = p.createDailyPlan(problems,new Map(),combinedUser,combinedStudy);
+  const after = p.createDailyPlan(problems,new Map(),{...combinedUser,trainingEstimate:{...estimate,rating:2200}},{...combinedStudy,plan:before});
+  assert.notEqual(before.trainingContext,after.trainingContext);
+});
+
+test("legacy selected averages are retired; manual training overrides estimated display", () => {
   const profile = {useVirtual:true,virtualSessionIds:["1900:virtual:1"]};
   assert.equal(resolveTrainingRating(virtualUser,withProfile(profile)).rating,1200);
-  assert.equal(resolveTrainingRating({...virtualUser,rating:1800,ratingMode:"estimated"},withProfile({...profile,ratingMode:"manual",manualRating:900})).rating,1800);
+  assert.equal(resolveTrainingRating({...virtualUser,rating:1800,ratingMode:"estimated"},withProfile({...profile,ratingMode:"manual",manualRating:900})).rating,900);
+});
+
+test("manual recommendation bands and plan remain independent of estimated home rating updates", () => {
+  const configured=withProfile({ratingMode:'manual',manualRating:1500});
+  const displayed={...user,rating:1900,ratingMode:'estimated'};
+  const before=p.createDailyPlan(problems,new Map(),displayed,configured);
+  for(const tier of p.RECOMMENDATION_TIERS) assert.equal(p.getRecommendationBand(displayed,tier,configured).rating,1500);
+  const after=p.createDailyPlan(problems,new Map(),{...displayed,rating:2300},{...configured,plan:before});
+  assert.equal(after.trainingContext,before.trainingContext);
+  assert.deepEqual(after.tierProblemKeys,before.tierProblemKeys);
+  assert.equal(p.getReviewRatingFloor(displayed,configured),p.getReviewRatingFloor(user,configured));
 });
 
 test("foreign, stale, partial, duplicate, practiced and boundary estimates cannot enter training", () => {

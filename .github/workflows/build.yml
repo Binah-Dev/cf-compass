@@ -42,6 +42,7 @@ jobs:
           pnpm exec node scripts/test-performance.mjs
           pnpm exec node scripts/test-training-profile.mjs
           pnpm exec node --test scripts/test-virtual-rating.cjs
+          pnpm exec node --test scripts/test-combined-rating.cjs scripts/test-combined-reference.cjs scripts/test-combined-service.cjs
           pnpm exec node --test scripts/test-contest-sessions.cjs scripts/test-virtual-reference.cjs scripts/test-virtual-score.cjs scripts/test-workbench-layout.mjs scripts/test-frame-queue.mjs
       - name: Build renderer
         run: pnpm verify
@@ -107,6 +108,12 @@ jobs:
           }
           pnpm exec node scripts/qa-issue-27.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Packaged regression failed: qa-issue-27.cjs' }
+          pnpm exec node scripts/qa-combined-rating.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged regression failed: qa-combined-rating.cjs' }
+          foreach ($check in @('qa-unified-replay.cjs', 'qa-combined-unsettled.cjs')) {
+            pnpm exec node "scripts/$check"
+            if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
+          }
       - name: Smoke test packaged Linux application
         if: runner.os == 'Linux'
         shell: bash

@@ -9,8 +9,9 @@ export function normalizeTrainingProfile(value) {
   const source = value && typeof value === "object" ? value : {};
   const manual = Number(source.manualRating);
   return {
-    ratingMode: source.ratingMode === "manual" ? "manual" : "auto",
-    displayRatingMode: source.displayRatingMode === "estimated" ? "estimated" : "official",
+    ratingMode: ["manual", "combined"].includes(source.ratingMode) ? source.ratingMode : "auto",
+    // Migrate the retired virtual-only choice, without reusing its calculated score.
+    displayRatingMode: ["estimated", "combined"].includes(source.displayRatingMode) ? "combined" : "official",
     manualRating: Number.isFinite(manual) && manual >= 800 && manual <= 3500 ? Math.round(manual) : 1200,
     useVirtual: source.useVirtual === true,
     virtualSessionIds: uniqueStrings(source.virtualSessionIds, /^\d+:virtual:\d+$/, 100),
@@ -54,11 +55,19 @@ export function getVirtualTrainingSessions(replay, handle) {
 }
 
 export function resolveTrainingRating(user, study = {}) {
-  if (user?.ratingMode === "estimated" && Number.isFinite(user.rating)) return { rating: clampRating(user.rating), source: "estimated", selected: [] };
   const profile = getTrainingProfile(user, study);
+  // Training is an explicit choice, independent of the home display mode.
+  if (profile.ratingMode === "manual") return { rating: profile.manualRating, source: "manual", selected: [] };
+  if (profile.ratingMode === "combined") {
+    const estimate = user?.trainingEstimate;
+    const valid = normalizeHandle(estimate?.handle) === normalizeHandle(user?.handle) && Number.isFinite(estimate?.rating);
+    const official = user?.officialRating ?? user?.rating;
+    return { rating: clampRating(valid ? estimate.rating : Number.isFinite(official) && official > 0 ? official : 1200),
+      source: valid ? "combined" : "combined-pending", selected: valid && Array.isArray(estimate.entries) ? estimate.entries.filter(e => e.status === 'counted') : [] };
+  }
+  if (user?.ratingMode === "estimated" && Number.isFinite(user.rating)) return { rating: clampRating(user.rating), source: "estimated", selected: [] };
   const official = Number(user?.rating);
   const hasOfficial = Number.isFinite(official) && official > 0;
-  if (profile.ratingMode === "manual") return { rating: profile.manualRating, source: "manual", selected: [] };
   return { rating: clampRating(hasOfficial ? official : 1200), source: hasOfficial ? "official" : "fallback", selected: [] };
 }
 

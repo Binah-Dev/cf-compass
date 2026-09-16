@@ -5,6 +5,12 @@ contextBridge.exposeInMainWorld("cfBridge", {
   sync: (handle) => ipcRenderer.invoke("data:sync", handle),
   getContestReplay: () => ipcRenderer.invoke("contests:get"),
   getEstimatedRating: (retry = false) => ipcRenderer.invoke("rating:estimated", retry),
+  getCombinedRating: (retry = false) => ipcRenderer.invoke("rating:combined", retry),
+  onCombinedRatingChanged: (callback) => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.on('rating:combined-changed', listener);
+    return () => ipcRenderer.removeListener('rating:combined-changed', listener);
+  },
   calculateVirtualReference: (replayId) => ipcRenderer.invoke("contests:virtual-reference", replayId),
   calculateContestReplay: (contestId, force = false) =>
     ipcRenderer.invoke("contests:calculate", contestId, force),

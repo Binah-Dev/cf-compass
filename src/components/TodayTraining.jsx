@@ -280,7 +280,7 @@ export default function TodayTraining({
     const trainingProfiles = { ...studyData.trainingProfiles };
     const handle = normalizeHandle(trainingUser.handle);
     if (profile) trainingProfiles[handle] = profile;
-    else if (getTrainingProfile(trainingUser,studyData).displayRatingMode === 'estimated') trainingProfiles[handle] = { displayRatingMode: 'estimated' };
+    else if (getTrainingProfile(trainingUser,studyData).displayRatingMode !== 'official') trainingProfiles[handle] = { displayRatingMode: getTrainingProfile(trainingUser,studyData).displayRatingMode };
     else delete trainingProfiles[handle];
     const next = { ...studyData, trainingProfiles, settings: { ...studyData.settings, ...trainingSettings } };
     next.plan = createDailyPlan(problems, submissionMap, trainingUser, next, Boolean(trainingSettings));
