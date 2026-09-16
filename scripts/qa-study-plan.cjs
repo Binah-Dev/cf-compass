@@ -50,8 +50,8 @@ let app;
 (async () => {
   const errors = [];
   app = await electron.launch({
-    executablePath: path.join(projectRoot, "node_modules/electron/dist/electron.exe"),
-    args: ["--disable-gpu", projectRoot],
+    executablePath: process.env.CF_COMPASS_QA_EXECUTABLE || path.join(projectRoot, "node_modules/electron/dist/electron.exe"),
+    args: process.env.CF_COMPASS_QA_EXECUTABLE ? ["--disable-gpu"] : ["--disable-gpu", projectRoot],
     cwd: projectRoot,
     env: { ...process.env, CF_COMPASS_USER_DATA: userDataRoot },
   });
@@ -76,6 +76,7 @@ let app;
 
   await page.getByRole("button", { name: "今日训练", exact: true }).click();
   await page.waitForSelector(".today-page");
+  await page.locator(".today-page .plan-queue-action").first().waitFor();
   assert.ok(await page.locator(".plan-queue-action").count() > 0, "Today Training problem cards must expose plan actions");
   assert.equal(await page.locator(".plan-queue-action").first().isVisible(), true, "Today Training plan action must be visibly reachable");
   await page.getByRole("button", { name: "复习库", exact: true }).click();
