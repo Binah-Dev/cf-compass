@@ -164,13 +164,21 @@ CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**�
 
 ### 4. 赛事复盘：把一场比赛拆成可以改进的证据
 
-![CF Compass 赛事复盘](./docs/screenshots/contest-replay.png)
+![CF Compass 赛事复盘总览](./docs/screenshots/contest-replay.png)
 
-<p align="center"><sub>表现分、实际排名、Rating 变化与逐题状态集中呈现</sub></p>
+<p align="center"><sub>原有赛事复盘总览（旧版界面），保留展示比赛列表与成绩概览；下方为开发中的统一布局。</sub></p>
+
+![CF Compass 正式比赛复盘](./docs/screenshots/contest-replay-official-zh.png)
+
+<p align="center"><sub>正式比赛：统一场内指标，保留官方排名与 Rating 变化。虚构测试数据；截图展示开发中的统一布局，尚未包含在 v4.2.0 安装包中。</sub></p>
+
+![CF Compass 虚拟比赛复盘](./docs/screenshots/contest-replay-virtual-zh.png)
+
+<p align="center"><sub>虚拟比赛：沿用相同布局和题目操作，单独标注本场估分、参考位次与估算边界，不伪装成官方成绩。画面为合成测试数据，不用于证明估分精度。</sub></p>
 
 赛事复盘不只记录最终名次，还会整理比赛过程与赛后状态：
 
-- 筛选并浏览有效参加的 Rated 比赛。
+- 在同一列表筛选正式 Rated、虚拟及其他未计分场次。
 - 查看估算表现分、实际排名、Rating 变化和通过数量。
 - 展开比赛，逐题查看赛时结果、尝试次数与当前掌握状态。
 - 区分赛时 AC、赛后补题和仍待解决的问题。
@@ -306,6 +314,16 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 素材来源、许可边界、推荐尺寸和完整操作步骤见 [可选人物与背景素材指南](./docs/OPTIONAL_CHARACTER_ASSETS.md)。
 
 三种可见度模式、五项画面参数、九宫格焦点和自动化开关见 [外观设置完整指南](./docs/APPEARANCE_GUIDE.md)。
+
+### 外观参数与自动化设置演示
+
+![CF Compass 外观与背景可见度设置](./docs/screenshots/appearance-controls-visibility.png)
+
+<p align="center"><sub>外观参数与背景可见度设置示意；截图为已有版本，实际控件以当前应用为准。</sub></p>
+
+![CF Compass 自动化设置](./docs/screenshots/appearance-controls-automation.png)
+
+<p align="center"><sub>自动化选项界面示意，具体行为由本机设置控制。</sub></p>
 
 ## 快速开始
 

@@ -111,9 +111,19 @@ The timeline reconstructs training by day. Each entry keeps the problem, rating,
 
 ### Contest replay — turn a rating change into actionable evidence
 
-![CF Compass contest replay](./docs/screenshots/contest-replay.png)
+![CF Compass contest replay overview](./docs/screenshots/contest-replay.png)
 
-Browse rated contests you actually joined and inspect estimated performance, official rank, rating delta, solved count, attempts, and per-problem state. CF Compass distinguishes in-contest solves, later upsolving, and unresolved tasks; any unfinished problem can be sent directly into the review workflow.
+<p align="center"><sub>Original replay overview from an earlier UI, retained to illustrate the contest list and results summary. The screenshots below show the unified layout in development.</sub></p>
+
+![CF Compass official contest replay](./docs/screenshots/contest-replay-official-en.png)
+
+<p align="center"><sub>Official contests: consistent session metrics with official rank and Rating changes. Fictional test data; this unified layout is in development and is not included in the v4.2.0 packages.</sub></p>
+
+![CF Compass virtual contest replay](./docs/screenshots/contest-replay-virtual-en.png)
+
+<p align="center"><sub>Virtual contests: the same layout and problem actions, with session estimates and reference placement explicitly separated from official results. Synthetic data illustrates the interface, not prediction accuracy.</sub></p>
+
+Browse official Rated, virtual and other unrated sessions in one list. Inspect session duration, first AC, submissions and per-problem state, with official Rating changes or clearly labeled virtual estimates in the results area. CF Compass distinguishes in-contest solves, later upsolving, and unresolved tasks; any unfinished problem can be sent directly into the review workflow.
 
 Performance is a local training estimate based on the MIT-licensed Carrot algorithm, not an extra official Codeforces rating.
 
@@ -191,7 +201,22 @@ The public edition includes three original CSS themes and does not depend on thi
 
 Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through **Appearance → Local characters and backgrounds**. These files stay in the local application-data directory and are never bundled with the repository or synced online. See the [optional asset guide](./docs/OPTIONAL_CHARACTER_ASSETS.md) and [appearance guide](./docs/APPEARANCE_GUIDE.md) for sources, license boundaries, and controls.
 
+![CF Compass optional local asset library](./docs/screenshots/optional-character-assets-local-library.png)
+
+<p align="center"><sub>Local asset library illustration. Third-party character art is supplied locally by the user; original assets are not bundled with the repository or installers.</sub></p>
+
+### Appearance and automation controls
+
+![CF Compass appearance and background visibility controls](./docs/screenshots/appearance-controls-visibility.png)
+
+<p align="center"><sub>Appearance and background visibility controls from an earlier version. These existing screenshots use the Chinese interface; current controls may differ.</sub></p>
+
+![CF Compass automation controls](./docs/screenshots/appearance-controls-automation.png)
+
+<p align="center"><sub>Automation options are controlled by local settings.</sub></p>
+
 ## Quick start
+
 
 ### Desktop downloads
 

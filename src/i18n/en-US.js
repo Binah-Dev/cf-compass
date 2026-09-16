@@ -1,4 +1,7 @@
 export const exactMessages = {
+  "同步后自动估分，结果保存在本机；失败可手动重试。": "Estimates run automatically after sync and stay local; retry manually if needed.",
+  "正式比赛成绩": "Official contest results",
+  "表现分 / 估计分": "Performance / estimate",
   "估算 Rating": "Estimated Rating",
   "估算活跃榜位置": "Estimated standing",
   "暂无对照数据": "No comparison data",

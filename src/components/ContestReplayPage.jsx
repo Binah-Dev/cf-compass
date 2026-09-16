@@ -240,7 +240,6 @@ function ContestDetail({
   hasSavedEnhancedAiReview,
   sourceAccess,
 }) {
-  const unrated = contest.rated === false;
   const attempts = (contest.problems || []).reduce((count, problem) => count + Number(problem.contestAttempts || 0), 0);
   const rejected = (contest.problems || []).reduce((count, problem) => count + Number(problem.rejectedAttempts || 0), 0);
   const acTimes = (contest.problems || []).map((problem) => problem.firstAcTimeSeconds).filter((time) => time != null && Number.isFinite(Number(time)));
@@ -255,20 +254,18 @@ function ContestDetail({
         </div>
         <div>
           <BarChart3 size={17} />
-          <span>{unrated ? "首次 AC" : "赛前 Rating"}</span>
-          <strong>{unrated ? firstAc == null ? "—" : formatSessionTime(firstAc) : <RatingScore value={contest.oldRating} />}</strong>
+          <span>首次 AC</span>
+          <strong>{firstAc == null ? "—" : formatSessionTime(firstAc)}</strong>
         </div>
         <div>
           <Award size={17} />
-          <span>{unrated ? "场内提交" : "赛后 Rating"}</span>
-          <strong>{unrated ? attempts : <RatingScore value={contest.newRating} />}</strong>
+          <span>场内提交</span>
+          <strong>{attempts}</strong>
         </div>
         <div>
           <Medal size={17} />
-          <span>{unrated ? "未通过尝试" : "Rating 变化"}</span>
-          <strong className={unrated ? "" : contest.ratingDelta >= 0 ? "is-positive" : "is-negative"}>
-            {unrated ? rejected : `${contest.ratingDelta > 0 ? "+" : ""}${contest.ratingDelta ?? "—"}`}
-          </strong>
+          <span>未通过尝试</span>
+          <strong>{rejected}</strong>
         </div>
         <div>
           <CheckCircle2 size={17} />
@@ -283,10 +280,11 @@ function ContestDetail({
         <span>本次开始：{new Date((contest.sessionStartTimeSeconds || contest.startTimeSeconds || contest.dateSeconds) * 1000).toLocaleString(getCurrentLocale())}</span>
         <span>{contest.rated === false ? "仅统计本次参赛的题目与提交，不改变正式 Rating。" : "场内成绩与当前补题进度分别统计。"}</span>
       </div>
-      {contest.participationType === "VIRTUAL" && <section className="contest-virtual-reference" aria-label="虚拟赛估计分">
+      <section className={`contest-result-panel ${contest.participationType === "VIRTUAL" ? "contest-virtual-reference" : "contest-official-reference"}`} aria-label={contest.participationType === "VIRTUAL" ? "虚拟赛估计分" : "正式比赛成绩"}>
+        {contest.participationType === "VIRTUAL" ? <>
         <div aria-live="polite">
           <span>Carrot 本场估计分</span>
-          <strong>{contest.virtualReference?.status === "ready" ? virtualReferenceLabel(contest) : estimating ? "计算中…" : "—"}</strong>
+          <strong><RatingScore value={contest.virtualReference?.status === "ready" ? contest.virtualReference.performance : null}>{contest.virtualReference?.status === "ready" ? virtualReferenceLabel(contest) : estimating ? "计算中…" : "—"}</RatingScore></strong>
           {contest.virtualReference?.status === "ready" && <small>参考位次：{formatNumber(contest.virtualReference.referenceRank)} / {formatNumber(contest.virtualReference.participants)}</small>}
           {contest.virtualReference?.missingRatedCount > 0 && <small>历史 Rated 匹配：{formatNumber(contest.virtualReference.matchedRatedCount)} / {formatNumber(contest.virtualReference.historicalRatedCount)}。仅按当前可见选手估计，不是完整历史榜单复算。</small>}
           <small>按本场成绩插入原比赛 Rated 榜单；符合条件时计入独立估算 Rating，不修改官方记录。</small>
@@ -297,7 +295,19 @@ function ContestDetail({
           {estimating ? <LoaderCircle size={14} className="is-spinning" /> : <RefreshCw size={14} />}
           {estimating ? "计算中…" : contest.virtualReference ? "重新估分" : "计算估计分"}
         </button>
-      </section>}
+        </> : <>
+          <div>
+            <span>Carrot 表现分</span>
+            <strong><RatingScore value={contest.rated === false ? null : contest.performance}>{contest.rated === false ? "不计分" : formatPerformance(contest.performance)}</RatingScore></strong>
+            <small>{sessionLabel(contest)}</small>
+          </div>
+          <div className="contest-result-rating">
+            <span>赛前 Rating <RatingScore value={contest.rated === false ? null : contest.oldRating} /></span>
+            <span>赛后 Rating <RatingScore value={contest.rated === false ? null : contest.newRating} /></span>
+            <span>Rating 变化 <b className={contest.ratingDelta == null ? "" : contest.ratingDelta >= 0 ? "is-positive" : "is-negative"}>{contest.rated === false || contest.ratingDelta == null ? "—" : `${contest.ratingDelta > 0 ? "+" : ""}${contest.ratingDelta}`}</b></span>
+          </div>
+        </>}
+      </section>
       <ProblemTable
         contest={contest}
         queuedProblems={queuedProblems}
@@ -352,7 +362,7 @@ function ContestRow({
   sourceAccess,
 }) {
   const isVirtual = contest.participationType === "VIRTUAL";
-  const tone = performanceTone(isVirtual ? null : contest.performance);
+  const tone = performanceTone(isVirtual ? contest.virtualReference?.status === "ready" ? contest.virtualReference.performance : null : contest.performance);
   const ready = contest.status === "ready";
   const performanceLabel = isVirtual ? (contest.virtualReference?.status === "ready" ? virtualReferenceLabel(contest) : estimating ? "计算中…" : "未估分") : ready
     ? contest.rated === false ? "不计分" : formatPerformance(contest.performance)
@@ -379,7 +389,7 @@ function ContestRow({
         <span className="contest-division">{contest.category?.label || "Rated"}</span>
         <span className="contest-performance">
           <small>{contest.participationType === "VIRTUAL" ? "本场估计分" : "Carrot 表现分"}</small>
-          <strong>{performanceLabel}</strong>
+          <strong><RatingScore value={isVirtual ? contest.virtualReference?.status === "ready" ? contest.virtualReference.performance : null : ready && contest.rated !== false ? contest.performance : null}>{performanceLabel}</RatingScore></strong>
         </span>
         <span className="contest-rank">
           <small>实际排名</small>
@@ -938,7 +948,7 @@ export default function ContestReplayPage({
           <span>日期</span>
           <span>比赛名称</span>
           <span>类型</span>
-          <span>Carrot 表现分</span>
+          <span>表现分 / 估计分</span>
           <span>实际排名</span>
           <span>Rating 变化</span>
           <span>通过</span>

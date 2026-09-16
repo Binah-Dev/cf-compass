@@ -1,4 +1,13 @@
 /* Issue #25: persistent upsolve workspace and independently identified sessions. */
+.contest-result-panel { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 12px 0; padding: 16px; border: 1px solid rgba(110, 170, 210, .3); border-radius: 12px; }
+.contest-result-panel > div { display: grid; gap: 6px; min-width: 0; }
+.contest-result-panel span { color: #8fb7ce; font-size: 12px; }
+.contest-result-panel strong { font-size: 26px; font-variant-numeric: tabular-nums; }
+.contest-result-panel strong .rating-score { font-size: inherit; }
+.contest-result-panel small { color: #9ab0c3; font-size: var(--font-caption); line-height: 1.45; }
+.contest-result-panel .contest-result-rating { grid-template-columns: repeat(3, minmax(80px, 1fr)); gap: 16px; }
+.contest-result-rating > span { display: grid; gap: 6px; }
+.contest-result-rating b { font-size: 16px; }
 .contest-virtual-reference { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 12px 0; padding: 16px; border: 1px solid rgba(110, 170, 210, .3); border-radius: 12px; background: rgba(28, 84, 119, .15); }
 .contest-virtual-reference > div { display: grid; gap: 6px; }
 .contest-virtual-reference span { color: #8fb7ce; font-size: 12px; }
