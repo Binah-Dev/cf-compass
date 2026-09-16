@@ -16,7 +16,10 @@ async function estimateVirtualReference({ entry, cache, standings, ratingChanges
       standings.contest.frozen || !(duration > 0) || !entry.sessionStartTimeSeconds ||
       nowSeconds < entry.sessionStartTimeSeconds + duration) throw Error("比赛或本次虚拟赛尚未结束，暂不计算参考分");
   if (!["CF", "ICPC"].includes(standings.contest.type)) throw Error("该计分赛制暂不支持参考分");
-  if (!Array.isArray(ratingChanges) || ratingChanges.length < 2) throw Error("缺少原比赛 Rated 对照数据");
+  if (!Array.isArray(ratingChanges) || ratingChanges.length < 2) {
+    const error = Error("原比赛没有足够的官方 Rated 结算对照，不计入估算 Rating");
+    error.code = "NO_RATED_FIELD"; throw error;
+  }
   const handle = normalized(cache.handle);
   const virtualRows = (standings.rows || []).filter((row) => singleHandle(row) === handle &&
     row.party.participantType === "VIRTUAL" && Number(row.party.startTimeSeconds) === Number(entry.sessionStartTimeSeconds));
@@ -75,11 +78,13 @@ async function estimateVirtualReference({ entry, cache, standings, ratingChanges
   if (!Number.isFinite(performance)) throw Error("参考分计算未得到有效结果");
   return {
     status: "ready", method: publicOnly ? "carrot-virtual-reconstructed-v1" : METHOD, performance, referenceRank: target.rank,
+    ratedEvidence: { contestId: entry.contestId, participants: ratingChanges.length },
     scoreSource: targetRow.scoreSource || "official-virtual-row", scoringModel: targetRow.scoringModel || null,
     scoringEvidence: targetRow.scoringEvidence || null,
     matchedRatedCount: contestants.length - 1, missingRatedCount,
     historicalRatedCount: ratingChanges.filter(change => normalized(change.handle) !== handle).length,
     participants: contestants.length, points: targetRow.points, penalty: targetRow.penalty,
+    ratingField: contestants.filter(item => item !== target).map(item => [item.effectiveRating, item.rank]),
     assumedRating, assumedRatingSource: past ? "rating-history-before-session" : "default-1400",
     boundary: performance >= module.MAX_RATING_LIMIT ? "upper" : performance <= module.MIN_RATING_LIMIT ? "lower" : null,
     practicedBefore: (entry.problems || []).some((problem) => problem.previouslySolved) ||

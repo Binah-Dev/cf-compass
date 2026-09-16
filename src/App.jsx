@@ -16,6 +16,9 @@ import ReviewStatsStrip from "./components/ReviewStatsStrip";
 import StatsStrip from "./components/StatsStrip";
 import Taxonomy from "./components/Taxonomy";
 import TitleBar from "./components/TitleBar";
+import RatingModeControl from "./components/RatingModeControl";
+import { selectRatingView } from "./lib/rating-view";
+import { getTrainingProfile, normalizeHandle } from "../electron/shared/training-profile.mjs";
 import TopBar from "./components/TopBar";
 import WorkbenchLayout from "./components/WorkbenchLayout";
 import WallpaperStage from "./components/WallpaperStage";
@@ -142,8 +145,26 @@ function FeatureFallback() {
 
 export default function App() {
   const { locale, setLocale } = useI18n();
-  const [data, setData] = useState(null);
+  const [rawData, setData] = useState(null);
   const [studyData, setStudyData] = useState(null);
+  const [estimate, setEstimate] = useState(null);
+  const [estimateError, setEstimateError] = useState('');
+  const [estimateReload, setEstimateReload] = useState(0);
+  const data = useMemo(() => selectRatingView(rawData, studyData, estimate), [rawData, studyData, estimate]);
+  useEffect(() => {
+    let alive = true, timer;
+    setEstimate(null); setEstimateError('');
+    if (!rawData?.handle || rawData.isDemo || !window.cfBridge?.getEstimatedRating) return;
+    async function poll() {
+      try {
+        const value = await window.cfBridge.getEstimatedRating();
+        if (alive && normalizeHandle(value?.handle) === normalizeHandle(rawData.handle)) { setEstimate(current => JSON.stringify(current) === JSON.stringify(value) ? current : value); setEstimateError(''); }
+      } catch { if (alive) setEstimateError('估分读取失败，请重试 / Estimate unavailable; retry'); }
+      if (alive) timer = setTimeout(poll, 15000);
+    }
+    void poll();
+    return () => { alive=false; clearTimeout(timer); };
+  }, [rawData?.handle, rawData?.syncedAt, rawData?.isDemo, estimateReload]);
   const [dataStatus, setDataStatus] = useState(null);
   const [handle, setHandle] = useState("tourist");
   const [favorites, setFavorites] = useState(() => new Set());
@@ -624,7 +645,7 @@ export default function App() {
 
   async function handleExport() {
     try {
-      const result = await exportAllData(data, favorites, studyData);
+      const result = await exportAllData(rawData, favorites, studyData);
       if (!result?.canceled) {
         setToast({ type: "success", message: result.path ? `备份已导出到 ${result.path}` : "备份已导出" });
         await refreshStatus().catch(() => undefined);
@@ -721,7 +742,7 @@ export default function App() {
         onMetadata={activeWallpaperId === "custom" ? handleCustomWallpaperMetadata : undefined}
       />
       <div className="academy-grid" aria-hidden="true" />
-      <TitleBar immersive={immersive} />
+      <TitleBar />
       <AppRail
         active={activeNav}
         onNavigate={navigate}
@@ -883,6 +904,16 @@ export default function App() {
               ),
               progress: (
                 <ProgressPanel
+                  ratingControl={<RatingModeControl
+                    mode={getTrainingProfile(rawData.user, studyData).displayRatingMode}
+                    officialRating={rawData.user?.rating} estimate={estimate} error={estimateError}
+                    onChange={async mode => {
+                      const account = normalizeHandle(rawData.handle || rawData.user?.handle);
+                      await persistStudy({ ...studyData, plan:null, trainingProfiles:{ ...studyData.trainingProfiles,
+                        [account]:{...getTrainingProfile(rawData.user,studyData),displayRatingMode:mode} } });
+                    }}
+                    onRetry={async () => { try { await window.cfBridge?.getEstimatedRating(true); setEstimateReload(n=>n+1); } catch { setEstimateError('估分重试失败 / Retry failed'); } }}
+                  />}
                   user={data.user}
                   ratingStanding={data.ratingStanding}
                    overview={overview}

@@ -326,7 +326,7 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
   }, [data?.submissions]);
 
   const participatedIds = useMemo(() => {
-    const ids = new Set((data?.ratingHistory || []).map((entry) => Number(entry.contestId)));
+    const ids = new Set((data?.officialRatingHistory || data?.ratingHistory || []).map((entry) => Number(entry.contestId)));
     for (const submission of data?.submissions || []) {
       if (["CONTESTANT", "VIRTUAL", "OUT_OF_COMPETITION"].includes(submission?.author?.participantType)) {
         const contestId = Number(submission.problem?.contestId || submission.contestId);
@@ -334,7 +334,7 @@ export default function ContestCenterPage({ data, studyData, onStudyChange, onTo
       }
     }
     return ids;
-  }, [data?.ratingHistory, data?.submissions]);
+  }, [data?.officialRatingHistory, data?.ratingHistory, data?.submissions]);
 
   const queueEntries = useMemo(() => buildContestQueue(studyData, data, center), [studyData?.contestQueue, studyData?.contestQueueProblems, data?.problems, data?.submissions, center]);
   const queueSet = useMemo(() => new Set(studyData?.contestQueue || []), [studyData?.contestQueue]);

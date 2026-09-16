@@ -1,8 +1,8 @@
 import { Code2, Minus, Square, X } from "lucide-react";
 
-export default function TitleBar({ immersive = false }) {
+export default function TitleBar() {
   return (
-    <div className="titlebar" inert={immersive} aria-hidden={immersive || undefined}>
+    <div className="titlebar">
       <div className="titlebar__brand">
         <span className="brand-mark brand-mark--mini">
           <Code2 size={14} strokeWidth={2.4} />

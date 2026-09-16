@@ -45,13 +45,6 @@
   backdrop-filter: none;
   transition: opacity 260ms ease, visibility 0s linear;
 }
-.academy-theme.is-immersive .titlebar {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 260ms ease, visibility 0s linear 260ms;
-}
-.academy-theme.is-immersive .titlebar__drag { -webkit-app-region: no-drag; }
 .academy-theme .titlebar::before,
 .academy-theme .titlebar::after { content: none; }
 .academy-theme .titlebar__brand,

@@ -38,9 +38,15 @@
 
 <p align="center"><sub>题库工作台 · 天空蓝主题 · 仓库内置虚构演示数据</sub></p>
 
-## 当前版本：v4.1.1
+## 当前版本：v4.2.0
 
-v4.1.1 修复 Codeforces 榜单接口兼容，统一共享大厅透明度与三套主题，清理重复面板标题。虚拟赛支持展开题目、打开原题、加入补题和手动计算本场 Carrot 估计分；估计分与参考位次不是官方成绩，不计入总体统计，不影响正式 Rating。历史 Rated 数据不完整时明确显示匹配范围。顶部标题栏跟随主题色，并在沉浸大厅中隐藏。
+v4.2.0 新增官方 / 本地估算双 Rating：默认使用官方模式，也可以在主页个人进度中切换到估算模式，让符合条件的虚拟赛逐场影响训练参考分、相关推荐和分析视图。官方资料和真实比赛结果始终保留，不被估算覆盖。
+
+- **只打虚拟赛也能调整训练目标**：同步后自动处理有官方历史 Rated 对照数据的虚拟场次；缺失证据会提示待计算、暂不可用或排除，不伪造结果。
+- **自己掌握训练节奏**：在「今日训练 → 训练偏好」调整手动参考 Rating（800–3500）、弱项标签、复习范围和各档题量。手动参考分用于官方模式；估算模式采用累计估算分。
+- **更清楚的工作台**：Rating 颜色随分数变化，活跃排名前 500 直接显示排名；窄卡片支持换行，沉浸大厅仍保留可拖动标题栏与窗口按钮。
+
+估算是独立的虚拟赛轨迹，不是 Codeforces 官方 Rating，也不是正式赛与虚拟赛混合生涯。重复参赛和做过原题的场次会计入并提示；无可见提交的虚拟参赛无法发现。完整边界见 [双 Rating 说明](./docs/dual-rating.md)。核心训练与估算不需要 AI；第三方 AI 仍为可选功能。
 
 | v4 重点 | 现在可以做什么 |
 | --- | --- |
@@ -49,7 +55,7 @@ v4.1.1 修复 Codeforces 榜单接口兼容，统一共享大厅透明度与三�
 | 全局学习记录 | 在题库、今日训练、复习、比赛和推荐结果中使用同一套笔记与目标题单。 |
 | 可定制桌面工作台 | 隐藏、恢复和调整左侧功能入口顺序，切换字号与全页赛事复盘布局。 |
 
-完整变化见 [v4.1.1 发布说明](./docs/releases/v4.1.1.md)、[v4.0.1 发布说明](./docs/releases/v4.0.1.md) 与 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
+完整变化见 [v4.2.0 发布说明](./docs/releases/v4.2.0.md) 与 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
 
 ## 为什么是 CF Compass
 
@@ -308,20 +314,20 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 打开 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)，按设备下载：
 
 ```text
-Windows x64（推荐安装版）: CF-Compass-4.1.1-Windows-x64-Setup.exe
-Windows x64（便携版）:     CF-Compass-4.1.1-Windows-x64-portable.exe
-Linux x64:                CF-Compass-4.1.1-Linux-x86_64.AppImage
-Linux Debian x64:         CF-Compass-4.1.1-Linux-amd64.deb
-macOS Intel:              CF-Compass-4.1.1-macOS-x64.dmg
-macOS Apple 芯片:          CF-Compass-4.1.1-macOS-arm64.dmg
+Windows x64（推荐安装版）: CF-Compass-4.2.0-Windows-x64-Setup.exe
+Windows x64（便携版）:     CF-Compass-4.2.0-Windows-x64-portable.exe
+Linux x64:                CF-Compass-4.2.0-Linux-x86_64.AppImage
+Linux Debian x64:         CF-Compass-4.2.0-Linux-amd64.deb
+macOS Intel:              CF-Compass-4.2.0-macOS-x64.dmg
+macOS Apple 芯片:          CF-Compass-4.2.0-macOS-arm64.dmg
 ```
 
-Windows 用户推荐下载 `Setup.exe` 安装版：应用只在安装时解压，之后从已安装目录直接启动，速度更稳定。`portable.exe` 便携版无需安装，但每次启动都要先释放程序文件，在机械硬盘、低速设备或杀毒软件扫描环境下会明显更慢。v4.1.1 的 Windows、Linux 与 macOS 包均由同一版本提交在对应原生环境重新构建。Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
+Windows 用户推荐下载 `Setup.exe` 安装版：应用只在安装时解压，之后从已安装目录直接启动，速度更稳定。`portable.exe` 便携版无需安装，但每次启动都要先释放程序文件，在机械硬盘、低速设备或杀毒软件扫描环境下会明显更慢。v4.2.0 的 Windows、Linux 与 macOS 包均由同一版本提交在对应原生环境重新构建。Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
 
 每个安装包旁都有同名 `.sha256`，Release 还提供汇总文件 `SHA256SUMS.txt`。例如 Windows 可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\CF-Compass-4.1.1-Windows-x64-Setup.exe
+Get-FileHash -Algorithm SHA256 .\CF-Compass-4.2.0-Windows-x64-Setup.exe
 ```
 
 Linux 或 macOS 可运行：

@@ -1,4 +1,17 @@
 export const exactMessages = {
+  "估算 Rating": "Estimated Rating",
+  "估算活跃榜位置": "Estimated standing",
+  "暂无对照数据": "No comparison data",
+  "同步以获取活跃榜分布": "Sync to load active-user distribution",
+  "估算 Rating · 虚拟赛": "Estimated Rating · Virtual sessions",
+  "场虚拟赛": "virtual sessions",
+  "正在读取训练偏好…": "Loading training preferences…",
+  "训练参考 Rating": "Training Rating",
+  "按手动标签生成专项": "Practice your selected tags",
+  "手动目标不改变实际掌握度": "Manual targets do not change measured mastery",
+  "手动": "Manual",
+  "暂无符合手动标签的题目": "No problems match your selected tags",
+  "请调整训练偏好中的标签或参考分；已通过题目不会重复推荐。": "Adjust your training tags or Rating. Solved problems remain excluded.",
   "可拖动的页面入口": "Draggable Page Navigation",
   "还没有连接模板库": "No Template Library Connected",
   "默认寻找桌面 OJ / Template Library，你也可以选择任意源码文件夹。": "Looks for OJ / Template Library on your desktop by default. You can also choose any source-code folder.",
@@ -1002,6 +1015,7 @@ export const exactMessages = {
 };
 
 export const patternMessages = [
+  [/^手动专项\s*·\s*(.+)$/, (_match, tag) => `Manual focus · ${exactMessages[tag.trim()] || tag.trim()}`],
   [/^加入待做 (.+)$/, "Add $1 to study plan"],
   [/^移出补题 (.+)$/, "Remove $1 from upsolving"],
   [/^本次开始：(.+)$/, "Session started: $1"],

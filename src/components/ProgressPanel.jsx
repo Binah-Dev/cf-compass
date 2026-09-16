@@ -21,6 +21,8 @@ import { openProblem } from "../lib/codeforces";
 import { RatedName, RatingScore } from "./RatingDisplay";
 import PlanQueueButton from "./PlanQueueButton";
 import ProblemNoteButton from "./ProblemNoteButton";
+import "./progress-panel.css";
+import { useI18n } from '../i18n';
 
 function rankLabel(rank) {
   return String(rank || "unrated")
@@ -60,6 +62,7 @@ function UserAvatar({ user }) {
 }
 
 export default function ProgressPanel({
+  ratingControl,
   user,
   ratingStanding,
   overview,
@@ -70,8 +73,9 @@ export default function ProgressPanel({
   onOpenNote,
 }) {
   const currentRatingTone = ratingTone(user?.rating);
+  const { locale } = useI18n();
   const isEliteRatingStanding =
-    ratingStanding?.position && Number(ratingStanding.topPercent) < 0.1;
+    Number.isInteger(Number(ratingStanding?.position)) && Number(ratingStanding?.position) >= 1 && Number(ratingStanding?.position) <= 500;
   const heatmapYears = useMemo(() => getHeatmapYears(submissions), [submissions]);
   const [heatmapYear, setHeatmapYear] = useState(
     () => heatmapYears.at(-1) || new Date().getFullYear(),
@@ -130,11 +134,12 @@ export default function ProgressPanel({
           <span className="rank-label">{rankLabel(user?.rank)}</span>
         </div>
         <div className="profile-rating">
-          <span>Rating</span>
+          <span>{user?.ratingMode === 'estimated' ? '估算 Rating' : 'Rating'}</span>
           <strong><RatingScore value={user?.rating} /></strong>
         </div>
       </section>
 
+      {ratingControl}
       <section className="profile-ranking-grid" aria-label="个人排名与题量统计">
         <article
           className={`ranking-card ranking-card--rating ${
@@ -145,21 +150,20 @@ export default function ProgressPanel({
             <Medal size={15} />
           </span>
           <div>
-            <small>Rating 活跃榜</small>
+            <small>{ratingStanding?.estimated ? '估算活跃榜位置' : 'Rating 活跃榜'}</small>
             <strong className="ranking-card__percent">
               {ratingStanding?.position
                 ? isEliteRatingStanding
-                  ? `Top ${formatNumber(ratingStanding.position)}`
+                  ? `#${formatNumber(ratingStanding.position)}`
                   : `Top ${formatPercent(ratingStanding.topPercent)}`
-                : "同步后计算"}
+                : ratingStanding?.estimated ? "暂无对照数据" : "同步后计算"}
             </strong>
-            <span className="ranking-card__position">
+            {!isEliteRatingStanding && <span className="ranking-card__position">
               {ratingStanding?.position
-                ? `第 ${formatNumber(ratingStanding.position)} / ${formatNumber(
-                    ratingStanding.total,
-                  )} 名`
-                : "近 30 天 Rated 活跃用户"}
-            </span>
+                ? `第 ${formatNumber(ratingStanding.position)} 名`
+                : ratingStanding?.estimated ? "同步以获取活跃榜分布" : "近 30 天 Rated 活跃用户"}
+            </span>}
+            {ratingStanding?.estimated && ratingStanding.syncedAt && <small>{new Date(ratingStanding.syncedAt).toLocaleDateString(locale)} · {locale === 'en-US' ? 'Not official' : '非官方排名'}</small>}
           </div>
         </article>
         <article

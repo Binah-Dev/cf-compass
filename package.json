@@ -1,7 +1,7 @@
 {
   "name": "cf-compass",
   "desktopName": "cf-compass.desktop",
-  "version": "4.1.2",
+  "version": "4.2.0",
   "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": {
@@ -21,6 +21,10 @@
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
+    "test:virtual-rating": "node --test scripts/test-virtual-rating.cjs",
+    "qa:dual-rating": "node scripts/qa-dual-rating.cjs",
+    "test:training-profile": "node --test scripts/test-training-profile.mjs",
+    "qa:training-profile": "node scripts/qa-issue-31-training.cjs",
     "postinstall": "install-electron --no",
     "dev": "vite --host 127.0.0.1",
     "desktop": "concurrently -k \"pnpm dev\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",

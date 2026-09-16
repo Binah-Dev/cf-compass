@@ -1,4 +1,5 @@
 const { estimateVirtualReference } = require("./services/virtual-reference.cjs");
+const { cachedVirtualRating: buildVirtualRating } = require("./services/virtual-rating.cjs");
 const { loadVirtualSubmissions } = require("./services/virtual-score.cjs");
 const { publicStandingsEndpoint, recoverStandingsFailure } = require("./services/codeforces-standings.cjs");
 const { writeAtomicJson } = require("./services/atomic-json.cjs");
@@ -993,7 +994,7 @@ function contestReplayResponse(replay) {
       Number(contest.retryCount || 0) < CONTEST_AUTO_RETRY_LIMIT,
   ).length;
   const processed = completed + failed;
-  const referencePending = 0; // Virtual replay/upsolving does not request estimated scores.
+  const referencePending = contests.filter(needsAutomaticVirtualReference).length;
   return {
     ...replay,
     contests,
@@ -1284,12 +1285,14 @@ async function calculateNextContestReplay() {
         Number(contest.retryCount || 0) < CONTEST_AUTO_RETRY_LIMIT,
     );
   if (next) return calculateContestReplay(replayKey(next));
+  const reference = replay.contests.find(needsAutomaticVirtualReference);
+  if (reference) return calculateVirtualReference(replayKey(reference));
   return replay;
 }
 
 function needsAutomaticVirtualReference(contest) {
   return contest.participationType === "VIRTUAL" && contest.status === "ready" &&
-    !contest.virtualReference && Number(contest.durationSeconds) > 0 &&
+    (!contest.virtualReference || (contest.virtualReference.status === "ready" && (!contest.virtualReference.ratingField || !contest.virtualReference.ratedEvidence) && !contest.virtualReference.refreshError)) && Number(contest.durationSeconds) > 0 &&
     Number(contest.sessionStartTimeSeconds) > 0 &&
     Date.now() / 1000 >= Number(contest.sessionStartTimeSeconds) + Number(contest.durationSeconds);
 }
@@ -1390,6 +1393,7 @@ function sanitizeAiReviews(input) {
   return reviews;
 }
 
+let normalizeTrainingProfiles;
 function sanitizeStudyData(input) {
   const source = input && typeof input === "object" ? input : {};
   const settings = source.settings && typeof source.settings === "object"
@@ -1428,6 +1432,7 @@ function sanitizeStudyData(input) {
   const plan = source.plan && typeof source.plan === "object"
     ? {
         date: String(source.plan.date || "").slice(0, 20),
+        trainingContext: String(source.plan.trainingContext || "").slice(0, 20000),
         recommendationVersion: clampNumber(
           source.plan.recommendationVersion,
           1,
@@ -1492,6 +1497,7 @@ function sanitizeStudyData(input) {
     contestQueue,
     contestQueueProblems,
     plan,
+    trainingProfiles: normalizeTrainingProfiles(source.trainingProfiles),
     settings: {
       language: ["zh-CN", "en-US"].includes(settings.language)
         ? settings.language
@@ -1760,7 +1766,13 @@ const aiService = createAiService({
   writeJson,
   safeStorage,
   net,
-  getCache: () => readJson("cache.json", null),
+  getCache: async () => {
+    const cache = await readJson("cache.json", null);
+    const replay = await readJson("contest-replay.json", {});
+    const study = await readStudyData();
+    const { selectRatingView } = await import("./shared/rating-view.mjs");
+    return selectRatingView(cache, study, await buildVirtualRating(cache, replay));
+  },
   getStudy: () => readStudyData(),
   getReplay: () => readJson("contest-replay.json", null),
   getDemoData: () => buildDemoAiData(),
@@ -1981,6 +1993,7 @@ async function syncHandle(handle) {
     submissions: submissionResult.submissions,
     ratingHistory: Array.isArray(ratingHistory) ? ratingHistory : [],
     ratingStanding,
+    ratingDistribution: Array.isArray(ratedUsers) ? { handle: safeHandle.toLowerCase(), syncedAt: now, ratings: ratedUsers.filter(user => String(user.handle).toLowerCase() !== safeHandle.toLowerCase()).map(user => user.rating).filter(Number.isFinite).sort((a,b)=>b-a) } : String(cached?.handle || "").toLowerCase() === safeHandle.toLowerCase() ? cached?.ratingDistribution || null : null,
     problemsetSyncedAt: canReuseProblemset ? cached.problemsetSyncedAt : now,
     syncedAt: now,
     isDemo: false,
@@ -2239,7 +2252,8 @@ function onTrusted(channel, listener) {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  ({ normalizeTrainingProfiles } = await import("./shared/training-profile.mjs"));
   protocol.handle("cf-material", async (request) => {
     const requestUrl = new URL(request.url);
     const candidate = safeMaterialRelativePath(
@@ -2269,6 +2283,21 @@ app.whenReady().then(() => {
   );
   handleTrusted("contests:calculate-next", () => calculateNextContestReplay());
   handleTrusted("contests:virtual-reference", (_event, id) => calculateVirtualReference(id));
+  handleTrusted("rating:estimated", async (_event, retry = false) => {
+    if (retry === true) await withContestReplayLock(async () => {
+      const replay = await readJson("contest-replay.json", {});
+      for (const entry of replay.contests || []) {
+        if (entry.participationType !== "VIRTUAL") continue;
+        if (entry.virtualReference?.status === "unavailable") delete entry.virtualReference;
+        else if (entry.virtualReference?.refreshError) delete entry.virtualReference.refreshError;
+      }
+      await writeJson("contest-replay.json", replay);
+    });
+    const cache = await readJson("cache.json", {});
+    const replay = await refreshContestReplayIndex();
+    void startContestReplayAutoCalculation();
+    return buildVirtualRating(cache, replay);
+  });
   handleTrusted("contest-center:get", (_event, force = false) =>
     loadContestCenter(force),
   );

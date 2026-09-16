@@ -13,11 +13,14 @@ import {
   Sparkles,
   Target,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { loadContestReplay } from "../lib/contests";
+import { getVirtualTrainingSessions, normalizeHandle, resolveTrainingRating, getTrainingProfile } from "../../electron/shared/training-profile.mjs";
+import TrainingPreferences from "./TrainingPreferences";
 import { openProblem, problemKey } from "../lib/codeforces";
 import {
   applyReviewGrade,
-  buildMasteryStats,
+  buildTrainingMasteryStats,
   buildStudyStreak,
   createDailyPlan,
   describeComprehensiveProblem,
@@ -78,26 +81,45 @@ export default function TodayTraining({
   onAddToPlan,
 }) {
   const problems = data.problems || [];
+  const [history, setHistory] = useState(null);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [historyError, setHistoryError] = useState(false);
+  const [reload, setReload] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    setLoadingHistory(true);
+    setHistoryError(false);
+    setHistory(null);
+    loadContestReplay(data).then((value) => { if (alive) setHistory(value); })
+      .catch(() => { if (alive) setHistoryError(true); })
+      .finally(() => { if (alive) setLoadingHistory(false); });
+    return () => { alive = false; };
+  }, [data.handle, data.syncedAt, data.isDemo, reload]);
+  const sessions = useMemo(() => getVirtualTrainingSessions(history, data.handle || data.user?.handle), [history, data.handle, data.user?.handle]);
+  const trainingUser = useMemo(() => ({ ...data.user, handle: data.handle || data.user?.handle,
+    trainingVirtualSessions: sessions }), [data.user, data.handle, sessions]);
+  const trainingRating = resolveTrainingRating(trainingUser, studyData);
+  const manualWeakTags = getTrainingProfile(trainingUser, studyData).weakTagsMode === "manual";
   const problemLookup = useMemo(
     () => new Map(problems.map((problem) => [problemKey(problem), problem])),
     [problems],
   );
   const plan = useMemo(
-    () => createDailyPlan(problems, submissionMap, data.user, studyData),
-    [problems, submissionMap, data.user, studyData],
+    () => createDailyPlan(problems, submissionMap, trainingUser, studyData),
+    [problems, submissionMap, trainingUser, studyData],
   );
   const dueItems = useMemo(() => {
-    const all = getDueReviews(problems, submissionMap, data.user, studyData, 100);
+    const all = getDueReviews(problems, submissionMap, trainingUser, studyData, 100);
     const lookup = new Map(all.map((item) => [item.key, item]));
     return (plan.reviewKeys || []).map((key) => lookup.get(key)).filter(Boolean);
-  }, [problems, submissionMap, data.user, studyData, plan]);
+  }, [problems, submissionMap, trainingUser, studyData, plan]);
   const reviewRatingFloor = useMemo(
-    () => getReviewRatingFloor(data.user, studyData),
-    [data.user, studyData],
+    () => getReviewRatingFloor(trainingUser, studyData),
+    [trainingUser, studyData],
   );
   const masteryStats = useMemo(
-    () => buildMasteryStats(problems, submissionMap),
-    [problems, submissionMap],
+    () => buildTrainingMasteryStats(problems, submissionMap, trainingUser, studyData),
+    [problems, submissionMap, trainingUser, studyData],
   );
   const tierItems = useMemo(
     () =>
@@ -190,7 +212,7 @@ export default function TodayTraining({
   }
 
   function regenerate() {
-    const nextPlan = createDailyPlan(problems, submissionMap, data.user, studyData, true);
+    const nextPlan = createDailyPlan(problems, submissionMap, trainingUser, studyData, true);
     onStudyChange({ ...studyData, plan: nextPlan }, "三个难度档位已全部更新");
   }
 
@@ -198,7 +220,7 @@ export default function TodayTraining({
     const nextPlan = refreshRecommendationTier(
       problems,
       submissionMap,
-      data.user,
+      trainingUser,
       studyData,
       plan,
       tierId,
@@ -214,7 +236,7 @@ export default function TodayTraining({
     const nextPlan = refreshWeaknessRecommendations(
       problems,
       submissionMap,
-      data.user,
+      trainingUser,
       studyData,
       plan,
     );
@@ -244,7 +266,7 @@ export default function TodayTraining({
     const nextPlan = createDailyPlan(
       problems,
       submissionMap,
-      data.user,
+      trainingUser,
       nextStudy,
       true,
     );
@@ -254,8 +276,22 @@ export default function TodayTraining({
     );
   }
 
+  async function saveTrainingProfile(profile, trainingSettings = null) {
+    const trainingProfiles = { ...studyData.trainingProfiles };
+    const handle = normalizeHandle(trainingUser.handle);
+    if (profile) trainingProfiles[handle] = profile;
+    else if (getTrainingProfile(trainingUser,studyData).displayRatingMode === 'estimated') trainingProfiles[handle] = { displayRatingMode: 'estimated' };
+    else delete trainingProfiles[handle];
+    const next = { ...studyData, trainingProfiles, settings: { ...studyData.settings, ...trainingSettings } };
+    next.plan = createDailyPlan(problems, submissionMap, trainingUser, next, Boolean(trainingSettings));
+    return onStudyChange(next);
+  }
+
   return (
     <section className="feature-page today-page">
+      <TrainingPreferences key={trainingUser.handle} user={trainingUser} studyData={studyData} problems={problems}
+        sessions={sessions} loading={loadingHistory} loadError={historyError} onReload={() => setReload((value) => value + 1)} onSave={saveTrainingProfile} />
+      {loadingHistory ? <div className="feature-empty">正在读取训练偏好…</div> : <>
       <div className="training-stats">
         <MiniStat Icon={RotateCcw} label="待复习" value={dueItems.length} tone="blue" />
         <MiniStat
@@ -267,7 +303,7 @@ export default function TodayTraining({
         <MiniStat
           Icon={Check}
           label="今日已完成"
-          value={reviewedToday + completed.size}
+          value={reviewedToday + [...newItems, ...weaknessItems].filter((item) => completed.has(item.key)).length}
           tone="green"
         />
         <MiniStat
@@ -369,15 +405,15 @@ export default function TodayTraining({
           <div className="weakness-overview">
             <Radar size={18} />
             <div>
-              <strong>只负责弱项，不干扰综合推荐</strong>
-              <span>结合失败提交、通过率和近期练习活跃度生成</span>
+              <strong>{manualWeakTags ? "按手动标签生成专项" : "只负责弱项，不干扰综合推荐"}</strong>
+              <span>{manualWeakTags ? "手动目标不改变实际掌握度" : "结合失败提交、通过率和近期练习活跃度生成"}</span>
             </div>
           </div>
           <div className="weakness-tags" aria-label="当前薄弱算法">
             {weakestStats.map((item) => (
               <span key={item.tag}>
                 {displayTag(item.tag)}
-                <small>{item.mastery}%</small>
+                <small>{item.manual ? "手动" : `${item.mastery}%`}</small>
               </span>
             ))}
           </div>
@@ -434,8 +470,8 @@ export default function TodayTraining({
             ) : (
               <div className="feature-empty feature-empty--compact">
                 <Radar size={26} />
-                <strong>正在积累薄弱画像</strong>
-                <span>继续同步提交记录后会自动生成专项题单。</span>
+                <strong>{manualWeakTags ? "暂无符合手动标签的题目" : "正在积累薄弱画像"}</strong>
+                <span>{manualWeakTags ? "请调整训练偏好中的标签或参考分；已通过题目不会重复推荐。" : "继续同步提交记录后会自动生成专项题单。"}</span>
               </div>
             )}
           </div>
@@ -454,8 +490,8 @@ export default function TodayTraining({
           </header>
           <div className="recommendation-brief">
             <div>
-              <span>你的当前 Rating</span>
-              <strong><RatingScore value={data.user?.rating || 1200} /></strong>
+              <span>训练参考 Rating</span>
+              <strong><RatingScore value={trainingRating.rating} /></strong>
             </div>
             <p>
               综合轮换不同算法家族，兼顾新题、Rating 匹配和少量个人数据；
@@ -468,7 +504,7 @@ export default function TodayTraining({
           <div className="recommendation-lanes">
             {RECOMMENDATION_TIERS.map((tier) => {
               const items = tierItems[tier.id] || [];
-              const band = getRecommendationBand(data.user, tier);
+              const band = getRecommendationBand(trainingUser, tier, studyData);
               const desiredCount =
                 studyData.settings?.recommendationTierCounts?.[tier.id] ||
                 tier.defaultCount;
@@ -570,6 +606,7 @@ export default function TodayTraining({
           </div>
         </section>
       </div>
+      </>}
     </section>
   );
 }

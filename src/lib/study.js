@@ -1,4 +1,5 @@
 import { normalizeAiReview } from "./ai";
+import { normalizeTrainingProfiles } from "../../electron/shared/training-profile.mjs";
 
 const STUDY_KEY = "cf-compass-study-v1";
 const ACTIVITY_KEY = "cf-compass-activity-v1";
@@ -11,6 +12,7 @@ export const DEFAULT_STUDY_DATA = {
   contestQueue: [],
   contestQueueProblems: {},
   plan: null,
+  trainingProfiles: {},
   settings: {
     language: "zh-CN",
     themeVersion: 6,
@@ -122,6 +124,7 @@ export function normalizeStudyData(value) {
   return {
     ...DEFAULT_STUDY_DATA,
     ...source,
+    trainingProfiles: normalizeTrainingProfiles(source.trainingProfiles),
     notes: { ...(source.notes || {}) },
     reviews: { ...(source.reviews || {}) },
     aiReviews,

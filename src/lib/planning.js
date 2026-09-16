@@ -1,5 +1,6 @@
 import { problemKey } from "./codeforces";
 import { displayTag, normalizeTag } from "./stats";
+import { getTrainingProfile, resolveTrainingRating, trainingContextKey } from "../../electron/shared/training-profile.mjs";
 
 const DAY = 86400000;
 const RECOMMENDATION_PLAN_VERSION = 4;
@@ -291,7 +292,7 @@ function adaptiveReviewGap(rating) {
 }
 
 export function getReviewRatingFloor(user, studyData = {}) {
-  const rating = clamp(Number(user?.rating) || 1200, 800, 3500);
+  const { rating } = resolveTrainingRating(user, studyData);
   const configuredGap = Number(studyData.settings?.reviewRatingGap) || 0;
   const gap = REVIEW_RATING_GAPS.has(configuredGap)
     ? configuredGap
@@ -308,7 +309,7 @@ export function assessReviewValue(
 ) {
   const key = problemKey(problem);
   const rating = Number(problem?.rating) || 0;
-  const userRating = clamp(Number(user?.rating) || 1200, 800, 3500);
+  const { rating: userRating } = resolveTrainingRating(user, studyData);
   const ratingFloor = getReviewRatingFloor(user, studyData);
   const hardFloor = Math.max(800, ratingFloor - 200);
   const difficulty = clamp(Number(studyData.notes?.[key]?.difficulty) || 3, 1, 5);
@@ -512,13 +513,24 @@ export function buildMasteryStats(problems, submissionMap) {
     .sort((a, b) => b.mastery - a.mastery);
 }
 
-export function getRecommendationBand(user, tier) {
-  const rating = clamp(Number(user?.rating) || 1200, 800, 3500);
+export function getRecommendationBand(user, tier, studyData = {}) {
+  const { rating } = resolveTrainingRating(user, studyData);
   return {
     rating,
     minimum: clamp(rating + tier.minDelta, 800, 3500),
     maximum: clamp(rating + tier.maxDelta, 800, 3500),
   };
+}
+
+export function buildTrainingMasteryStats(problems, submissionMap, user, studyData) {
+  const stats = buildMasteryStats(problems, submissionMap);
+  const profile = getTrainingProfile(user, studyData);
+  if (profile.weakTagsMode !== "manual") return stats;
+  const lookup = new Map(stats.map((item) => [item.tag, item]));
+  return profile.weakTags.map((tag) => ({
+    ...(lookup.get(tag) || { tag, label: displayTag(tag), mastery: null }),
+    weakness: 100, manual: true,
+  }));
 }
 
 function getTierCount(studyData, tier) {
@@ -541,9 +553,9 @@ export function generateTierRecommendations(
   excludedKeys = new Set(),
   diversityState = createDiversityState(),
 ) {
-  const mastery = buildMasteryStats(problems, submissionMap);
+  const mastery = buildTrainingMasteryStats(problems, submissionMap, user, studyData);
   const weaknessMap = new Map(mastery.map((item) => [item.tag, item.weakness]));
-  const band = getRecommendationBand(user, tier);
+  const band = getRecommendationBand(user, tier, studyData);
   const target = (band.minimum + band.maximum) / 2;
   const newestContestId = Math.max(
     0,
@@ -640,7 +652,9 @@ export function describeWeaknessProblem(
   return {
     weakTag: focusTag,
     mastery: weakStat?.mastery ?? null,
-    reason: weakStat
+    reason: weakStat?.manual
+      ? `手动专项 · ${displayTag(focusTag)}`
+      : weakStat
       ? `薄弱专项 · ${displayTag(focusTag)} · 掌握度 ${weakStat.mastery}%${
           attempts ? ` · 已尝试 ${attempts} 次` : ""
         }`
@@ -657,7 +671,7 @@ export function generateWeaknessRecommendations(
   seed = todayKey(),
   excludedKeys = new Set(),
 ) {
-  const mastery = [...buildMasteryStats(problems, submissionMap)].sort(
+  const mastery = [...buildTrainingMasteryStats(problems, submissionMap, user, studyData)].sort(
     (a, b) => b.weakness - a.weakness,
   );
   const fallbackProfiles = [
@@ -667,9 +681,10 @@ export function generateWeaknessRecommendations(
     "dp",
     "data_structures",
   ].map((tag) => ({ tag, weakness: 48, mastery: 0 }));
-  const weakProfiles = (mastery.length ? mastery : fallbackProfiles).slice(0, 6);
+  const manual = getTrainingProfile(user, studyData).weakTagsMode === "manual";
+  const weakProfiles = manual ? mastery : (mastery.length ? mastery : fallbackProfiles).slice(0, 6);
   const weakMap = new Map(weakProfiles.map((item) => [item.tag, item]));
-  const rating = clamp(Number(user?.rating) || 1200, 800, 3500);
+  const { rating } = resolveTrainingRating(user, studyData);
   const minimum = clamp(rating - 200, 800, 3500);
   const maximum = clamp(rating + 200, 800, 3500);
   const newestContestId = Math.max(
@@ -764,10 +779,13 @@ export function generateSmartProblems(
 
 export function createDailyPlan(problems, submissionMap, user, studyData, regenerate = false) {
   const date = todayKey();
+  const trainingContext = trainingContextKey(user, studyData);
+  const contextChanged = studyData.plan?.trainingContext !== trainingContext;
   if (
     !regenerate &&
     studyData.plan?.date === date &&
     studyData.plan?.recommendationVersion === RECOMMENDATION_PLAN_VERSION &&
+    !contextChanged &&
     studyData.plan?.tierProblemKeys &&
     studyData.plan?.weaknessProblemKeys
   ) {
@@ -778,7 +796,7 @@ export function createDailyPlan(problems, submissionMap, user, studyData, regene
   const previousKeys = RECOMMENDATION_TIERS.flatMap(
     (tier) => studyData.plan?.tierProblemKeys?.[tier.id] || [],
   ).concat(studyData.plan?.weaknessProblemKeys || []);
-  const refreshHistory = regenerate
+  const refreshHistory = contextChanged ? [] : regenerate
     ? collectHistory(studyData.plan, previousKeys)
     : collectHistory(studyData.plan);
   const refreshSerial =
@@ -813,6 +831,7 @@ export function createDailyPlan(problems, submissionMap, user, studyData, regene
   const currentKeys = [...recommendedKeys, ...weaknessProblemKeys];
   return {
     date,
+    trainingContext,
     recommendationVersion: RECOMMENDATION_PLAN_VERSION,
     generatedAt: Date.now(),
     refreshSerial,
@@ -821,9 +840,8 @@ export function createDailyPlan(problems, submissionMap, user, studyData, regene
     tierProblemKeys,
     weaknessProblemKeys,
     newProblemKeys: currentKeys,
-    completedNewKeys: (studyData.plan?.completedNewKeys || []).filter((key) =>
-      currentKeys.includes(key),
-    ),
+    completedNewKeys: studyData.plan?.date === date
+      ? (studyData.plan.completedNewKeys || []).slice(0, 50) : [],
   };
 }
 

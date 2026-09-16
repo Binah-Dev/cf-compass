@@ -195,15 +195,16 @@ test("virtual session metadata requests exactly the public standings contract", 
   assert.equal(entry.solved, 1);
 });
 
-test("automatic replay prepares problems without requesting estimated performance", async () => {
+test("automatic replay estimates every completed virtual session once and preserves official fields", async () => {
   const fixture = require("./fixtures/virtual-reference.cjs").makeReferenceFixture();
   const h = mainHarness(fixture, { onFetch: async (_files, endpoint) =>
-    endpoint.startsWith("contest.ratingChanges") ? fixture.ratingChanges : fixture.standings });
+    endpoint.startsWith("contest.status") ? fixture.cache.submissions : endpoint.startsWith("contest.ratingChanges") ? fixture.ratingChanges : fixture.standings });
   let replay = await h.refreshContestReplayIndex();
-  assert.equal(replay.progress.referencePending, 0);
-  for (let step = 0; step < 3 && replay.progress.autoRemaining; step++) replay = await h.calculateNextContestReplay();
+  assert.ok(replay.progress.referencePending > 0);
+  for (let step = 0; step < 20 && replay.progress.autoRemaining; step++) replay = await h.calculateNextContestReplay();
   const virtual = sessions.findReplayEntry(replay.contests, `1900:virtual:${virtualTwo}`);
-  assert.equal(virtual.virtualReference == null, true);
+  assert.equal(virtual.virtualReference.status, 'ready');
+  assert.ok(virtual.virtualReference.ratingField.length >= 2);
   assert.equal(virtual.performance, null);
   assert.equal(virtual.ratingDelta, null);
   assert.equal(replay.progress.autoRemaining, 0);
@@ -212,7 +213,7 @@ test("automatic replay prepares problems without requesting estimated performanc
   assert.equal(h.requests.length, count, "cached success or unavailable must not create a polling request loop");
 });
 
-test("cached virtual problems remain usable offline without any estimate requests", async () => {
+test("offline estimates fail explicitly once while cached virtual problems remain usable", async () => {
   const fixture = makeFixture();
   const h = mainHarness(fixture, { onFetch: async () => { throw Error("fixture offline"); } });
   const replay = await h.refreshContestReplayIndex();
@@ -222,9 +223,9 @@ test("cached virtual problems remain usable offline without any estimate request
   await h.calculateNextContestReplay();
   const final = await h.calculateNextContestReplay();
   assert.equal(final.progress.referencePending, 0);
-  assert.equal(final.contests.filter((entry) => entry.virtualReference).length, 0);
+  assert.equal(final.contests.filter((entry) => entry.virtualReference?.status === 'unavailable').length, 2);
   assert.equal(final.contests.every((entry) => entry.status === 'ready'), true);
-  assert.equal(h.requests.length, 0);
+  assert.ok(h.requests.length > 0);
   const count = h.requests.length;
   await h.calculateNextContestReplay();
   assert.equal(h.requests.length, count);

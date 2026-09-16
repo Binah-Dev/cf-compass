@@ -289,8 +289,8 @@ function ContestDetail({
           <strong>{contest.virtualReference?.status === "ready" ? virtualReferenceLabel(contest) : estimating ? "计算中…" : "—"}</strong>
           {contest.virtualReference?.status === "ready" && <small>参考位次：{formatNumber(contest.virtualReference.referenceRank)} / {formatNumber(contest.virtualReference.participants)}</small>}
           {contest.virtualReference?.missingRatedCount > 0 && <small>历史 Rated 匹配：{formatNumber(contest.virtualReference.matchedRatedCount)} / {formatNumber(contest.virtualReference.historicalRatedCount)}。仅按当前可见选手估计，不是完整历史榜单复算。</small>}
-          <small>按本场成绩插入原比赛 Rated 榜单；并非官方虚拟排名，不计入总体统计。</small>
-          <small>{contest.virtualReference?.refreshError || contest.virtualReference?.error || "仅在点击时获取榜单和本场提交，计算结果保存在本机。"}</small>
+          <small>按本场成绩插入原比赛 Rated 榜单；符合条件时计入独立估算 Rating，不修改官方记录。</small>
+          <small>{contest.virtualReference?.refreshError || contest.virtualReference?.error || "同步后自动估分，结果保存在本机；失败可手动重试。"}</small>
           {contest.virtualReference?.practicedBefore && <small>本场包含赛前已通过的题目，参考分不能视为盲打表现。</small>}
         </div>
         <button type="button" className="ghost-button" disabled={estimating} onClick={() => onEstimate(contest)}>

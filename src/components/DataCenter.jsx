@@ -241,49 +241,6 @@ export default function DataCenter({
                 {[15, 30, 60, 180].map((value) => <option key={value} value={value}>{value < 60 ? `${value} 分钟` : `${value / 60} 小时`}</option>)}
               </select>
             </label>
-            <label>
-              <span><strong>每日复习</strong><small>今日训练的到期题上限</small></span>
-              <select value={settings.reviewLimit} onChange={(event) => onSettingsChange({ reviewLimit: Number(event.target.value) })}>
-                {[5, 8, 12, 16, 20].map((value) => <option key={value} value={value}>{value} 题</option>)}
-              </select>
-            </label>
-            <label>
-              <span><strong>复习难度范围</strong><small>自动跳过明显低于当前水平的题</small></span>
-              <select
-                aria-label="复习 Rating 范围"
-                value={settings.reviewRatingGap || 0}
-                onChange={(event) => onSettingsChange({ reviewRatingGap: Number(event.target.value) })}
-              >
-                <option value="0">智能调整（推荐）</option>
-                <option value="300">当前 Rating - 300</option>
-                <option value="400">当前 Rating - 400</option>
-                <option value="500">当前 Rating - 500</option>
-                <option value="600">当前 Rating - 600</option>
-              </select>
-            </label>
-            <label>
-              <span><strong>三档推荐</strong><small>巩固 / 同段 / 挑战；也可在今日训练单独调整</small></span>
-              <select
-                aria-label="三档推荐数量"
-                value={[
-                  settings.recommendationTierCounts?.consolidate || 2,
-                  settings.recommendationTierCounts?.steady || 3,
-                  settings.recommendationTierCounts?.challenge || 2,
-                ].join("-")}
-                onChange={(event) => {
-                  const [consolidate, steady, challenge] = event.target.value
-                    .split("-")
-                    .map(Number);
-                  onSettingsChange({
-                    recommendationTierCounts: { consolidate, steady, challenge },
-                  });
-                }}
-              >
-                <option value="1-2-1">轻量 · 1 / 2 / 1</option>
-                <option value="2-3-2">标准 · 2 / 3 / 2</option>
-                <option value="3-4-3">强化 · 3 / 4 / 3</option>
-              </select>
-            </label>
             <div>
               <span><strong>自动备份</strong><small>每天首次数据变更时创建</small></span>
               <button

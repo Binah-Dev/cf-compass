@@ -129,9 +129,9 @@ function RatingChart({ history }) {
   const width = 860;
   const height = 300;
   const plot = { left: 54, right: 46, top: 18, bottom: 48 };
-  const values = visibleHistory.flatMap((item) => [Number(item.oldRating), Number(item.newRating)]).filter((value) => value > 0);
-  const minimum = Math.max(0, Math.floor((Math.min(...values) - 220) / 200) * 200);
-  const maximum = Math.min(4000, Math.max(minimum + 600, Math.ceil((Math.max(...values) + 260) / 200) * 200));
+  const values = visibleHistory.flatMap((item) => [Number(item.oldRating), Number(item.newRating)]).filter(Number.isFinite);
+  const minimum = Math.floor((Math.min(...values) - 220) / 200) * 200;
+  const maximum = Math.max(minimum + 600, Math.ceil((Math.max(...values) + 260) / 200) * 200);
   const timestamps = visibleHistory.map((item) => Number(item.ratingUpdateTimeSeconds));
   const firstTimestamp = Math.min(...timestamps);
   const lastTimestamp = Math.max(...timestamps);
@@ -146,7 +146,7 @@ function RatingChart({ history }) {
   const yTicks = [];
   for (let value = minimum; value <= maximum; value += 200) yTicks.push(value);
 
-  const allValues = history.map((item) => Number(item.newRating)).filter((value) => value > 0);
+  const allValues = history.map((item) => Number(item.newRating)).filter(Number.isFinite);
   const navigatorMinimum = Math.min(...allValues);
   const navigatorMaximum = Math.max(navigatorMinimum + 1, ...allValues);
   const navigatorX = (index) => history.length === 1 ? width / 2 : 8 + index / lastIndex * (width - 16);
@@ -255,7 +255,7 @@ function RatingChart({ history }) {
           />
         ))}
         {points.filter((_, index) => index === 0 || index === points.length - 1 || index % Math.max(1, Math.ceil(points.length / 5)) === 0).map((point) => (
-          <text className="rating-date-label" key={`date-${point.contestId}`} x={point.x} y={height - 24}>{formatDate(point.ratingUpdateTimeSeconds)}</text>
+          <text className="rating-date-label" key={`date-${point.id || point.contestId}-${point.ratingUpdateTimeSeconds}`} x={point.x} y={height - 24}>{formatDate(point.ratingUpdateTimeSeconds)}</text>
         ))}
       </svg>
       {activePoint ? (
@@ -385,7 +385,7 @@ export default function TrainingAnalytics({ data }) {
 
       <div className="analytics-main-grid">
         <section className="analytics-panel analytics-rating-panel">
-          <header><div><span>RATING HISTORY</span><h2>Codeforces Rating</h2></div><small>{analytics.ratingHistory.length} 场 Rated 比赛</small></header>
+          <header><div><span>RATING HISTORY</span><h2>{data.ratingMode === 'estimated' ? '估算 Rating · 虚拟赛' : 'Codeforces Rating'}</h2></div><small>{analytics.ratingHistory.length} {data.ratingMode === 'estimated' ? '场虚拟赛' : '场 Rated 比赛'}</small></header>
           <RatingChart history={analytics.ratingHistory} />
         </section>
 

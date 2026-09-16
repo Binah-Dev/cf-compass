@@ -1,0 +1,25 @@
+.today-page { grid-template-rows: max-content 78px minmax(900px, 1fr); align-content: start; gap: 24px; overflow-y: auto; }
+.today-page .training-grid { gap: 24px; grid-template-rows: minmax(420px, 1fr) minmax(420px, 1fr); }
+.today-page .training-grid > .feature-card > .feature-card__header { padding: 20px 22px; }
+.training-preferences { margin: 0; flex-shrink: 0; min-height: max-content; }
+.training-preferences > summary { padding: 14px 18px; cursor: pointer; color: var(--text, #e7edf5); }
+.training-preferences > summary > span { margin-left: 16px; font-size: 12px; opacity: .75; }
+.training-preferences__body { padding: 4px 24px 24px; }
+.training-preferences__body p, .training-preferences__body small { line-height: 1.6; color: var(--text-muted, #a6b8cb); }
+.training-preferences fieldset { border: 1px solid #66809955; border-radius: 10px; margin: 20px 0; padding: 18px 20px; min-width: 0; }
+.training-preferences fieldset > label { display: flex; align-items: center; gap: 20px; margin: 14px 0; flex-wrap: wrap; }
+.training-preferences input[type=number], .training-preferences select { background: #112336; color: #ecf4fa; padding: 8px; border: 1px solid #668099; border-radius: 6px; max-width: 100%; }
+.training-preferences__sessions { max-height: 200px; overflow: auto; }
+.training-preferences__check { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.training-preferences__check input { flex-shrink: 0; width: 16px; height: 16px; }
+.training-preferences__tags { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 4px 12px; max-height: 220px; overflow: auto; }
+.training-preferences__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 14px 0; }
+.training-preferences button:disabled { opacity: .5; cursor: not-allowed; }
+.training-preferences :focus-visible { outline: 2px solid var(--accent, #80cfff); outline-offset: 3px; }
+@media (max-width: 1260px) {
+  .today-page .training-grid { grid-template-rows: none; flex-shrink: 0; }
+  .today-page .training-grid > .smart-plan { min-height: 760px; }
+  .today-page .training-grid > .review-queue,
+  .today-page .training-grid > .weakness-plan { min-height: 480px; }
+  .training-preferences__body { padding: 4px 16px 20px; }
+}

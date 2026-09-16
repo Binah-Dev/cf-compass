@@ -102,11 +102,11 @@ let app;
     assert.equal(await enterButton.locator('span').evaluate(el => getComputedStyle(el).display === 'none'), width <= 1420);
     for (const exit of ['keyboard', 'button']) {
     await page.getByRole('button', { name: '沉浸大厅', exact: true }).click();
-    await page.waitForFunction(() => getComputedStyle(document.querySelector('.titlebar')).visibility === 'hidden');
+    await page.waitForFunction(() => document.querySelector('.app-shell').classList.contains('is-immersive'));
     const hidden = await page.locator('.titlebar').evaluate(el => ({ opacity: getComputedStyle(el).opacity,
       pointer: getComputedStyle(el).pointerEvents, inert: el.inert,
       drag: getComputedStyle(el.querySelector('.titlebar__drag')).getPropertyValue('-webkit-app-region') }));
-    assert.deepEqual(hidden, { opacity: '0', pointer: 'none', inert: true, drag: 'no-drag' });
+    assert.deepEqual(hidden, { opacity: '1', pointer: 'auto', inert: false, drag: 'drag' });
     assert.equal(await page.locator('.app-rail').evaluate(el => getComputedStyle(el).opacity), '0');
     const exitButton = page.getByRole('button', { name: '退出沉浸模式', exact: true });
     await exitButton.waitFor();
