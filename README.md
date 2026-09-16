@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./build/icon.png" width="108" alt="CF Compass 图标" />
+  <img src="https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/build/icon.png" width="108" alt="CF Compass 图标" />
 </p>
 
 <h1 align="center">CF Compass</h1>
@@ -34,13 +34,13 @@
   <strong><a href="https://github.com/Binah-Dev/cf-compass/releases/latest">⬇ 下载 Windows / Linux / macOS 版本</a></strong>
 </p>
 
-![CF Compass 题库工作台](./docs/screenshots/dashboard-sky.png)
+![CF Compass 题库工作台](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/dashboard-sky.png)
 
 <p align="center"><sub>题库工作台 · 天空蓝主题 · 仓库内置虚构演示数据</sub></p>
 
-## 当前版本：v4.2.0
+## 当前版本：v4.2.1
 
-v4.2.0 新增官方 / 本地估算双 Rating：默认使用官方模式，也可以在主页个人进度中切换到估算模式，让符合条件的虚拟赛逐场影响训练参考分、相关推荐和分析视图。官方资料和真实比赛结果始终保留，不被估算覆盖。
+v4.2.1 新增正式赛与虚拟赛统一的综合估算 Rating：默认使用官方模式，也可以在主页个人进度中切换，让符合条件的未结算比赛逐场影响训练参考分、相关推荐和分析视图。官方资料和真实比赛结果始终保留，不被估算覆盖。
 
 - **只打虚拟赛也能调整训练目标**：同步后自动处理有官方历史 Rated 对照数据的虚拟场次；缺失证据会提示待计算、暂不可用或排除，不伪造结果。
 - **自己掌握训练节奏**：在「今日训练 → 训练偏好」调整手动参考 Rating（800–3500）、弱项标签、复习范围和各档题量。手动参考分用于官方模式；估算模式采用累计估算分。
@@ -55,7 +55,7 @@ v4.2.0 新增官方 / 本地估算双 Rating：默认使用官方模式，也可
 | 全局学习记录 | 在题库、今日训练、复习、比赛和推荐结果中使用同一套笔记与目标题单。 |
 | 可定制桌面工作台 | 隐藏、恢复和调整左侧功能入口顺序，切换字号与全页赛事复盘布局。 |
 
-完整变化见 [v4.2.0 发布说明](./docs/releases/v4.2.0.md) 与 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
+完整变化见 [v4.2.1 发布说明](./docs/releases/v4.2.1.md) 与 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
 
 ## 为什么是 CF Compass
 
@@ -93,7 +93,7 @@ CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**�
 - 日期、数字、动态计数、状态提示、搜索框和无障碍标签会随界面语言切换。
 - Codeforces 官方题名、本地模板文件名、模板题意和用户笔记保持原文，软件不会擅自机器翻译用户内容。
 
-![CF Compass English interface](./docs/screenshots/dashboard-en.png)
+![CF Compass English interface](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/dashboard-en.png)
 
 <p align="center"><sub>English 界面 · 使用虚构演示账号，不包含本机路径或私人训练数据</sub></p>
 
@@ -113,7 +113,7 @@ CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**�
 
 ### 2. 今日训练：把模糊目标变成可执行题单
 
-![CF Compass 今日训练](./docs/screenshots/today-training.png)
+![CF Compass 今日训练](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/today-training.png)
 
 <p align="center"><sub>三段式推荐、到期复习与薄弱专题在同一页完成</sub></p>
 
@@ -132,7 +132,7 @@ CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**�
 
 ### 3. 复习库：让 AC 不再等于“从此忘记”
 
-![CF Compass 复习库](./docs/screenshots/review-library.png)
+![CF Compass 复习库](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/review-library.png)
 
 <p align="center"><sub>按标签、Rating、通过次数与复习状态重新找到值得回看的题</sub></p>
 
@@ -148,7 +148,7 @@ CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**�
 
 #### 复习时间轴：把训练历史还原成一条可回看的路线
 
-![CF Compass 复习时间轴](./docs/screenshots/review-timeline.png)
+![CF Compass 复习时间轴](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/review-timeline.png)
 
 <p align="center"><sub>按日期聚合通过记录；演示账号与训练数据已获授权，未包含电脑路径等设备信息</sub></p>
 
@@ -164,15 +164,15 @@ CF Compass 的应用界面现已支持 **简体中文 / English 一键切换**�
 
 ### 4. 赛事复盘：把一场比赛拆成可以改进的证据
 
-![CF Compass 赛事复盘总览](./docs/screenshots/contest-replay.png)
+![CF Compass 赛事复盘总览](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/contest-replay.png)
 
 <p align="center"><sub>原有赛事复盘总览（旧版界面），保留展示比赛列表与成绩概览；下方为开发中的统一布局。</sub></p>
 
-![CF Compass 正式比赛复盘](./docs/screenshots/contest-replay-official-zh.png)
+![CF Compass 正式比赛复盘](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/contest-replay-official-zh.png)
 
-<p align="center"><sub>正式比赛：统一场内指标，保留官方排名与 Rating 变化。虚构测试数据；截图展示开发中的统一布局，尚未包含在 v4.2.0 安装包中。</sub></p>
+<p align="center"><sub>正式比赛：统一场内指标，保留官方排名与 Rating 变化。虚构测试数据；截图展示统一布局。</sub></p>
 
-![CF Compass 虚拟比赛复盘](./docs/screenshots/contest-replay-virtual-zh.png)
+![CF Compass 虚拟比赛复盘](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/contest-replay-virtual-zh.png)
 
 <p align="center"><sub>虚拟比赛：沿用相同布局和题目操作，单独标注本场估分、参考位次与估算边界，不伪装成官方成绩。画面为合成测试数据，不用于证明估分精度。</sub></p>
 
@@ -196,7 +196,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 - 功能默认关闭，不参与自动同步。AI 输出只用于复盘建议，不替代 Codeforces 官方结果，也不会自动修改题目笔记、复习反馈或训练计划。
 - 训练建议基于本机同步的 Codeforces 题库先做硬筛选，排除本场原题、已解决、已计划、重复和无效候选，再展示题目、难度与推荐依据；用户确认后才会收藏、记录笔记或加入目标题单。
 
-![CF Compass 源码增强复盘](./docs/screenshots/contest-ai-diff.png)
+![CF Compass 源码增强复盘](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/contest-ai-diff.png)
 
 ### 5. 全局笔记与目标题单：让“以后再做”真的有下文
 
@@ -211,7 +211,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 ### 6. 赛事中心：把参赛计划也放进训练系统
 
-![CF Compass 赛事中心](./docs/screenshots/contest-center.png)
+![CF Compass 赛事中心](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/contest-center.png)
 
 <p align="center"><sub>在全部场次中搜索、筛选并判断下一场值得参加的比赛</sub></p>
 
@@ -228,7 +228,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 ### 7. 本地模板库：代码、题意和适用场景放在一起
 
-![CF Compass 模板库](./docs/screenshots/template-library.png)
+![CF Compass 模板库](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/template-library.png)
 
 <p align="center"><sub>按算法分类浏览本地源码，并直接回到 VS Code</sub></p>
 
@@ -243,7 +243,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 更特别的是，每个源码模板都可以拥有一份适合阅读的“题目大意”：
 
-![CF Compass 模板题意阅读](./docs/screenshots/template-summary.png)
+![CF Compass 模板题意阅读](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/template-summary.png)
 
 - 保存紧凑的题意、输入输出、关键约束、适用场景和复杂度。
 - 把混在一行的结构拆成清晰章节，合并异常空行。
@@ -254,7 +254,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 ### 8. 数据中心：数据属于你，而不是某个云端账户
 
-![CF Compass 数据中心](./docs/screenshots/data-center.png)
+![CF Compass 数据中心](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/data-center.png)
 
 - 训练记录、笔记、复习状态与设置默认保存在本机。
 - 增量同步只拉取新提交，题目全集在缓存有效期内直接复用。
@@ -295,7 +295,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 开源版固定保留三套纯 CSS 主题，不依赖第三方壁纸或角色素材。
 
-![CF Compass 三套主题色选择器](./docs/screenshots/theme-picker.png)
+![CF Compass 三套主题色选择器](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/theme-picker.png)
 
 | 主题 | 标识 | 主色 | 视觉气质 |
 | --- | --- | --- | --- |
@@ -307,7 +307,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 开源版不打包第三方角色图片，但支持用户从原作者或官方渠道自行取得 PNG、JPG、WebP、MP4、WebM 素材，再通过 **外观设置 → 本地人物与背景 → 导入本地素材** 一键载入。文件只会复制到 CF Compass 的本机数据目录，不进入项目源码，也不会随同步上传。
 
-![完整本地人物素材库效果示意](./docs/screenshots/optional-character-assets-local-library.png)
+![完整本地人物素材库效果示意](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/optional-character-assets-local-library.png)
 
 > 图中角色图片来自用户自行准备的本地资源，仅用于展示完整素材库的界面效果；GitHub 仓库和 Windows EXE 均不包含这些第三方原图。
 
@@ -317,11 +317,11 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 ### 外观参数与自动化设置演示
 
-![CF Compass 外观与背景可见度设置](./docs/screenshots/appearance-controls-visibility.png)
+![CF Compass 外观与背景可见度设置](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/appearance-controls-visibility.png)
 
 <p align="center"><sub>外观参数与背景可见度设置示意；截图为已有版本，实际控件以当前应用为准。</sub></p>
 
-![CF Compass 自动化设置](./docs/screenshots/appearance-controls-automation.png)
+![CF Compass 自动化设置](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/appearance-controls-automation.png)
 
 <p align="center"><sub>自动化选项界面示意，具体行为由本机设置控制。</sub></p>
 
@@ -332,20 +332,20 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 打开 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)，按设备下载：
 
 ```text
-Windows x64（推荐安装版）: CF-Compass-4.2.0-Windows-x64-Setup.exe
-Windows x64（便携版）:     CF-Compass-4.2.0-Windows-x64-portable.exe
-Linux x64:                CF-Compass-4.2.0-Linux-x86_64.AppImage
-Linux Debian x64:         CF-Compass-4.2.0-Linux-amd64.deb
-macOS Intel:              CF-Compass-4.2.0-macOS-x64.dmg
-macOS Apple 芯片:          CF-Compass-4.2.0-macOS-arm64.dmg
+Windows x64（推荐安装版）: CF-Compass-4.2.1-Windows-x64-Setup.exe
+Windows x64（便携版）:     CF-Compass-4.2.1-Windows-x64-portable.exe
+Linux x64:                CF-Compass-4.2.1-Linux-x86_64.AppImage
+Linux Debian x64:         CF-Compass-4.2.1-Linux-amd64.deb
+macOS Intel:              CF-Compass-4.2.1-macOS-x64.dmg
+macOS Apple 芯片:          CF-Compass-4.2.1-macOS-arm64.dmg
 ```
 
-Windows 用户推荐下载 `Setup.exe` 安装版：应用只在安装时解压，之后从已安装目录直接启动，速度更稳定。`portable.exe` 便携版无需安装，但每次启动都要先释放程序文件，在机械硬盘、低速设备或杀毒软件扫描环境下会明显更慢。v4.2.0 的 Windows、Linux 与 macOS 包均由同一版本提交在对应原生环境重新构建。Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
+Windows 用户推荐下载 `Setup.exe` 安装版：应用只在安装时解压，之后从已安装目录直接启动，速度更稳定。`portable.exe` 便携版无需安装，但每次启动都要先释放程序文件，在机械硬盘、低速设备或杀毒软件扫描环境下会明显更慢。v4.2.1 的 Windows、Linux 与 macOS 包均由同一版本提交在对应原生环境重新构建。Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
 
 每个安装包旁都有同名 `.sha256`，Release 还提供汇总文件 `SHA256SUMS.txt`。例如 Windows 可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\CF-Compass-4.2.0-Windows-x64-Setup.exe
+Get-FileHash -Algorithm SHA256 .\CF-Compass-4.2.1-Windows-x64-Setup.exe
 ```
 
 Linux 或 macOS 可运行：
