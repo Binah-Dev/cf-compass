@@ -32,7 +32,7 @@ export const exactMessages = {
   "未估分": "Not estimated",
   "计算估计分": "Estimate performance",
   "重新估分": "Re-estimate",
-  "按本场成绩插入原比赛 Rated 榜单；并非官方虚拟排名，不计入总体统计。": "This session is inserted into the original Rated standings; this is not an official virtual rank and is excluded from overall statistics.",
+  "按本场成绩插入原比赛 Rated 榜单；符合条件时计入独立估算 Rating，不修改官方记录。": "This session is inserted into the original Rated standings; eligible sessions contribute to the separate estimated Rating without changing official records.",
   "仅在点击时获取榜单和本场提交，计算结果保存在本机。": "Standings and session submissions are fetched only on request; the result is saved locally.",
   "本场包含赛前已通过的题目，参考分不能视为盲打表现。": "Previously solved problems are included; this is not a blind-contest performance.",
   "缺少完整的本场提交，请重新计算参考分": "Complete session submissions are missing; please retry the estimate.",

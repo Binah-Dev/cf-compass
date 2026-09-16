@@ -38,13 +38,12 @@ async function launch() {
 }
 (async () => {
   await launch();
-  assert.deepEqual(await app.evaluate(() => globalThis.scoreRequests), []);
-  await page.getByRole('button', { name: '计算估计分', exact: true }).click();
+  // New sessions estimate automatically; retain manual retry coverage below.
   await page.getByRole('button', { name: '重新估分', exact: true }).waitFor();
   const reference = JSON.parse(fs.readFileSync(path.join(profile, 'contest-replay.json'), 'utf8')).contests[0].virtualReference;
   assert.equal(reference.status, 'ready'); assert.equal(reference.points, 2); assert.equal(reference.penalty, 40);
   assert.equal(reference.method, 'carrot-virtual-reconstructed-v1');
-  assert.match(await page.locator('.contest-virtual-reference').innerText(), /并非官方虚拟排名/);
+  assert.match(await page.locator('.contest-virtual-reference').innerText(), /不修改官方记录/);
   assert.equal(await page.locator('.contest-problem-row').count(), 2);
   assert.equal(await page.locator('.contest-record .contest-rank strong').first().innerText(), '—');
   assert.equal((await app.evaluate(() => globalThis.scoreRequests)).length, 3);
