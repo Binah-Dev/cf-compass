@@ -23,7 +23,7 @@
   .settings-box, .data-details, .study-plan-item, .insight-advice, .backup-list,
   .study-plan-hero, .study-plan-progress, .study-plan-board, .ai-settings,
   .contest-detail, .contest-center-row__detail, .contest-upsolve-item,
-  .contest-virtual-reference, .contest-session-note
+  .contest-virtual-reference, .contest-session-note, .contest-detail-metrics
 ) {
   background: var(--panel-glass);
   backdrop-filter: none;
