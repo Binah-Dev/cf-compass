@@ -39,6 +39,13 @@ let app;
   await page.waitForFunction(r => document.querySelector('[data-testid="training-rating"]')?.textContent === String(r),expectedTraining);
   assert.match(await page.getByTestId('rating-source').innerText(), /Combined official and virtual/);
   await page.getByText('Combined rating ledger',{exact:true}).click();
+  // Native details toggle is queued; React populates the ledger afterwards.
+  // Wait for actual entries, not the surrounding explanation containing Official.
+  await page.waitForFunction(() => {
+    const entries = [...document.querySelectorAll('[data-testid="combined-estimate"] details > p')];
+    return entries.some(el => el.textContent.includes('Official'))
+      && entries.some(el => el.textContent.includes('Virtual'));
+  });
   assert.match(await page.getByTestId('combined-estimate').innerText(), /Official/);
   assert.match(await page.getByTestId('combined-estimate').innerText(), /Virtual/);
   const shot = await app.evaluate(async ({BrowserWindow}) => (await BrowserWindow.getAllWindows()[0].webContents.capturePage()).toPNG().toString('base64'));

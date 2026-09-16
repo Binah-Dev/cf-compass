@@ -71,6 +71,7 @@ let app;
     await page.locator('.training-preferences > summary').click();
   }
   await page.getByText('Combined rating ledger',{exact:true}).click();
+  await page.waitForFunction(()=>document.querySelectorAll('[data-testid="combined-estimate"] details > p').length===3);
   const shot=await app.evaluate(async({BrowserWindow})=>(await BrowserWindow.getAllWindows()[0].webContents.capturePage()).toPNG().toString('base64'));
   fs.writeFileSync(path.join(output,'training.png'),Buffer.from(shot,'base64'));
   const calls=await app.evaluate(()=>globalThis.qaScenario.calls);
