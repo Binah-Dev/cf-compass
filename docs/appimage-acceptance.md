@@ -34,7 +34,7 @@ The native 1500 x 940 first screen and 1040 x 700 minimum window were visually i
 
 Related avatar/frame/layout tests passed (9 tests), as did training-profile regression checks (12 tests). The production build passed with the existing nonblocking mixed static/dynamic-import warning for `ProblemNoteDrawer`.
 
-**Pending:** actual Linux build, FUSE-mounted launch, extracted launch, network-isolated screenshots, stable update metadata and local zsync reconstruction in CI. WSL was unavailable on the Windows host; no Linux compatibility result is claimed. No release was created and no catalog comment was sent as part of these local checks.
+At this local-only checkpoint, actual Linux build/launch and zsync reconstruction were still pending because WSL was unavailable on the Windows host. The dated cloud results below supersede that status. No release was created and no catalog comment was sent as part of these local checks.
 
 ## Selected catalog screenshot
 
@@ -57,3 +57,19 @@ Subsequent Linux reports record the same test user's namespace probe and relevan
 [Run 36422543310](https://github.com/Binah-Dev/cf-compass/actions/runs/36422543310), source `7694ee1380c27fa78370b18127876b6a8925e200`: launcher/desktop preparation, metadata and zsync validation passed. The FUSE startup test then failed with Playwright's `Process failed to launch!`; an early rejected internal promise terminated the test before its report was written. Without native process stderr, this run does not establish the cause. Other platform jobs passed and no release ran.
 
 The follow-up harness persists diagnostics before launching, captures browser startup logs, and records early promise failures with a failing exit status. Both Linux launch modes run independently and the job remains failed if either fails. A successfully repacked but startup-failing Linux artifact may be uploaded for the separate Ubuntu 22.04 diagnosis; it is not a release-qualified package and cannot bypass the failed package job's publication gate.
+
+## Fourth cloud run: verified results and remaining limitation
+
+[Run 36423559190](https://github.com/Binah-Dev/cf-compass/actions/runs/36423559190), tested source `c9b5ceab2939e4c38cd7d10e57b19862c85feed0`:
+
+| Environment | FUSE launch | Extracted launch | Result |
+| --- | --- | --- | --- |
+| Ubuntu 22.04 runner | 21 checks passed; ready in 3088 ms | 21 checks passed; ready in 1704 ms | Final package runs offline; no sandbox-disable switches detected |
+| Ubuntu 24.04.5 runner (`ubuntu24/20260920.314`) | Startup failed | Startup failed | Restricted user namespaces; SUID sandbox helper fallback unavailable |
+| Windows x64 / macOS x64 and arm64 | Not applicable | Not applicable | Existing packaging and platform acceptance jobs passed |
+
+Both Ubuntu 22.04 reports confirm isolated networking, the expected mount/extraction path, demonstration identity, search/favorite/navigation flows, and the minimum-size layout. Native and minimum-window screenshots were also visually inspected. Evidence is in the `AppImage-first-launch-ubuntu-22.04` workflow artifact. AppStream metadata, zstd/static runtime, stable update information and local zsync reconstruction passed before startup testing.
+
+On the Ubuntu 24.04.5 runner, `kernel.apparmor_restrict_unprivileged_userns=1`, `unshare -Ur true` failed to write its UID map, and Chromium reported a fatal SUID sandbox helper ownership/mode error in both launch modes. The Ubuntu 22.04 control reported restriction value `0` and a successful namespace probe. This is consistent with [Ubuntu's documented user-namespace restrictions](https://documentation.ubuntu.com/release-notes/24.04/#unprivileged-user-namespace-restrictions); it is not a claim that every Ubuntu 24.04 installation has identical policy. Host policy was not disabled to make tests pass.
+
+**The overall run remains failed and publication remains gated.** Do not merge or release this branch as universally Linux-compatible without deciding and validating the restricted-host startup approach. The catalog's Ubuntu 22.04 Firejail command is also a distinct environment from these network-namespace tests and still needs a catalog rerun against a future release. The designated catalog screenshot is configured, but the live catalog and its bot comment have not been replaced.
