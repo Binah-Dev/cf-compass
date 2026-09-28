@@ -27,9 +27,9 @@
 
 ![CF Compass problem dashboard](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/dashboard-sky.png)
 
-## v4.2.2 — release preparation
+## Current release: v4.2.2
 
-v4.2.2 focuses on Linux distribution and the first-launch experience. Publication is pending all build and acceptance checks; [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) remains the source for the currently available stable version.
+v4.2.2 focuses on Linux distribution and the first-launch experience. Download it from [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest).
 
 - AppImage packaging gains a static runtime, standard AppStream metadata and a workbench screenshot. Its filename becomes `CF-Compass-4.2.2-x86_64.AppImage`.
 - Stable AppImages include a matching `.AppImage.zsync` for external tools such as AppImageUpdate. There is no in-app automatic updater. Users of v4.2.1 must download v4.2.2 manually once; later updates require a future stable release.
@@ -222,7 +222,7 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 
 ### Desktop downloads
 
-Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the package for your device. These are the planned v4.2.2 filenames; until publication, use the stable version actually listed on that page:
+Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the v4.2.2 package for your device:
 
 ```text
 Windows x64 (recommended installer): CF-Compass-4.2.2-Windows-x64-Setup.exe

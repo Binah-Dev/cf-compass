@@ -72,4 +72,20 @@ Both Ubuntu 22.04 reports confirm isolated networking, the expected mount/extrac
 
 On the Ubuntu 24.04.5 runner, `kernel.apparmor_restrict_unprivileged_userns=1`, `unshare -Ur true` failed to write its UID map, and Chromium reported a fatal SUID sandbox helper ownership/mode error in both launch modes. The Ubuntu 22.04 control reported restriction value `0` and a successful namespace probe. This is consistent with [Ubuntu's documented user-namespace restrictions](https://documentation.ubuntu.com/release-notes/24.04/#unprivileged-user-namespace-restrictions); it is not a claim that every Ubuntu 24.04 installation has identical policy. Host policy was not disabled to make tests pass.
 
-**The overall run remains failed and publication remains gated.** Do not merge or release this branch as universally Linux-compatible without deciding and validating the restricted-host startup approach. The catalog's Ubuntu 22.04 Firejail command is also a distinct environment from these network-namespace tests and still needs a catalog rerun against a future release. The designated catalog screenshot is configured, but the live catalog and its bot comment have not been replaced.
+**That historical run failed and was not release-qualified.** It did not establish restricted-host compatibility. The catalog's Ubuntu 22.04 Firejail command is also a distinct environment from these network-namespace tests and needs its own catalog rerun. The designated catalog screenshot is configured, but the live catalog and its bot comment have not been replaced.
+
+## v4.2.2 candidate: documented restricted-host installation
+
+[Run 36431338208](https://github.com/Binah-Dev/cf-compass/actions/runs/36431338208), source `b1522cdd2bbbca370733ed3565471685b2530ef6`, tests actual version 4.2.2 packages. The Ubuntu 24.04 job keeps its global AppArmor user-namespace restriction enabled. The Debian installer loads its existing application-specific profile. The AppImage is installed root-owned at the documented fixed path and receives a separate exact-path profile. Neither path disables the Chromium sandbox; this explicitly requires administrator-approved installation on restricted hosts.
+
+| Ubuntu 24.04 package / mode | Checks | Workbench ready | Profile |
+| --- | --- | --- | --- |
+| Installed Debian package | 26 passed | 4462 ms | `cf-compass (unconfined)` |
+| AppImage FUSE | 28 passed | 1044 ms | `cf-compass-appimage (unconfined)` |
+| AppImage extraction | 28 passed | 1315 ms | `cf-compass-appimage (unconfined)` |
+
+All three reports record `NoNewPrivs: 1`, `Seccomp: 2`, enabled renderer sandbox preferences, a distinct renderer user namespace, the expected application-specific AppArmor label, and the global restriction still set to `1`. The unrelated `unshare -Ur true` probe still fails with `Operation not permitted`. The two AppImage tests have complete external-network isolation. The installed Debian test instead uses the existing denied proxy and renderer-offline setup; it is not a network-namespace test. Native and minimum-window AppImage screenshots were visually inspected. Startup timings describe this runner only.
+
+The complete candidate run passed, including runtime/update/sidecar validation, policy cleanup, Windows packaging and UI regressions, and both native macOS targets. The dedicated Ubuntu 22.04 job passed 24 checks in each AppImage mode without the extra AppArmor profile: FUSE ready in 3781 ms and extraction ready in 1404 ms, both with external-network isolation and seccomp/no-new-privileges checks. Branch-preview release jobs were intentionally skipped; a tagged run must rebuild and pass draft-download and Windows installer/portable verification before publishing.
+
+An AppArmor `unconfined` profile with `userns` is a scoped authorization exception, not full AppArmor confinement; instructions and its removal are in [Linux installation](linux-appimage.md). These checks do not establish a cross-version update against a future public release, nor do they replace the catalog's independent Firejail test.

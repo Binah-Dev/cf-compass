@@ -38,9 +38,9 @@
 
 <p align="center"><sub>题库工作台 · 天空蓝主题 · 仓库内置虚构演示数据</sub></p>
 
-## v4.2.2（发布准备中）
+## 当前版本：v4.2.2
 
-v4.2.2 聚焦 Linux 分发与首次使用体验。正式发布需等待本次全部构建与验收通过，当前下载以 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) 为准。
+v4.2.2 聚焦 Linux 分发与首次使用体验，下载入口见 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)。
 
 - **更完整的 AppImage 分发**：静态 runtime、标准 AppStream 信息和清晰的工作台截图，AppImage 文件名简化为 `CF-Compass-4.2.2-x86_64.AppImage`。
 - **外部更新工具支持**：稳定版附带 `.AppImage.zsync`，供 AppImageUpdate 等工具使用；不新增应用内自动更新。v4.2.1 用户需先手动下载一次，后续跨版本更新需要未来稳定版发布。
@@ -331,7 +331,7 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 ### 下载桌面版本
 
-打开 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)，按设备下载。以下为 v4.2.2 的目标文件名；正式发布前，请使用该页面实际列出的稳定版：
+打开 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)，按设备下载。v4.2.2 文件如下：
 
 ```text
 Windows x64（推荐安装版）: CF-Compass-4.2.2-Windows-x64-Setup.exe

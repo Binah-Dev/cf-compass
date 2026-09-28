@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.2 - 发布准备中
+## 4.2.2 - 2026-09-28
 
 - Linux AppImage 改用静态 type-2 runtime 与 zstd SquashFS，文件名调整为 `CF-Compass-4.2.2-x86_64.AppImage`；Debian 包保留 `Linux` 文件名段。
 - 稳定版 AppImage 嵌入标准更新信息，并提供匹配的 `.AppImage.zsync`，供外部 AppImageUpdate 等工具使用；应用内不新增自动更新检查。
@@ -8,7 +8,7 @@
 - 完善内置演示工作台的离线首启、演示身份与统计来源标识，补充 AppStream 元数据和固定版本截图地址。
 - 保留 Chromium 沙箱。受用户命名空间限制的 Ubuntu 24.04 使用 AppImage 时，需要一次性管理员许可，为管理员拥有的固定安装路径配置 AppArmor；Ubuntu / Debian 用户优先选择 `.deb`，兼容性以最终验证记录为准。
 - 发布附件仅包含各平台安装包与 AppImage 更新 sidecar，不发布任何 `.sha256` 或 `SHA256SUMS.txt`；CI 内部保留包摘要、重新下载及启动验证。
-- 正式发布仍以本次全部构建与验收通过为前提；验证结果尚待补充。
+- 候选包已通过 Windows 与两种 macOS 原生构建、Ubuntu 22.04 AppImage 双模式首启、Ubuntu 24.04 安装版及单应用授权后的 AppImage 沙箱验证；正式标签包仍须再次通过发布门禁。
 
 ## 4.2.0 - 2026-09-16
 
