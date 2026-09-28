@@ -103,6 +103,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y zsync fuse3 xvfb xauth desktop-file-utils appstream
       - name: Repack AppImage with static runtime and update information
+        id: repack
         if: runner.os == 'Linux'
         run: bash scripts/repack-appimage.sh release
       - name: Verify Windows layout and packaged launch
@@ -146,14 +147,16 @@ jobs:
           set -euo pipefail
           appimage="$(find "$PWD/release" -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
           test -n "$appimage"
-          test -c /dev/fuse && test -r /dev/fuse && test -w /dev/fuse || {
-            echo 'FUSE is unavailable on this runner; mounted-launch verification cannot pass.' >&2
-            exit 1
-          }
+          qa_failed=0
           for mode in fuse extract; do
+            if [[ "$mode" == fuse ]] && ! { test -c /dev/fuse && test -r /dev/fuse && test -w /dev/fuse; }; then
+              echo 'FUSE is unavailable on this runner; mounted-launch verification cannot pass.' >&2
+              qa_failed=1
+              continue
+            fi
             # A temporary network namespace blocks external traffic for every
             # application process; loopback remains available to Playwright.
-            sudo unshare --net -- bash -c '
+            if ! sudo unshare --net -- bash -c '
               set -euo pipefail
               ip link set lo up
               extra_env=()
@@ -162,8 +165,12 @@ jobs:
                 PATH="$2" CF_COMPASS_QA_EXECUTABLE="$3" CF_COMPASS_QA_OUTPUT="$4" \
                 CF_COMPASS_QA_LAUNCH_MODE="$5" CF_COMPASS_QA_NETWORK_ISOLATED=1 \
                 "${extra_env[@]}" xvfb-run -a -s "-screen 0 1920x1080x24" "$6" scripts/qa-first-launch.cjs
-            ' _ "$(id -un)" "$PATH" "$appimage" "$PWD/.qa-output/appimage-$mode" "$mode" "$(command -v node)"
+            ' _ "$(id -un)" "$PATH" "$appimage" "$PWD/.qa-output/appimage-$mode" "$mode" "$(command -v node)"; then
+              echo "AppImage $mode first-launch check failed; continuing to collect the other mode." >&2
+              qa_failed=1
+            fi
           done
+          exit "$qa_failed"
       - name: Upload AppImage first-launch evidence
         if: always() && runner.os == 'Linux'
         uses: actions/upload-artifact@v4
@@ -209,6 +216,7 @@ jobs:
           wait "$pid" || true
           cat "$log"
       - name: Upload ${{ matrix.target }} package
+        if: success() || (runner.os == 'Linux' && steps.repack.outcome == 'success')
         uses: actions/upload-artifact@v4
         with:
           name: CF-Compass-${{ matrix.target }}
@@ -221,7 +229,7 @@ jobs:
             release/*.dmg
 
   verify-appimage-ubuntu-22:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[package-test]'))
+    if: always() && !cancelled() && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[package-test]')))
     needs: package
     runs-on: ubuntu-22.04
     timeout-minutes: 20
@@ -257,12 +265,14 @@ jobs:
           set -euo pipefail
           appimage="$(find "$PWD/release" -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
           test -n "$appimage"
-          test -c /dev/fuse && test -r /dev/fuse && test -w /dev/fuse || {
-            echo 'FUSE is unavailable on this runner; mounted-launch verification cannot pass.' >&2
-            exit 1
-          }
+          qa_failed=0
           for mode in fuse extract; do
-            sudo unshare --net -- bash -c '
+            if [[ "$mode" == fuse ]] && ! { test -c /dev/fuse && test -r /dev/fuse && test -w /dev/fuse; }; then
+              echo 'FUSE is unavailable on this runner; mounted-launch verification cannot pass.' >&2
+              qa_failed=1
+              continue
+            fi
+            if ! sudo unshare --net -- bash -c '
               set -euo pipefail
               ip link set lo up
               extra_env=()
@@ -271,8 +281,12 @@ jobs:
                 PATH="$2" CF_COMPASS_QA_EXECUTABLE="$3" CF_COMPASS_QA_OUTPUT="$4" \
                 CF_COMPASS_QA_LAUNCH_MODE="$5" CF_COMPASS_QA_NETWORK_ISOLATED=1 \
                 "${extra_env[@]}" xvfb-run -a -s "-screen 0 1920x1080x24" "$6" scripts/qa-first-launch.cjs
-            ' _ "$(id -un)" "$PATH" "$appimage" "$PWD/.qa-output/appimage-$mode" "$mode" "$(command -v node)"
+            ' _ "$(id -un)" "$PATH" "$appimage" "$PWD/.qa-output/appimage-$mode" "$mode" "$(command -v node)"; then
+              echo "AppImage $mode first-launch check failed; continuing to collect the other mode." >&2
+              qa_failed=1
+            fi
           done
+          exit "$qa_failed"
       - name: Upload Ubuntu 22.04 first-launch evidence
         if: always()
         uses: actions/upload-artifact@v4

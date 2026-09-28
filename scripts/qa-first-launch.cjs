@@ -5,6 +5,10 @@ const fs = require('node:fs');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
+if (process.platform === 'linux') {
+  // Preserve the browser's native stderr even if it exits before launch resolves.
+  process.env.DEBUG = [process.env.DEBUG, 'pw:browser'].filter(Boolean).join(',');
+}
 const { _electron: electron } = require('playwright-core');
 
 const root = path.resolve(__dirname, '..');
@@ -17,14 +21,33 @@ const networkIsolated = process.env.CF_COMPASS_QA_NETWORK_ISOLATED === '1';
 const executable = process.env.CF_COMPASS_QA_EXECUTABLE;
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'cf-compass-first-launch-'));
 const errors = [];
-const report = { language, expectedLanguage, launchMode, networkIsolated, checks: [], errors };
+const report = { language, expectedLanguage, launchMode, networkIsolated, passed: false, phase: 'initializing', checks: [], errors };
 let app;
 let page;
 let proxy;
 
+function persistReport() {
+  fs.mkdirSync(output, { recursive: true });
+  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
+}
+
+// Playwright may reject its browser-endpoint promise before electron.launch's
+// outer promise settles. Preserve that failure and let the bounded launch/catch
+// finish cleanup; the errors array still prevents this run from passing.
+process.on('unhandledRejection', error => {
+  const message = error?.stack || String(error);
+  errors.push(message);
+  report.failure = message;
+  report.passed = false;
+  process.exitCode = 1;
+  console.error(message);
+  persistReport();
+});
+
 const requireCheck = (name, condition, message) => {
   assert.ok(condition, message || name);
   report.checks.push(name);
+  persistReport();
 };
 
 async function inspectViewport(name) {
@@ -63,6 +86,7 @@ async function main() {
     }
     report.linuxHost = { kernel: os.release(), sysctls, userNamespaceProbe: { status: probe.status, error: probe.error?.message, stderr: (probe.stderr || '').slice(-2000) } };
   }
+  persistReport();
   if (networkIsolated) {
     const external = Object.values(os.networkInterfaces()).flat().filter(address => address && !address.internal);
     requireCheck('network namespace has no external interfaces', external.length === 0);
@@ -85,6 +109,8 @@ async function main() {
   if (launchMode === 'extract') env.APPIMAGE_EXTRACT_AND_RUN = '1';
   const args = [`--lang=${language}`, `--proxy-server=${proxyUrl}`, '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost'];
   if (process.env.CF_COMPASS_QA_SOURCE === '1') args.push(root);
+  report.phase = 'launching';
+  persistReport();
   const startedAt = Date.now();
   app = await electron.launch({ executablePath: executable, args, cwd: root, env, chromiumSandbox: true, timeout: 30000 });
   report.launchArguments = app.process().spawnargs;
@@ -104,6 +130,7 @@ async function main() {
     return { visible: window?.isVisible(), contentSize: window?.getContentSize(), appPath: app.getAppPath(), appDir: process.env.APPDIR || '', version: app.getVersion(), arguments: process.argv, sandboxDisabled: app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-setuid-sandbox') };
   });
   report.native = native;
+  report.phase = 'exercising-workbench';
   requireCheck('application does not disable Chromium sandbox', !native.sandboxDisabled);
   requireCheck('visible main window within 30 seconds', native.visible && report.readyMs < 30000);
   if (launchMode === 'fuse') requireCheck('normal AppImage mount used', /\/\.mount_[^/]+\//.test(`${native.appPath}/`));
@@ -146,17 +173,18 @@ async function main() {
   await inspectViewport('minimum-window');
   requireCheck('no renderer exceptions', errors.length === 0, errors.join('\n'));
   report.passed = true;
+  report.phase = 'complete';
 }
 
 main().catch(async error => {
   report.passed = false;
+  report.phase = 'failed';
   report.failure = error.stack || String(error);
   process.exitCode = 1;
   await page?.screenshot({ path: path.join(output, 'failure.png'), scale: 'css' }).catch(() => {});
 }).finally(async () => {
   await app?.close().catch(() => {});
   await new Promise(resolve => proxy ? proxy.close(resolve) : resolve());
-  fs.mkdirSync(output, { recursive: true });
-  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2));
+  persistReport();
   console.log(JSON.stringify(report, null, 2));
 });
