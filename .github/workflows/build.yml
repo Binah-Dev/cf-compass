@@ -39,6 +39,7 @@ jobs:
       - name: Run focused tests
         run: |
           pnpm exec node --test scripts/test-appimage-release.mjs
+          pnpm exec node --test scripts/test-appimage-apparmor.mjs scripts/test-release-assets.mjs
           pnpm exec node scripts/test-template-summary-format.mjs
           pnpm exec node scripts/test-carrot.mjs
           pnpm exec node scripts/test-analytics.mjs
@@ -69,7 +70,7 @@ jobs:
             os: windows-latest
             command: pnpm exec electron-builder --win nsis portable --x64 --publish never
           - target: Linux-x64
-            os: ubuntu-latest
+            os: ubuntu-24.04
             command: pnpm exec electron-builder --linux AppImage deb --x64 --publish never
           - target: macOS-x64
             os: macos-15-intel
@@ -133,20 +134,43 @@ jobs:
             pnpm exec node "scripts/$check"
             if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
           }
-      - name: Smoke test packaged Linux application
+      - name: Verify installed Debian package with sandbox enabled
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
-          export CF_COMPASS_QA_EXECUTABLE="$PWD/release/linux-unpacked/cf-compass"
-          xvfb-run -a pnpm exec node scripts/qa-native-smoke.cjs
-      - name: Verify final AppImage offline first launch through FUSE and extraction
+          deb="$(find "$PWD/release" -maxdepth 1 -type f -name '*.deb' -print -quit)"
+          test -n "$deb"
+          test "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns)" = 1
+          sudo apt-get install -y "$deb"
+          executable="$(readlink -f /usr/bin/cf-compass)"
+          test -f "$executable" && test -x "$executable"
+          export CF_COMPASS_QA_EXECUTABLE="$executable"
+          export CF_COMPASS_QA_OUTPUT="$PWD/.qa-output/debian-installed"
+          export CF_COMPASS_QA_APPARMOR_PROFILE=cf-compass
+          xvfb-run -a -s '-screen 0 1920x1080x24' pnpm exec node scripts/qa-first-launch.cjs
+      - name: Authorize only the fixed AppImage path on restricted Ubuntu 24.04
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
+          command -v unshare
+          test "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns)" = 1
+          if unshare -Ur true; then echo 'Expected the unrelated namespace probe to remain restricted.' >&2; exit 1; fi
           appimage="$(find "$PWD/release" -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
           test -n "$appimage"
+          sudo install -d -o root -g root -m 755 /opt/cf-compass
+          sudo install -o root -g root -m 755 "$appimage" /opt/cf-compass/CF-Compass.AppImage
+          cmp "$appimage" /opt/cf-compass/CF-Compass.AppImage
+          node scripts/appimage-apparmor.mjs /opt/cf-compass/CF-Compass.AppImage .qa-output/cf-compass-appimage.profile
+          sudo apparmor_parser -r .qa-output/cf-compass-appimage.profile
+      - name: Verify authorized AppImage offline first launch through FUSE and extraction
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          appimage=/opt/cf-compass/CF-Compass.AppImage
+          test -x "$appimage"
           qa_failed=0
           for mode in fuse extract; do
             if [[ "$mode" == fuse ]] && ! { test -c /dev/fuse && test -r /dev/fuse && test -w /dev/fuse; }; then
@@ -164,6 +188,7 @@ jobs:
               exec runuser -u "$1" -- env -u APPIMAGE_EXTRACT_AND_RUN \
                 PATH="$2" CF_COMPASS_QA_EXECUTABLE="$3" CF_COMPASS_QA_OUTPUT="$4" \
                 CF_COMPASS_QA_LAUNCH_MODE="$5" CF_COMPASS_QA_NETWORK_ISOLATED=1 \
+                CF_COMPASS_QA_APPARMOR_PROFILE=cf-compass-appimage \
                 "${extra_env[@]}" xvfb-run -a -s "-screen 0 1920x1080x24" "$6" scripts/qa-first-launch.cjs
             ' _ "$(id -un)" "$PATH" "$appimage" "$PWD/.qa-output/appimage-$mode" "$mode" "$(command -v node)"; then
               echo "AppImage $mode first-launch check failed; continuing to collect the other mode." >&2
@@ -171,12 +196,25 @@ jobs:
             fi
           done
           exit "$qa_failed"
+      - name: Unload scoped policy and verify global restrictions remain enabled
+        if: always() && runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v unshare
+          profile=.qa-output/cf-compass-appimage.profile
+          if [[ -f "$profile" ]]; then sudo apparmor_parser -R "$profile"; fi
+          test "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns)" = 1
+          if unshare -Ur true; then echo 'Unrelated programs unexpectedly gained namespace permission.' >&2; exit 1; fi
       - name: Upload AppImage first-launch evidence
         if: always() && runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
           name: AppImage-first-launch-ubuntu-current
-          path: .qa-output/appimage-*
+          path: |
+            .qa-output/appimage-*
+            .qa-output/debian-installed
+            .qa-output/cf-compass-appimage.profile
           include-hidden-files: true
           if-no-files-found: warn
       - name: Verify macOS application signature
@@ -311,6 +349,8 @@ jobs:
           pattern: CF-Compass-*
           path: release
           merge-multiple: true
+      - name: Verify exact public asset inventory
+        run: node scripts/verify-release-assets.mjs release
       - name: Generate private verification manifest
         run: node scripts/generate-checksums.mjs release --manifest=release-verification-manifest/SHA256SUMS.txt
       - name: Publish GitHub Release
@@ -319,10 +359,7 @@ jobs:
         run: |
           shopt -s nullglob
           assets=(release/*.exe release/*.AppImage release/*.zsync release/*.deb release/*.dmg)
-          if [ "${#assets[@]}" -lt 6 ]; then
-            echo 'Expected all six platform packages before publishing.'
-            exit 1
-          fi
+          node scripts/verify-release-assets.mjs release
           notes="docs/releases/$GITHUB_REF_NAME.md"
           prerelease=""
           case "$GITHUB_REF_NAME" in
@@ -339,6 +376,7 @@ jobs:
         run: |
           mkdir release-verification
           gh release download "$GITHUB_REF_NAME" --dir release-verification
+          node scripts/verify-release-assets.mjs release-verification
           cd release-verification
           sha256sum -c ../release-verification-manifest/SHA256SUMS.txt
   verify-published-windows:

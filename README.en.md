@@ -27,15 +27,17 @@
 
 ![CF Compass problem dashboard](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/dashboard-sky.png)
 
-## Current release: v4.2.1
+## v4.2.2 — release preparation
 
-v4.2.1 introduces a combined Rating estimate for chronological official and virtual sessions. **Official is the default.** Opt in from the home progress panel to let supported unsettled sessions inform training targets, related recommendations and analytics without overwriting official data or real contest results.
+v4.2.2 focuses on Linux distribution and the first-launch experience. Publication is pending all build and acceptance checks; [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) remains the source for the currently available stable version.
 
-- Virtual sessions are processed automatically when historical official Rated comparison data is available. Missing evidence is shown as pending, unavailable or excluded, never fabricated.
-- Daily Training preferences group manual reference Rating (800–3500), weak tags, review bounds and problem counts. Manual overrides apply in official mode; estimated mode uses the cumulative estimate.
-- Rating colors follow the selected score, top-500 active standings show rank directly, narrow cards wrap, and immersive mode preserves the draggable titlebar and window buttons.
+- AppImage packaging gains a static runtime, standard AppStream metadata and a workbench screenshot. Its filename becomes `CF-Compass-4.2.2-x86_64.AppImage`.
+- Stable AppImages include a matching `.AppImage.zsync` for external tools such as AppImageUpdate. There is no in-app automatic updater. Users of v4.2.1 must download v4.2.2 manually once; later updates require a future stable release.
+- The built-in demo workbench is available on first launch without a connection, with clear demo identity and statistics-source labels. Sync your own Codeforces handle when you want to use personal data.
 
-The estimate is a separate virtual-only trajectory, not official Rating or a combined official-plus-virtual career. Repeated contests and prior exposure contribute with warnings; sessions without visible submissions cannot be discovered. Read the [dual Rating rules](./docs/dual-rating.md). Core training and estimates require no AI; third-party AI remains optional.
+The combined Rating estimate, Daily Training, contest reviews and local notes from v4.2.1 remain available. The estimate processes eligible official and virtual sessions chronologically as a training reference without overwriting official data; a manual training rating takes priority. See the [v4.2.1 rules](./docs/releases/v4.2.1.md). Core training and estimates require no AI.
+
+Ubuntu / Debian users should prefer `.deb`. On Ubuntu 24.04 hosts that restrict user namespaces, AppImage requires a one-time administrator-approved installation at a fixed path with a matching AppArmor profile. See the [Linux installation and sandbox guide](./docs/linux-appimage.md); AppImage compatibility is not universal across Linux systems.
 
 | v4 highlight | What it enables |
 | --- | --- |
@@ -44,7 +46,7 @@ The estimate is a separate virtual-only trajectory, not official Rating or a com
 | One learning record | Use the same notes and target list from the problem set, daily training, reviews, contests, and recommendations. |
 | Customizable workbench | Hide, restore, and reorder rail items; choose a UI scale; and review contests in a full-page layout. |
 
-See the [v4.2.1 release notes](./docs/releases/v4.2.1.md) and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
+See the [v4.2.2 release notes](./docs/releases/v4.2.2.md) and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
 
 ## Why CF Compass?
 
@@ -220,18 +222,31 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 
 ### Desktop downloads
 
-Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the package for your device:
+Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the package for your device. These are the planned v4.2.2 filenames; until publication, use the stable version actually listed on that page:
 
 ```text
-Windows x64 (recommended installer): CF-Compass-4.2.1-Windows-x64-Setup.exe
-Windows x64 (portable):              CF-Compass-4.2.1-Windows-x64-portable.exe
-Linux x64:                           CF-Compass-4.2.1-Linux-x86_64.AppImage
-Linux Debian x64:                    CF-Compass-4.2.1-Linux-amd64.deb
-macOS Intel:                         CF-Compass-4.2.1-macOS-x64.dmg
-macOS Apple Silicon:                 CF-Compass-4.2.1-macOS-arm64.dmg
+Windows x64 (recommended installer): CF-Compass-4.2.2-Windows-x64-Setup.exe
+Windows x64 (portable):              CF-Compass-4.2.2-Windows-x64-portable.exe
+Linux x64 AppImage:                  CF-Compass-4.2.2-x86_64.AppImage
+Linux AppImage update data:          CF-Compass-4.2.2-x86_64.AppImage.zsync
+Linux Debian x64:                    CF-Compass-4.2.2-Linux-amd64.deb
+macOS Intel:                         CF-Compass-4.2.2-macOS-x64.dmg
+macOS Apple Silicon:                 CF-Compass-4.2.2-macOS-arm64.dmg
 ```
 
-Windows users should normally choose the `Setup.exe` installer. It extracts the application once during installation, so later launches start directly from the installed files. The `portable.exe` build requires no installation, but it extracts its program files on every launch and can be noticeably slower on low-end disks or while antivirus scanning is active. The Windows, Linux, and macOS v4.2.1 packages are rebuilt from the same release commit on native runners. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
+Windows users should normally choose the `Setup.exe` installer. It extracts the application once during installation, so later launches start directly from the installed files. The `portable.exe` build requires no installation, but it extracts its program files on every launch and can be noticeably slower on low-end disks or while antivirus scanning is active. Packages are built from the same version commit on native runners and made available only after the release gates pass.
+
+Ubuntu / Debian users should prefer `.deb` and install or upgrade it through the system package manager. AppImage is available for portable use. Its static runtime removes the dependency on system `libfuse2`, but mounted execution still needs an accessible FUSE device, helper tools and a compatible desktop environment. On restricted Ubuntu 24.04 hosts, follow the [Linux installation and sandbox guide](./docs/linux-appimage.md) to install at the root-owned `/opt/cf-compass/CF-Compass.AppImage` and grant AppArmor permission for that exact path. The application does not silently disable the Chromium sandbox.
+
+macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
+
+### Linux upgrades
+
+The v4.2.1 AppImage has no standard update metadata, so **download v4.2.2 manually once** from Releases. Stable AppImages starting with v4.2.2 embed an update target for external tools such as AppImageUpdate, which use the adjacent `.AppImage.zsync` release asset to locate later stable versions. The sidecar is update data, not another installer, and does not need to be run. CF Compass itself does not automatically check for, download or install updates.
+
+An actual cross-version update requires a future stable release and its matching sidecar. Metadata checks and local reconstruction do not establish that a live cross-version upgrade has succeeded. With the Ubuntu 24.04 fixed-path installation above, update a copy in a user-writable directory first, then have an administrator install it at the fixed path; do not run an updater GUI as root. For `.deb`, download the newer package and upgrade through the system package manager. Existing user data and local asset settings are retained; export important data from Data Center before upgrading.
+
+### Download verification and system prompts
 
 The latest Release no longer attaches separate `.sha256` files or `SHA256SUMS.txt`. If you want to check a download, compare its local SHA-256 with the digest GitHub displays beneath that release asset: use `Get-FileHash -Algorithm SHA256 <file>` on Windows, `sha256sum <file>` on Linux, or `shasum -a 256 <file>` on macOS.
 

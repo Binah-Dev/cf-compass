@@ -180,6 +180,37 @@ test("AppRun transformation rejects changed upstream probes and preserves genera
 });
 
 const testBash = process.env.CF_COMPASS_TEST_BASH || (process.platform === "win32" ? null : "bash");
+test("repacking rejects an unrelated stale update sidecar before downloading or replacing the package", { skip: !testBash }, async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "cf-compass-stale-sidecar-"));
+  const imagePath = path.join(directory, "CF-Compass-4.2.2-x86_64.AppImage");
+  const stalePath = path.join(directory, "CF-Compass-4.2.1-x86_64.AppImage.zsync");
+  try {
+    await writeFile(imagePath, "original-package");
+    await writeFile(stalePath, "stale-control-file");
+    // These tools are irrelevant to the preflight. Fail distinctly if the
+    // script reaches them instead of rejecting the dirty release directory.
+    const run = spawnSync(testBash, ["-c", [
+      'export PATH="/usr/bin:$PATH"',
+      "curl() { return 99; }",
+      "sha256sum() { return 99; }",
+      "readelf() { return 99; }",
+      "appstreamcli() { return 99; }",
+      'source "$1" "$2"',
+    ].join("\n"), "--", path.join(root, "scripts/repack-appimage.sh").replaceAll("\\", "/"), directory.replaceAll("\\", "/")], {
+      encoding: "utf8",
+      env: { ...process.env, GITHUB_REF: "", GITHUB_REPOSITORY: "", CF_COMPASS_APPIMAGE_STABLE_UPDATE_PREVIEW: "0" },
+    });
+    assert.equal(run.status, 1, run.stderr);
+    assert.match(run.stderr, /An update sidecar already exists/);
+    assert.equal(await readFile(imagePath, "utf8"), "original-package");
+    assert.equal(await readFile(stalePath, "utf8"), "stale-control-file");
+  } finally {
+    await unlink(imagePath).catch(() => {});
+    await unlink(stalePath).catch(() => {});
+    await rmdir(directory);
+  }
+});
+
 test("generated AppRun forwards arguments and environment without silently disabling sandboxing", { skip: !testBash }, async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "cf-compass-launcher space-"));
   const launcherPath = path.join(directory, "AppRun");

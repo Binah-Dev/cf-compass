@@ -26,7 +26,8 @@ fi
 version="${name#CF-Compass-}"
 version="${version%-x86_64.AppImage}"
 update_channel="$(node "$script_dir/verify-appimage.mjs" --resolve-update-channel "$version")"
-if [[ -e "$appimage.zsync" ]]; then
+mapfile -d '' -t existing_sidecars < <(find "$release_dir" -maxdepth 1 -name '*.zsync' -print0)
+if (( ${#existing_sidecars[@]} != 0 )); then
   echo 'An update sidecar already exists; use a clean build output to avoid mixing releases.' >&2
   exit 1
 fi

@@ -78,7 +78,7 @@ async function main() {
   if (process.platform === 'linux') {
     // Diagnostic only: a per-application AppArmor profile can allow Electron
     // even when the generic unshare probe is denied. Never weaken host policy.
-    const probe = spawnSync('unshare', ['-Ur', 'true'], { encoding: 'utf8', timeout: 5000 });
+    const probe = spawnSync('unshare', ['-Ur', 'true'], { encoding: 'utf8', timeout: 5000, env: { ...process.env, LC_ALL: 'C' } });
     const sysctls = {};
     for (const setting of ['kernel/unprivileged_userns_clone', 'kernel/apparmor_restrict_unprivileged_userns', 'user/max_user_namespaces']) {
       try { sysctls[setting] = fs.readFileSync(`/proc/sys/${setting}`, 'utf8').trim(); }
@@ -127,11 +127,43 @@ async function main() {
   report.readyMs = Date.now() - startedAt;
   const native = await app.evaluate(({ app, BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows().find(candidate => !candidate.isDestroyed());
-    return { visible: window?.isVisible(), contentSize: window?.getContentSize(), appPath: app.getAppPath(), appDir: process.env.APPDIR || '', version: app.getVersion(), arguments: process.argv, sandboxDisabled: app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-setuid-sandbox') };
+    const linuxSandbox = {};
+    if (process.platform === 'linux') {
+      const fs = process.getBuiltinModule('fs');
+      const rendererPid = window.webContents.getOSProcessId();
+      linuxSandbox.rendererPid = rendererPid;
+      linuxSandbox.appArmorLabel = fs.readFileSync('/proc/self/attr/current', 'utf8').trim();
+      linuxSandbox.rendererStatus = fs.readFileSync(`/proc/${rendererPid}/status`, 'utf8').split('\n').filter(line => /^(NoNewPrivs|Seccomp|Seccomp_filters):/.test(line));
+      linuxSandbox.mainUserNamespace = fs.readlinkSync('/proc/self/ns/user');
+      try { linuxSandbox.rendererUserNamespace = fs.readlinkSync(`/proc/${rendererPid}/ns/user`); }
+      catch (error) { linuxSandbox.userNamespaceReadError = error.code; }
+    }
+    return { visible: window?.isVisible(), contentSize: window?.getContentSize(), appPath: app.getAppPath(), appDir: process.env.APPDIR || '', version: app.getVersion(), arguments: process.argv, sandboxDisabled: app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-setuid-sandbox'), rendererSandboxPreference: window.webContents.getLastWebPreferences().sandbox, linuxSandbox };
   });
   report.native = native;
+  // Sandboxed children can deliberately deny ptrace-style /proc inspection.
+  // Only the CI harness (never the application) may use its existing read-only
+  // sudo capability to inspect that namespace when testing a scoped profile.
+  if (process.platform === 'linux' && process.env.CF_COMPASS_QA_APPARMOR_PROFILE && !native.linuxSandbox.rendererUserNamespace) {
+    const namespace = spawnSync('sudo', ['-n', 'readlink', `/proc/${native.linuxSandbox.rendererPid}/ns/user`], { encoding: 'utf8', timeout: 5000 });
+    requireCheck('CI can inspect the sandbox namespace', namespace.status === 0);
+    native.linuxSandbox.rendererUserNamespace = namespace.stdout.trim();
+    native.linuxSandbox.namespaceInspection = 'privileged read-only CI probe';
+  }
   report.phase = 'exercising-workbench';
   requireCheck('application does not disable Chromium sandbox', !native.sandboxDisabled);
+  requireCheck('renderer sandbox preference remains enabled', native.rendererSandboxPreference === true);
+  if (process.platform === 'linux') {
+    requireCheck('renderer has a seccomp filter', native.linuxSandbox.rendererStatus.some(line => /^Seccomp:\s+2$/.test(line)));
+    requireCheck('renderer prevents gaining privileges', native.linuxSandbox.rendererStatus.some(line => /^NoNewPrivs:\s+1$/.test(line)));
+    if (process.env.CF_COMPASS_QA_APPARMOR_PROFILE) {
+      requireCheck('application-specific AppArmor profile attached', native.linuxSandbox.appArmorLabel.startsWith(`${process.env.CF_COMPASS_QA_APPARMOR_PROFILE} `) || native.linuxSandbox.appArmorLabel === process.env.CF_COMPASS_QA_APPARMOR_PROFILE);
+      requireCheck('host user namespace restriction remains enabled', report.linuxHost.sysctls['kernel/apparmor_restrict_unprivileged_userns'] === '1');
+      const probe = report.linuxHost.userNamespaceProbe;
+      requireCheck('unrelated namespace probe remains denied', probe.status === 1 && !probe.error && /Operation not permitted|Permission denied/.test(probe.stderr));
+      requireCheck('renderer uses a distinct user namespace', native.linuxSandbox.rendererUserNamespace !== native.linuxSandbox.mainUserNamespace);
+    }
+  }
   requireCheck('visible main window within 30 seconds', native.visible && report.readyMs < 30000);
   if (launchMode === 'fuse') requireCheck('normal AppImage mount used', /\/\.mount_[^/]+\//.test(`${native.appPath}/`));
   if (launchMode === 'extract') requireCheck('AppImage extraction used', Boolean(native.appDir) && !/\/\.mount_/.test(native.appDir));
