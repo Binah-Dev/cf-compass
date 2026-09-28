@@ -45,3 +45,9 @@ The screenshot is committed separately at `ef58752557dde0e4cb041d835a98f19bedf50
 ## First cloud run
 
 [Run 36419730247](https://github.com/Binah-Dev/cf-compass/actions/runs/36419730247), source `ae59484a237fed22a3fda48fba1bdd338fa7f658`: verification, Windows packaging/UI regression, and both macOS targets passed. Linux repacking failed because the pinned appimagetool bundled a zstd-only mksquashfs while the script requested gzip. FUSE/extraction tests and Ubuntu 22.04 validation were not reached. Release jobs were skipped. This failure does not constitute a Linux startup result.
+
+## Second cloud run
+
+[Run 36420982294](https://github.com/Binah-Dev/cf-compass/actions/runs/36420982294), source `c3f1a163cca5010275d9e0f6d316cd485fef6d4f`: AppStream validation, zstd repacking, static-runtime/update metadata checks and zsync reconstruction passed. The final AppImage mounted through FUSE in the network-isolated test and displayed the workbench in 1362 ms. Acceptance then failed because the internal application command line contained a sandbox-disable switch, despite the external test launcher preserving the sandbox. The builder-generated AppRun and desktop-entry defaults require correction before accepting the package. Extraction and Ubuntu 22.04 tests were not reached. Windows/macOS targets passed; release jobs were skipped.
+
+Subsequent Linux reports record the same test user's namespace probe and relevant kernel policy values as diagnostics. These observations do not change host security policy, disable Chromium sandboxing, or excuse a failed startup.

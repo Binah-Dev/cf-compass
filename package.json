@@ -137,7 +137,8 @@
       "artifactName": "CF-Compass-${version}-Linux-${arch}.${ext}"
     },
     "appImage": {
-      "artifactName": "CF-Compass-${version}-${arch}.${ext}"
+      "artifactName": "CF-Compass-${version}-${arch}.${ext}",
+      "executableArgs": []
     },
     "mac": {
       "icon": "build/icon.png",

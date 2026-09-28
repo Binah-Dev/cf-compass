@@ -1,14 +1,20 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, rmdir, unlink, writeFile } from "node:fs/promises";
+import { execFileSync, spawnSync } from "node:child_process";
+import { chmod, mkdir, mkdtemp, readFile, readdir, rmdir, unlink, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { inspectAppImage, resolveAppImageUpdateChannel, stableUpdateInformation, verifyAppImageRelease, verifyZsync } from "./verify-appimage.mjs";
+import { prepareAppImageLauncher, preserveAppImageSandbox } from "./prepare-appimage-launcher.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const require = createRequire(import.meta.url);
+const builderRequire = createRequire(require.resolve("electron-builder"));
+const { generateAppRunScript } = builderRequire("app-builder-lib/out/targets/appimage/appImageUtil.js");
+const launcherConfig = { ExecutableName: "cf-compass", ProductName: "CF Compass", ProductFilename: "CF Compass", DesktopFileName: "cf-compass.desktop", ResourceName: "appimagekit-cf-compass" };
 const previewEnvironment = {
   GITHUB_REPOSITORY: "Binah-Dev/cf-compass",
   GITHUB_EVENT_NAME: "workflow_dispatch",
@@ -160,6 +166,56 @@ test("AppImage uses the catalog-compatible name without changing Debian names", 
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(pkg.build.appImage.artifactName, "CF-Compass-${version}-${arch}.${ext}");
   assert.equal(pkg.build.linux.artifactName, "CF-Compass-${version}-Linux-${arch}.${ext}");
+  assert.deepEqual(pkg.build.appImage.executableArgs, []);
+});
+
+test("AppRun transformation rejects changed upstream probes and preserves generated environment handling", () => {
+  const generated = generateAppRunScript(launcherConfig);
+  const transformed = preserveAppImageSandbox(generated);
+  assert.equal(transformed.slice(0, transformed.indexOf("# Preserve Chromium")), generated.slice(0, generated.indexOf("HAVE_NO_SANDBOX=0")));
+  assert.equal(transformed.slice(transformed.indexOf("\natexit()\n")), generated.slice(generated.indexOf("\natexit()\n")));
+  assert.throws(() => preserveAppImageSandbox(generated.replace("! unshare -Ur true", "! different-probe")), /sandbox probe changed/);
+  assert.throws(() => preserveAppImageSandbox(generated.replace("HAVE_NO_SANDBOX=0\n", "HAVE_NO_SANDBOX=0\nnew_launcher_setup\n")), /sandbox probe changed/);
+  assert.throws(() => preserveAppImageSandbox(`${generated}\nexec cf-compass --disable-setuid-sandbox\n`), /still contains/);
+});
+
+const testBash = process.env.CF_COMPASS_TEST_BASH || (process.platform === "win32" ? null : "bash");
+test("generated AppRun forwards arguments and environment without silently disabling sandboxing", { skip: !testBash }, async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "cf-compass-launcher space-"));
+  const launcherPath = path.join(directory, "AppRun");
+  const desktopPath = path.join(directory, "cf-compass.desktop");
+  const binaryPath = path.join(directory, "cf-compass");
+  const probePath = path.join(directory, "unshare");
+  try {
+    await writeFile(launcherPath, generateAppRunScript(launcherConfig));
+    await writeFile(binaryPath, 'printf "ARG=%s\\n" "$@"\nprintf "LD=%s\\nXDG=%s\\n" "$LD_LIBRARY_PATH" "$XDG_DATA_DIRS"\n');
+    await writeFile(probePath, "exit 42\n");
+    await chmod(binaryPath, 0o755);
+    await chmod(probePath, 0o755);
+    await writeFile(desktopPath, "[Desktop Entry]\nExec=AppRun --no-sandbox %U\n");
+    await assert.rejects(prepareAppImageLauncher(directory), /Desktop entry disables sandboxing/);
+    await writeFile(desktopPath, "[Desktop Entry]\nExec=AppRun %U\n");
+    const appdir = process.platform === "win32"
+      ? directory.replace(/^([A-Za-z]):[\\/]/, (_, drive) => `/${drive.toLowerCase()}/`).replaceAll("\\", "/")
+      : directory;
+    const args = ["--title=two words", "literal $(not-a-command)", "--user-data-dir=/tmp/qa profile"];
+    const run = () => spawnSync(testBash, [launcherPath, ...args], {
+      encoding: "utf8",
+      env: { ...process.env, APPDIR: appdir, APPIMAGE: "/tmp/test.AppImage", APPIMAGE_EXIT_AFTER_INSTALL: "", LD_LIBRARY_PATH: "/existing/libs", XDG_DATA_DIRS: "/existing/data" },
+    });
+    const original = run();
+    assert.equal(original.status, 0, original.stderr);
+    assert.ok(original.stdout.includes("ARG=--no-sandbox\n"), "The upstream launcher should reproduce the failed-probe fallback");
+    await prepareAppImageLauncher(directory);
+    const corrected = run();
+    assert.equal(corrected.status, 0, corrected.stderr);
+    assert.deepEqual(corrected.stdout.split("\n").filter(line => line.startsWith("ARG=")), args.map(arg => `ARG=${arg}`));
+    assert.ok(corrected.stdout.includes(`LD=${appdir}/usr/lib:/existing/libs\n`));
+    assert.ok(corrected.stdout.includes(`XDG=${appdir}/usr/share/:/existing/data:/usr/share/gnome:/usr/local/share/:/usr/share/\n`));
+  } finally {
+    for (const file of [launcherPath, desktopPath, binaryPath, probePath]) await unlink(file).catch(() => {});
+    await rmdir(directory);
+  }
 });
 
 test("AppStream screenshot matches the immutable demo asset and packaged desktop entry", async () => {

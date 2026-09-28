@@ -1,5 +1,6 @@
 // Exercise the real first-run workbench without preloading account/cache fixtures.
 const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const http = require('node:http');
 const os = require('node:os');
@@ -51,6 +52,17 @@ async function inspectViewport(name) {
 async function main() {
   assert.ok(executable && fs.existsSync(executable), 'Set CF_COMPASS_QA_EXECUTABLE to the desktop executable or final AppImage.');
   fs.mkdirSync(output, { recursive: true });
+  if (process.platform === 'linux') {
+    // Diagnostic only: a per-application AppArmor profile can allow Electron
+    // even when the generic unshare probe is denied. Never weaken host policy.
+    const probe = spawnSync('unshare', ['-Ur', 'true'], { encoding: 'utf8', timeout: 5000 });
+    const sysctls = {};
+    for (const setting of ['kernel/unprivileged_userns_clone', 'kernel/apparmor_restrict_unprivileged_userns', 'user/max_user_namespaces']) {
+      try { sysctls[setting] = fs.readFileSync(`/proc/sys/${setting}`, 'utf8').trim(); }
+      catch { sysctls[setting] = 'unavailable'; }
+    }
+    report.linuxHost = { kernel: os.release(), sysctls, userNamespaceProbe: { status: probe.status, error: probe.error?.message, stderr: (probe.stderr || '').slice(-2000) } };
+  }
   if (networkIsolated) {
     const external = Object.values(os.networkInterfaces()).flat().filter(address => address && !address.internal);
     requireCheck('network namespace has no external interfaces', external.length === 0);
@@ -89,7 +101,7 @@ async function main() {
   report.readyMs = Date.now() - startedAt;
   const native = await app.evaluate(({ app, BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows().find(candidate => !candidate.isDestroyed());
-    return { visible: window?.isVisible(), contentSize: window?.getContentSize(), appPath: app.getAppPath(), appDir: process.env.APPDIR || '', version: app.getVersion(), sandboxDisabled: app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-setuid-sandbox') };
+    return { visible: window?.isVisible(), contentSize: window?.getContentSize(), appPath: app.getAppPath(), appDir: process.env.APPDIR || '', version: app.getVersion(), arguments: process.argv, sandboxDisabled: app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-setuid-sandbox') };
   });
   report.native = native;
   requireCheck('application does not disable Chromium sandbox', !native.sandboxDisabled);

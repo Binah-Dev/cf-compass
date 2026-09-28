@@ -69,6 +69,7 @@ if [[ ! -f "$tmp/squashfs-root/AppRun" ]]; then
 fi
 
 appdir="$tmp/squashfs-root"
+node "$script_dir/prepare-appimage-launcher.mjs" "$appdir"
 metadata="$script_dir/../build/com.cfcompass.desktop.appdata.xml"
 metadata_relative='usr/share/metainfo/com.cfcompass.desktop.appdata.xml'
 if [[ ! -f "$appdir/cf-compass.desktop" ]]; then
@@ -117,6 +118,10 @@ node "$script_dir/verify-appimage.mjs" "$output" "--update-channel=$update_chann
 mkdir "$tmp/verify-metadata"
 (cd "$tmp/verify-metadata" && "$output/$name" --appimage-extract "$metadata_relative" >/dev/null)
 cmp -- "$metadata" "$tmp/verify-metadata/squashfs-root/$metadata_relative"
+for launcher_file in AppRun cf-compass.desktop; do
+  (cd "$tmp/verify-metadata" && "$output/$name" --appimage-extract "$launcher_file" >/dev/null)
+  cmp -- "$appdir/$launcher_file" "$tmp/verify-metadata/squashfs-root/$launcher_file"
+done
 if [[ "$update_channel" == stable ]]; then
   mkdir "$tmp/zsync-check"
   # A complete local seed must reconstruct without downloading any data. This
