@@ -93,7 +93,8 @@ export function inspectAppImage(image) {
   assert.equal(image.toString("ascii", payloadOffset, payloadOffset + 4), "hsqs", "Expected SquashFS payload at runtime offset");
   assert.ok(payloadOffset + 96 <= image.length, "Truncated SquashFS superblock");
   assert.equal(image.readUInt16LE(payloadOffset + 28), 4, "Expected SquashFS version 4");
-  return { payloadOffset, updateInformation };
+  assert.equal(image.readUInt16LE(payloadOffset + 20), 6, "Expected zstd compression supported by the pinned AppImage tools");
+  return { payloadOffset, updateInformation, compression: "zstd" };
 }
 
 export function verifyZsync(image, sidecar, filename) {

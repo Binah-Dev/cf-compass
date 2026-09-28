@@ -35,3 +35,13 @@ The native 1500 x 940 first screen and 1040 x 700 minimum window were visually i
 Related avatar/frame/layout tests passed (9 tests), as did training-profile regression checks (12 tests). The production build passed with the existing nonblocking mixed static/dynamic-import warning for `ProblemNoteDrawer`.
 
 **Pending:** actual Linux build, FUSE-mounted launch, extracted launch, network-isolated screenshots, stable update metadata and local zsync reconstruction in CI. WSL was unavailable on the Windows host; no Linux compatibility result is claimed. No release was created and no catalog comment was sent as part of these local checks.
+
+## Selected catalog screenshot
+
+`docs/screenshots/appimage-workbench.png` is an unedited capture of the real workbench with the built-in `compass_demo` dataset. The owner chose an equivalent demo-account view instead of publishing the personal account in the supplied reference. The public-facing screenshot uses English and preserves the category/problem/progress layout. It was captured from the Windows source application and is a product illustration, not evidence of Linux compatibility.
+
+The screenshot is committed separately at `ef58752557dde0e4cb041d835a98f19bedf50c64` so AppStream metadata can reference an existing immutable public image URL. Catalog-page screenshot selection and the catalog bot's automatically captured test screenshot are separate. Changing the test branch does not update the public catalog or the existing PR comment; a future release and catalog regeneration are still required.
+
+## First cloud run
+
+[Run 36419730247](https://github.com/Binah-Dev/cf-compass/actions/runs/36419730247), source `ae59484a237fed22a3fda48fba1bdd338fa7f658`: verification, Windows packaging/UI regression, and both macOS targets passed. Linux repacking failed because the pinned appimagetool bundled a zstd-only mksquashfs while the script requested gzip. FUSE/extraction tests and Ubuntu 22.04 validation were not reached. Release jobs were skipped. This failure does not constitute a Linux startup result.

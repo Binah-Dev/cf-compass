@@ -3,7 +3,7 @@ set -euo pipefail
 export LC_ALL=C
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-for command in curl sha256sum readelf node git; do
+for command in curl sha256sum readelf node git appstreamcli; do
   command -v "$command" >/dev/null || { echo "Required tool is missing: $command" >&2; exit 1; }
 done
 
@@ -68,7 +68,23 @@ if [[ ! -f "$tmp/squashfs-root/AppRun" ]]; then
   exit 1
 fi
 
-args=(--runtime-file "$runtime" --comp gzip --file-url "$name")
+appdir="$tmp/squashfs-root"
+metadata="$script_dir/../build/com.cfcompass.desktop.appdata.xml"
+metadata_relative='usr/share/metainfo/com.cfcompass.desktop.appdata.xml'
+if [[ ! -f "$appdir/cf-compass.desktop" ]]; then
+  echo 'The AppImage desktop entry must match the AppStream launchable cf-compass.desktop.' >&2
+  exit 1
+fi
+install -Dm644 "$metadata" "$appdir/$metadata_relative"
+appstreamcli --version
+appstreamcli validate --no-net "$appdir/$metadata_relative"
+
+# The pinned appimagetool bundles mksquashfs with ZSTD_SUPPORT=1 and
+# GZIP_SUPPORT=0. The pinned static runtime links libzstd for decompression.
+# XML is validated above and its launchable is checked against the real AppDir.
+# Skip the tool's filename guessing / validate-tree, which expects a traditional
+# system installation layout rather than electron-builder's root desktop entry.
+args=(--runtime-file "$runtime" --comp zstd --file-url "$name" --no-appstream)
 if [[ "$update_channel" == stable ]]; then
   update_info='gh-releases-zsync|Binah-Dev|cf-compass|latest|CF-Compass-*-x86_64.AppImage.zsync'
   if ! command -v zsyncmake >/dev/null || ! command -v zsync >/dev/null; then
@@ -98,6 +114,9 @@ if [[ "$update_channel" == stable ]]; then
   fi
 fi
 node "$script_dir/verify-appimage.mjs" "$output" "--update-channel=$update_channel"
+mkdir "$tmp/verify-metadata"
+(cd "$tmp/verify-metadata" && "$output/$name" --appimage-extract "$metadata_relative" >/dev/null)
+cmp -- "$metadata" "$tmp/verify-metadata/squashfs-root/$metadata_relative"
 if [[ "$update_channel" == stable ]]; then
   mkdir "$tmp/zsync-check"
   # A complete local seed must reconstruct without downloading any data. This

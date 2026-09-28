@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.cfcompass.desktop</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>CF Compass</name>
+  <summary>Practice competitive programming with a local-first workbench</summary>
+  <description>
+    <p>CF Compass is a local-first companion for competitive programming practice. Browse and filter problems, organize study plans, review contests, and follow your training progress in one desktop workbench.</p>
+    <p>The built-in demonstration workspace is available offline. Connect a Codeforces handle when you want to synchronize public problem and submission data.</p>
+  </description>
+  <launchable type="desktop-id">cf-compass.desktop</launchable>
+  <url type="homepage">https://github.com/Binah-Dev/cf-compass</url>
+  <url type="bugtracker">https://github.com/Binah-Dev/cf-compass/issues</url>
+  <categories>
+    <category>Education</category>
+  </categories>
+  <content_rating type="oars-1.1" />
+  <screenshots>
+    <screenshot type="default">
+      <image type="source" width="1500" height="940">https://raw.githubusercontent.com/Binah-Dev/cf-compass/ef58752557dde0e4cb041d835a98f19bedf50c64/docs/screenshots/appimage-workbench.png</image>
+      <caption>The main workbench with built-in demonstration data</caption>
+    </screenshot>
+  </screenshots>
+</component>

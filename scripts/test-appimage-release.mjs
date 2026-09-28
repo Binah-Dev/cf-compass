@@ -64,6 +64,7 @@ function sampleImage(updateInformation = stableUpdateInformation) {
   image.writeBigUInt64LE(1024n, sectionOffset + 128 + 32);
   image.write(updateInformation, 512, "ascii");
   image.write("hsqs", payloadOffset, "ascii");
+  image.writeUInt16LE(6, payloadOffset + 20); // Zstandard
   image.writeUInt16LE(4, payloadOffset + 28);
   return image;
 }
@@ -86,7 +87,7 @@ function sampleZsync(image, filename, overrides = {}) {
 }
 
 test("reads static type-2 SquashFS and the embedded update channel", () => {
-  assert.deepEqual(inspectAppImage(sampleImage()), { payloadOffset: 1728, updateInformation: stableUpdateInformation });
+  assert.deepEqual(inspectAppImage(sampleImage()), { payloadOffset: 1728, updateInformation: stableUpdateInformation, compression: "zstd" });
   assert.equal(inspectAppImage(sampleImage("")).updateInformation, "");
 });
 
@@ -103,6 +104,9 @@ test("rejects dynamic runtimes and non-SquashFS payloads", () => {
   image.write("DWAR", 1728);
   assert.throws(() => inspectAppImage(image), /SquashFS payload/);
   assert.throws(() => inspectAppImage(image.subarray(0, 100)), /program table/);
+  const gzipImage = sampleImage();
+  gzipImage.writeUInt16LE(1, 1728 + 20);
+  assert.throws(() => inspectAppImage(gzipImage), /Expected zstd compression/);
 });
 
 test("accepts static PIE relocation metadata without host library dependencies", () => {
@@ -156,6 +160,18 @@ test("AppImage uses the catalog-compatible name without changing Debian names", 
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(pkg.build.appImage.artifactName, "CF-Compass-${version}-${arch}.${ext}");
   assert.equal(pkg.build.linux.artifactName, "CF-Compass-${version}-Linux-${arch}.${ext}");
+});
+
+test("AppStream screenshot matches the immutable demo asset and packaged desktop entry", async () => {
+  const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+  const metadata = await readFile(path.join(root, "build/com.cfcompass.desktop.appdata.xml"), "utf8");
+  assert.ok(metadata.includes(`<id>${pkg.build.appId}</id>`));
+  assert.ok(metadata.includes(`<launchable type="desktop-id">${pkg.desktopName}</launchable>`));
+  assert.equal(pkg.build.linux.syncDesktopName, true);
+  assert.match(metadata, /<screenshot type="default">\s*<image type="source" width="1500" height="940">https:\/\/raw\.githubusercontent\.com\/Binah-Dev\/cf-compass\/[a-f0-9]{40}\/docs\/screenshots\/appimage-workbench\.png<\/image>/);
+  const screenshot = await readFile(path.join(root, "docs/screenshots/appimage-workbench.png"));
+  assert.equal(screenshot.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+  assert.deepEqual([screenshot.readUInt32BE(16), screenshot.readUInt32BE(20)], [1500, 940]);
 });
 
 test("the private checksum manifest covers the update sidecar without publishing checksum files", async () => {

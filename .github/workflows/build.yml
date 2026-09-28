@@ -101,7 +101,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y zsync fuse3 xvfb xauth desktop-file-utils
+          sudo apt-get install -y zsync fuse3 xvfb xauth desktop-file-utils appstream
       - name: Repack AppImage with static runtime and update information
         if: runner.os == 'Linux'
         run: bash scripts/repack-appimage.sh release
