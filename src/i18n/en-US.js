@@ -200,6 +200,7 @@ export const exactMessages = {
   "月": "Month",
   "正在同步…": "Syncing…",
   "演示模式 · 尚未同步": "Demo mode · Not synced",
+  "演示模式": "Demo mode",
   "输入 Codeforces Handle": "Enter Codeforces handle",
   "双助理终端已连接": "Dual assistant terminal connected",
   "暂时隐藏工作面板，只看记忆大厅": "Hide work panels and view the lobby",
@@ -343,6 +344,7 @@ export const exactMessages = {
   "本月新解": "Solved This Month",
   "提交总数": "Total Submissions",
   "数据来自 Codeforces 官方 API": "Data from the official Codeforces API",
+  "内置演示数据 · 同步后显示真实记录": "Built-in demo data · Sync to show your records",
 
   "复习题目": "Review Problems",
   "复习时间轴": "Review Timeline",

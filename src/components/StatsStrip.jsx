@@ -9,7 +9,7 @@ const items = [
   { key: "submissions", label: "提交总数", Icon: Send, tone: "violet" },
 ];
 
-export default function StatsStrip({ overview }) {
+export default function StatsStrip({ overview, isDemo = false }) {
   return (
     <section className="stats-strip" aria-label="题库统计">
       {items.map(({ key, label, Icon, tone }) => (
@@ -25,7 +25,7 @@ export default function StatsStrip({ overview }) {
       ))}
       <div className="stats-strip__note">
         <span className="live-dot" />
-        数据来自 Codeforces 官方 API
+        {isDemo ? "内置演示数据 · 同步后显示真实记录" : "数据来自 Codeforces 官方 API"}
       </div>
     </section>
   );

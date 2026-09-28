@@ -777,7 +777,7 @@ export default function App() {
           {isReviewLibrary ? (
           <ReviewStatsStrip overview={overview} latestAcceptedAt={recentActivity[0]?.timestamp} />
         ) : isWorkbench ? (
-          <StatsStrip overview={overview} />
+          <StatsStrip overview={overview} isDemo={data.isDemo} />
         ) : null}
 
         {isReviewLibrary ? (

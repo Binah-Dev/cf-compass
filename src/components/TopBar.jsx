@@ -44,7 +44,7 @@ export default function TopBar({
     <header className="topbar">
       <div className="page-heading">
         <h1>{title}</h1>
-        <p>{subtitle}</p>
+        <p>{isDemo && <span className="page-heading__demo"><span>演示模式</span> · </span>}{subtitle}</p>
       </div>
       <form
         className={`handle-form rating-tone-${ratingTone(rating)}`}

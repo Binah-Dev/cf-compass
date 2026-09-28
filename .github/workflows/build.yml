@@ -6,9 +6,18 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      appimage_stable_update_preview:
+        description: "Test stable AppImage update metadata and zsync on a branch without publishing"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
+
+env:
+  CF_COMPASS_APPIMAGE_STABLE_UPDATE_PREVIEW: ${{ github.event_name == 'workflow_dispatch' && inputs.appimage_stable_update_preview && '1' || '0' }}
 
 jobs:
   verify:
@@ -29,6 +38,7 @@ jobs:
         run: pnpm audit --prod --audit-level high
       - name: Run focused tests
         run: |
+          pnpm exec node --test scripts/test-appimage-release.mjs
           pnpm exec node scripts/test-template-summary-format.mjs
           pnpm exec node scripts/test-carrot.mjs
           pnpm exec node scripts/test-analytics.mjs
@@ -87,6 +97,14 @@ jobs:
         run: pnpm build
       - name: Package ${{ matrix.target }}
         run: ${{ matrix.command }}
+      - name: Install AppImage build and launch tooling
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zsync fuse3 xvfb xauth desktop-file-utils
+      - name: Repack AppImage with static runtime and update information
+        if: runner.os == 'Linux'
+        run: bash scripts/repack-appimage.sh release
       - name: Verify Windows layout and packaged launch
         if: runner.os == 'Windows'
         shell: pwsh
@@ -118,8 +136,42 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
+          set -euo pipefail
           export CF_COMPASS_QA_EXECUTABLE="$PWD/release/linux-unpacked/cf-compass"
           xvfb-run -a pnpm exec node scripts/qa-native-smoke.cjs
+      - name: Verify final AppImage offline first launch through FUSE and extraction
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          appimage="$(find "$PWD/release" -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
+          test -n "$appimage"
+          test -c /dev/fuse && test -r /dev/fuse && test -w /dev/fuse || {
+            echo 'FUSE is unavailable on this runner; mounted-launch verification cannot pass.' >&2
+            exit 1
+          }
+          for mode in fuse extract; do
+            # A temporary network namespace blocks external traffic for every
+            # application process; loopback remains available to Playwright.
+            sudo unshare --net -- bash -c '
+              set -euo pipefail
+              ip link set lo up
+              extra_env=()
+              if [[ "$5" == extract ]]; then extra_env+=(APPIMAGE_EXTRACT_AND_RUN=1); fi
+              exec runuser -u "$1" -- env -u APPIMAGE_EXTRACT_AND_RUN \
+                PATH="$2" CF_COMPASS_QA_EXECUTABLE="$3" CF_COMPASS_QA_OUTPUT="$4" \
+                CF_COMPASS_QA_LAUNCH_MODE="$5" CF_COMPASS_QA_NETWORK_ISOLATED=1 \
+                "${extra_env[@]}" xvfb-run -a -s "-screen 0 1920x1080x24" "$6" scripts/qa-first-launch.cjs
+            ' _ "$(id -un)" "$PATH" "$appimage" "$PWD/.qa-output/appimage-$mode" "$mode" "$(command -v node)"
+          done
+      - name: Upload AppImage first-launch evidence
+        if: always() && runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppImage-first-launch-ubuntu-current
+          path: .qa-output/appimage-*
+          include-hidden-files: true
+          if-no-files-found: warn
       - name: Verify macOS application signature
         if: runner.os == 'macOS'
         shell: bash
@@ -156,8 +208,6 @@ jobs:
           kill "$pid"
           wait "$pid" || true
           cat "$log"
-      - name: Generate individual SHA-256 files
-        run: node scripts/generate-checksums.mjs release
       - name: Upload ${{ matrix.target }} package
         uses: actions/upload-artifact@v4
         with:
@@ -166,13 +216,75 @@ jobs:
           path: |
             release/*.exe
             release/*.AppImage
+            release/*.zsync
             release/*.deb
             release/*.dmg
-            release/*.sha256
+
+  verify-appimage-ubuntu-22:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[package-test]'))
+    needs: package
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install test dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          sudo apt-get update
+          sudo apt-get install -y fuse3 xvfb xauth
+      - uses: actions/download-artifact@v4
+        with:
+          name: CF-Compass-Linux-x64
+          path: release
+      - name: Verify final AppImage metadata on Ubuntu 22.04
+        shell: bash
+        run: |
+          set -euo pipefail
+          appimage="$(find "$PWD/release" -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
+          test -n "$appimage"
+          chmod +x "$appimage"
+          node scripts/verify-appimage.mjs release --update-channel=auto
+      - name: Verify offline first launch through FUSE and extraction on Ubuntu 22.04
+        shell: bash
+        run: |
+          set -euo pipefail
+          appimage="$(find "$PWD/release" -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
+          test -n "$appimage"
+          test -c /dev/fuse && test -r /dev/fuse && test -w /dev/fuse || {
+            echo 'FUSE is unavailable on this runner; mounted-launch verification cannot pass.' >&2
+            exit 1
+          }
+          for mode in fuse extract; do
+            sudo unshare --net -- bash -c '
+              set -euo pipefail
+              ip link set lo up
+              extra_env=()
+              if [[ "$5" == extract ]]; then extra_env+=(APPIMAGE_EXTRACT_AND_RUN=1); fi
+              exec runuser -u "$1" -- env -u APPIMAGE_EXTRACT_AND_RUN \
+                PATH="$2" CF_COMPASS_QA_EXECUTABLE="$3" CF_COMPASS_QA_OUTPUT="$4" \
+                CF_COMPASS_QA_LAUNCH_MODE="$5" CF_COMPASS_QA_NETWORK_ISOLATED=1 \
+                "${extra_env[@]}" xvfb-run -a -s "-screen 0 1920x1080x24" "$6" scripts/qa-first-launch.cjs
+            ' _ "$(id -un)" "$PATH" "$appimage" "$PWD/.qa-output/appimage-$mode" "$mode" "$(command -v node)"
+          done
+      - name: Upload Ubuntu 22.04 first-launch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppImage-first-launch-ubuntu-22.04
+          path: .qa-output/appimage-*
+          include-hidden-files: true
+          if-no-files-found: warn
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: package
+    if: startsWith(github.ref, 'refs/tags/v') && !(github.event_name == 'workflow_dispatch' && inputs.appimage_stable_update_preview)
+    needs: [package, verify-appimage-ubuntu-22]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -185,21 +297,27 @@ jobs:
           pattern: CF-Compass-*
           path: release
           merge-multiple: true
-      - name: Generate complete checksum manifest
-        run: node scripts/generate-checksums.mjs release --manifest
+      - name: Generate private verification manifest
+        run: node scripts/generate-checksums.mjs release --manifest=release-verification-manifest/SHA256SUMS.txt
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          shopt -s nullglob
+          assets=(release/*.exe release/*.AppImage release/*.zsync release/*.deb release/*.dmg)
+          if [ "${#assets[@]}" -lt 6 ]; then
+            echo 'Expected all six platform packages before publishing.'
+            exit 1
+          fi
           notes="docs/releases/$GITHUB_REF_NAME.md"
           prerelease=""
           case "$GITHUB_REF_NAME" in
             *-alpha.*|*-beta.*|*-rc.*) prerelease="--prerelease" ;;
           esac
           if [ -f "$notes" ]; then
-            gh release create "$GITHUB_REF_NAME" release/* --verify-tag --draft $prerelease --notes-file "$notes" --title "CF Compass $GITHUB_REF_NAME"
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" --verify-tag --draft $prerelease --notes-file "$notes" --title "CF Compass $GITHUB_REF_NAME"
           else
-            gh release create "$GITHUB_REF_NAME" release/* --verify-tag --draft $prerelease --generate-notes --title "CF Compass $GITHUB_REF_NAME"
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" --verify-tag --draft $prerelease --generate-notes --title "CF Compass $GITHUB_REF_NAME"
           fi
       - name: Download and verify published packages
         env:
@@ -208,7 +326,7 @@ jobs:
           mkdir release-verification
           gh release download "$GITHUB_REF_NAME" --dir release-verification
           cd release-verification
-          sha256sum -c SHA256SUMS.txt
+          sha256sum -c ../release-verification-manifest/SHA256SUMS.txt
   verify-published-windows:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: release
@@ -219,28 +337,31 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: CF-Compass-Windows-x64
+          path: expected-windows
       - name: Download and verify published Windows packages
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           New-Item -ItemType Directory -Force release-verification | Out-Null
-          gh release download $env:GITHUB_REF_NAME --dir release-verification --pattern '*Windows-x64-Setup.exe' --pattern '*Windows-x64-portable.exe' --pattern 'SHA256SUMS.txt'
-          $manifest = Get-Content release-verification/SHA256SUMS.txt
+          gh release download $env:GITHUB_REF_NAME --dir release-verification --pattern '*Windows-x64-Setup.exe' --pattern '*Windows-x64-portable.exe'
           $windowsPackages = @(
             @{ Pattern = 'Windows-x64-Setup\.exe$'; Label = 'installer' },
             @{ Pattern = 'Windows-x64-portable\.exe$'; Label = 'portable' }
           )
           foreach ($package in $windowsPackages) {
-            $entry = $manifest | Where-Object { $_ -match $package.Pattern } | Select-Object -First 1
-            if (-not $entry) {
-              throw "The Windows $($package.Label) package is missing from SHA256SUMS.txt."
+            $expected = Get-ChildItem expected-windows -File | Where-Object { $_.Name -match $package.Pattern } | Select-Object -First 1
+            $published = Get-ChildItem release-verification -File | Where-Object { $_.Name -match $package.Pattern } | Select-Object -First 1
+            if (-not $expected -or -not $published -or $expected.Name -ne $published.Name) {
+              throw "The Windows $($package.Label) package is missing or named differently after publication."
             }
-            $parts = $entry -split '\s+', 2
-            $asset = Join-Path 'release-verification' $parts[1]
-            $actual = (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($actual -ne $parts[0].ToLowerInvariant()) {
-              throw "Windows $($package.Label) package checksum mismatch: $actual"
+            $expectedHash = (Get-FileHash -LiteralPath $expected.FullName -Algorithm SHA256).Hash
+            $publishedHash = (Get-FileHash -LiteralPath $published.FullName -Algorithm SHA256).Hash
+            if ($expectedHash -ne $publishedHash) {
+              throw "Windows $($package.Label) package differs from the verified build artifact."
             }
           }
           $installer = Get-ChildItem release-verification -File -Filter '*Windows-x64-Setup.exe' | Select-Object -First 1

@@ -342,19 +342,19 @@ macOS Apple 芯片:          CF-Compass-4.2.1-macOS-arm64.dmg
 
 Windows 用户推荐下载 `Setup.exe` 安装版：应用只在安装时解压，之后从已安装目录直接启动，速度更稳定。`portable.exe` 便携版无需安装，但每次启动都要先释放程序文件，在机械硬盘、低速设备或杀毒软件扫描环境下会明显更慢。v4.2.1 的 Windows、Linux 与 macOS 包均由同一版本提交在对应原生环境重新构建。Linux 可选择 AppImage 或 Debian 包；macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
 
-每个安装包旁都有同名 `.sha256`，Release 还提供汇总文件 `SHA256SUMS.txt`。例如 Windows 可在 PowerShell 中运行：
+最新版 Release 不再附带单独的 `.sha256` 或 `SHA256SUMS.txt` 文件，减少下载列表中的重复条目。需要核对时，可将 GitHub 在安装包资产下显示的 SHA-256 摘要与本机计算结果比较。例如 Windows 可在 PowerShell 中运行：
 
 ```powershell
 Get-FileHash -Algorithm SHA256 .\CF-Compass-4.2.1-Windows-x64-Setup.exe
 ```
 
-Linux 或 macOS 可运行：
+Linux 可运行：
 
 ```bash
-sha256sum -c SHA256SUMS.txt --ignore-missing
+sha256sum CF-Compass-4.2.1-Linux-x86_64.AppImage
 ```
 
-macOS 也可使用 `shasum -a 256 <文件名>`，将结果与对应 `.sha256` 文件核对。
+macOS 可运行 `shasum -a 256 <文件名>`，与 GitHub 资产下显示的摘要比较。
 
 如果 macOS 在完成校验后仍将未公证应用提示为“已损坏”，请先把应用复制到 `/Applications`，再运行：
 
@@ -362,9 +362,9 @@ macOS 也可使用 `shasum -a 256 <文件名>`，将结果与对应 `.sha256` �
 xattr -dr com.apple.quarantine "/Applications/CF Compass.app"
 ```
 
-该命令只应对从本仓库 Release 下载且 SHA-256 一致的文件使用。
+该命令只应对从本仓库 Release 下载、并已与 GitHub 资产摘要核对一致的文件使用。
 
-当前公开构建未购买商业代码签名证书，因此 Windows SmartScreen 可能显示“未知发布者”。请只从本仓库 Release 下载，并在运行前核对 SHA-256；这不影响应用功能。
+当前公开构建未购买商业代码签名证书，因此 Windows SmartScreen 可能显示“未知发布者”。请只从本仓库 Release 下载；如需核对完整性，可将本机 SHA-256 与 GitHub 资产摘要比较。这不影响应用功能。
 
 ### 从源码运行
 

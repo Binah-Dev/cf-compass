@@ -136,6 +136,9 @@
       ],
       "artifactName": "CF-Compass-${version}-Linux-${arch}.${ext}"
     },
+    "appImage": {
+      "artifactName": "CF-Compass-${version}-${arch}.${ext}"
+    },
     "mac": {
       "icon": "build/icon.png",
       "category": "public.app-category.education",

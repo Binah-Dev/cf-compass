@@ -414,6 +414,16 @@ select:focus-visible {
   margin-left: auto;
 }
 
+.page-heading__demo {
+  display: none;
+  color: var(--amber, #fbbf24);
+}
+
+.topbar .primary-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .sync-state {
   min-width: 170px;
   display: flex;
@@ -5384,6 +5394,10 @@ select:focus-visible {
 }
 
 @media (max-width: 1260px) {
+  .page-heading__demo {
+    display: inline;
+  }
+
   .draggable-panel--taxonomy {
     grid-column: span 3;
   }

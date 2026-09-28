@@ -233,11 +233,11 @@ macOS Apple Silicon:                 CF-Compass-4.2.1-macOS-arm64.dmg
 
 Windows users should normally choose the `Setup.exe` installer. It extracts the application once during installation, so later launches start directly from the installed files. The `portable.exe` build requires no installation, but it extracts its program files on every launch and can be noticeably slower on low-end disks or while antivirus scanning is active. The Windows, Linux, and macOS v4.2.1 packages are rebuilt from the same release commit on native runners. Linux users can choose AppImage or deb; macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
 
-Every package has a matching `.sha256` file and the Release includes `SHA256SUMS.txt`. Verify on Windows with `Get-FileHash -Algorithm SHA256 <file>`, on Linux with `sha256sum -c SHA256SUMS.txt --ignore-missing`, or on macOS with `shasum -a 256 <file>`.
+The latest Release no longer attaches separate `.sha256` files or `SHA256SUMS.txt`. If you want to check a download, compare its local SHA-256 with the digest GitHub displays beneath that release asset: use `Get-FileHash -Algorithm SHA256 <file>` on Windows, `sha256sum <file>` on Linux, or `shasum -a 256 <file>` on macOS.
 
-If macOS still reports the verified, unnotarized app as damaged, copy it to `/Applications` and run `xattr -dr com.apple.quarantine "/Applications/CF Compass.app"`. Only remove quarantine after downloading from this repository and confirming the SHA-256 checksum.
+If macOS still reports the verified, unnotarized app as damaged, copy it to `/Applications` and run `xattr -dr com.apple.quarantine "/Applications/CF Compass.app"`. Only remove quarantine after downloading from this repository and comparing the local SHA-256 with the digest shown for the GitHub release asset.
 
-The public build is currently unsigned because the project does not own a commercial code-signing certificate. Windows SmartScreen may therefore show “Unknown publisher.” Download only from this repository and verify SHA-256 before running.
+The public build is currently unsigned because the project does not own a commercial code-signing certificate. Windows SmartScreen may therefore show “Unknown publisher.” Download only from this repository; if needed, compare the local SHA-256 with the digest shown for the GitHub release asset.
 
 ### Run from source
 
@@ -263,7 +263,7 @@ pnpm desktop:build:linux  # Linux AppImage and deb
 pnpm desktop:build:mac    # macOS Intel and Apple Silicon dmg; run on macOS
 ```
 
-GitHub Actions installs dependencies, audits production packages, runs focused regression tests, and builds real packages on Windows, Linux, and macOS. A tagged build becomes a Release only after every platform succeeds, with per-file SHA-256 checksums and a complete manifest.
+GitHub Actions installs dependencies, audits production packages, runs focused regression tests, and builds real packages on Windows, Linux, and macOS. A tagged build becomes a Release only after every platform succeeds; package SHA-256 values are checked internally without publishing separate checksum files.
 
 ## Privacy and open-source boundary
 

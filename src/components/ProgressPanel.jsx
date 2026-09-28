@@ -160,7 +160,9 @@ export default function ProgressPanel({
             </strong>
             {!isEliteRatingStanding && <span className="ranking-card__position">
               {ratingStanding?.position
-                ? `第 ${formatNumber(ratingStanding.position)} 名`
+                ? locale === "en-US"
+                  ? `Rank ${formatNumber(ratingStanding.position)}`
+                  : `第 ${formatNumber(ratingStanding.position)} 名`
                 : ratingStanding?.estimated ? "同步以获取活跃榜分布" : "近 30 天 Rated 活跃用户"}
             </span>}
             {ratingStanding?.estimated && ratingStanding.syncedAt && <small>{new Date(ratingStanding.syncedAt).toLocaleDateString(locale)} · {locale === 'en-US' ? 'Not official' : '非官方排名'}</small>}
