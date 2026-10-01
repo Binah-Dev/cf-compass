@@ -61,6 +61,9 @@
 .custom-training-empty { min-height: 100px; display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0; padding: 24px 20px; color: var(--text-3); font-size: var(--font-caption, 12px); text-align: center; line-height: 1.7; }
 .custom-training-notice { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent); border-radius: 10px; color: var(--amber); background: color-mix(in srgb, var(--amber) 5%, transparent); font-size: var(--font-caption, 12px); line-height: 1.6; }
 .custom-training-notice.is-error { color: var(--red); border-color: color-mix(in srgb, var(--red) 35%, transparent); background: color-mix(in srgb, var(--red) 5%, transparent); }
+/* Warning/error text and borders retain their meaning while the backing follows
+   the same theme and saved transparency as the surrounding training panels. */
+.academy-theme .custom-training-notice { background: var(--panel-glass); backdrop-filter: none; box-shadow: none; }
 .custom-training-selected > .custom-training-notice { margin: 12px; }
 .custom-training-confirm p { flex-basis: 100%; margin: 0; }
 .custom-training-session { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 18px 22px; }

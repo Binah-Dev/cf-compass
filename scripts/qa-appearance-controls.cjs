@@ -93,6 +93,7 @@ async function alpha(selector) {
   checks.push('distinct presets, saved custom preset, cold-start persistence, Esc rollback, no panel menu');
   const pageSurfaces = {};
   for (const [name, selector] of [
+    ['自定义训练赛', '.custom-training'],
     ['今日训练', '.today-page'], ['计划题单', '.study-plan-page'],
     ['复习库', '.review-library'], ['训练分析', '.training-analytics'],
     ['赛事复盘', '.contest-replay-page'], ['赛事中心', '.contest-center-page'],

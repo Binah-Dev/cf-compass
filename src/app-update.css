@@ -39,6 +39,13 @@
 .app-update-confirm { margin-top: 16px; padding: 16px; border: 1px solid color-mix(in srgb, var(--cyan) 45%, var(--line)); border-radius: 10px; background: var(--cyan-soft); }
 .app-update-confirm > strong { font-size: 13px; color: var(--text); }
 .app-update-confirm p { margin: 8px 0 14px; color: var(--text-2); font-size: var(--font-caption, 12px); line-height: 1.6; }
+/* Nested update surfaces follow the same saved transparency and theme as the
+   feature card. Keep its single parent blur; never fade text or controls. */
+.academy-theme .app-update-panel :is(.app-update-unsupported, .app-update-error, .app-update-release-info, .app-update-confirm) {
+  background: var(--panel-glass);
+  backdrop-filter: none;
+  box-shadow: none;
+}
 .app-update-spin { animation: app-update-spin 1s linear infinite; }
 @keyframes app-update-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .app-update-spin { animation: none; } }
