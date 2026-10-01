@@ -1,5 +1,7 @@
 import { normalizeAiReview } from "./ai";
 import { normalizeTrainingProfiles } from "../../electron/shared/training-profile.mjs";
+import { getTrainingSessions, replaceTrainingSessions } from "./custom-training";
+import { sanitizeTrainingStore } from "./training-session-model.mjs";
 
 const STUDY_KEY = "cf-compass-study-v1";
 const ACTIVITY_KEY = "cf-compass-activity-v1";
@@ -219,7 +221,7 @@ export async function exportAllData(data, favorites, study) {
     version: 1,
     createdAt: new Date().toISOString(),
     reason: "browser-export",
-    data: { cache: data, favorites: [...favorites], study },
+    data: { cache: data, favorites: [...favorites], study, customTraining: await getTrainingSessions() },
   });
   return { canceled: false };
 }
@@ -248,9 +250,11 @@ export async function importAllData() {
   if (bundle.format !== "cf-compass-backup" || !bundle.data?.cache) {
     throw new Error("不是有效的 CF Compass 备份文件");
   }
+  const customTraining = bundle.data.customTraining == null ? null : sanitizeTrainingStore(bundle.data.customTraining);
   localStorage.setItem("cf-compass-cache-v1", JSON.stringify(bundle.data.cache));
   localStorage.setItem("cf-compass-favorites-v1", JSON.stringify(bundle.data.favorites || []));
   localStorage.setItem(STUDY_KEY, JSON.stringify(normalizeStudyData(bundle.data.study)));
+  if (customTraining) await replaceTrainingSessions(customTraining);
   return {
     canceled: false,
     cache: bundle.data.cache,

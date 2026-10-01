@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, BookOpenText, CalendarRange, CalendarCheck2, Check, Code2, FileCode2, HelpCircle, History, ListChecks, Palette, Settings, Trophy } from "lucide-react";
+import TrainingSessionIcon from "./TrainingSessionIcon";
 
 const RAIL_LAYOUT_KEY = "cf-compass-activity-rail-v1";
 const navItems = [
   { id: "library", label: "题库", Icon: BookOpenText },
   { id: "today", label: "今日训练", Icon: CalendarCheck2 },
   { id: "plan", label: "计划题单", Icon: ListChecks },
+  { id: "custom-training", label: "自定义训练赛", Icon: TrainingSessionIcon },
   { id: "review", label: "复习库", Icon: History },
   { id: "analytics", label: "训练分析", Icon: BarChart3 },
   { id: "contests", label: "赛事复盘", Icon: Trophy },

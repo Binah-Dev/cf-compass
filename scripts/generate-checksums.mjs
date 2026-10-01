@@ -11,7 +11,7 @@ if (process.argv.includes("--manifest")) {
 if (manifestPath && (manifestPath === outputDirectory || manifestPath.startsWith(`${outputDirectory}${path.sep}`))) {
   throw new Error("The verification manifest must stay outside the published release assets directory.");
 }
-const packagePattern = /\.(?:exe|AppImage(?:\.zsync)?|deb|dmg)$/;
+const packagePattern = /(?:\.(?:exe(?:\.blockmap)?|AppImage(?:\.zsync)?|deb|dmg)|^latest\.yml)$/;
 const names = (await readdir(outputDirectory))
   .filter((name) => packagePattern.test(name))
   .sort((left, right) => left.localeCompare(right));

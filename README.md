@@ -38,13 +38,16 @@
 
 <p align="center"><sub>题库工作台 · 天空蓝主题 · 仓库内置虚构演示数据</sub></p>
 
-## 当前版本：v4.2.2
+## 当前版本：v4.3.0
 
-v4.2.2 聚焦 Linux 分发与首次使用体验，下载入口见 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)。
+v4.3.0 新增自定义训练赛与 Windows 安装版更新，下载入口见 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)。
 
-- **更完整的 AppImage 分发**：静态 runtime、标准 AppStream 信息和清晰的工作台截图，AppImage 文件名简化为 `CF-Compass-4.2.2-x86_64.AppImage`。
-- **外部更新工具支持**：稳定版附带 `.AppImage.zsync`，供 AppImageUpdate 等工具使用；不新增应用内自动更新。v4.2.1 用户需先手动下载一次，后续跨版本更新需要未来稳定版发布。
-- **离线也能开始体验**：首次启动直接进入内置演示工作台，演示账号与统计来源明确标识；同步自己的 Codeforces 账号后再使用个人数据。
+- **自定义训练赛**：从题库、收藏或目标题单选题，设置顺序与时长，查看已有做题记录；开始后锁定组题，倒计时和会话重启可恢复。
+- **独立隐藏标签与难度**：两个开关分别控制训练页和结果页的信息；按绑定账号、完整题号与本场提交时间统计结果，不计入官方或综合估计 Rating。
+- **Windows 安装版更新**：在「数据中心 → 应用更新」检查稳定版；下载和安装由用户明确操作，训练进行中阻止安装。v4.2.2 及更早版本需先手动安装一次 v4.3.0。
+- **专属侧栏图标**：自定义训练赛使用与现有侧栏同风格的「秒表＋播放符号」，更容易辨认。
+
+继续保留 v4.2.2 的静态 AppImage runtime、AppStream 信息、外部工具使用的 `.AppImage.zsync` 和离线演示工作台。AppImage 版本通过外部工具更新，不在应用内自动检查、下载或安装。
 
 v4.2.1 的综合估计 Rating、今日训练、赛事复盘与本地笔记继续保留。综合估计按参加时间合并符合条件的正式赛与虚拟赛，仅供训练参考，不覆盖官方数据；手动训练参考分始终优先。相关规则见 [v4.2.1 说明](./docs/releases/v4.2.1.md)，核心训练与估计不需要 AI。
 
@@ -57,7 +60,7 @@ Ubuntu / Debian 用户优先选择 `.deb`。受用户命名空间限制的 Ubunt
 | 全局学习记录 | 在题库、今日训练、复习、比赛和推荐结果中使用同一套笔记与目标题单。 |
 | 可定制桌面工作台 | 隐藏、恢复和调整左侧功能入口顺序，切换字号与全页赛事复盘布局。 |
 
-完整变化见 [v4.2.2 发布说明](./docs/releases/v4.2.2.md) 与 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
+完整变化见 [v4.3.0 发布说明](./docs/releases/v4.3.0.md)。Linux 分发的历史验证见 [v4.2.2 发布说明](./docs/releases/v4.2.2.md)，既有功能见 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
 
 ## 为什么是 CF Compass
 
@@ -331,17 +334,21 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 ### 下载桌面版本
 
-打开 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)，按设备下载。v4.2.2 文件如下：
+打开 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)，按设备下载。v4.3.0 提供六个程序包和三项更新数据：
 
-```text
-Windows x64（推荐安装版）: CF-Compass-4.2.2-Windows-x64-Setup.exe
-Windows x64（便携版）:     CF-Compass-4.2.2-Windows-x64-portable.exe
-Linux x64 AppImage:       CF-Compass-4.2.2-x86_64.AppImage
-Linux AppImage 更新数据:  CF-Compass-4.2.2-x86_64.AppImage.zsync
-Linux Debian x64:         CF-Compass-4.2.2-Linux-amd64.deb
-macOS Intel:              CF-Compass-4.2.2-macOS-x64.dmg
-macOS Apple 芯片:          CF-Compass-4.2.2-macOS-arm64.dmg
-```
+| 平台或用途 | 文件 |
+| --- | --- |
+| Windows x64（推荐安装版） | `CF-Compass-4.3.0-Windows-x64-Setup.exe` |
+| Windows x64（便携版） | `CF-Compass-4.3.0-Windows-x64-portable.exe` |
+| Windows 安装版更新数据 | `CF-Compass-4.3.0-Windows-x64-Setup.exe.blockmap` |
+| Windows 稳定版更新元数据 | `latest.yml` |
+| Linux x64 AppImage | `CF-Compass-4.3.0-x86_64.AppImage` |
+| Linux AppImage 更新数据 | `CF-Compass-4.3.0-x86_64.AppImage.zsync` |
+| Linux Debian x64 | `CF-Compass-4.3.0-Linux-amd64.deb` |
+| macOS Intel | `CF-Compass-4.3.0-macOS-x64.dmg` |
+| macOS Apple 芯片 | `CF-Compass-4.3.0-macOS-arm64.dmg` |
+
+`.blockmap`、`latest.yml` 和 `.zsync` 供更新工具读取，不是程序包，也无需手动运行。Release 不附带独立 `.sha256` 或 `SHA256SUMS.txt` 文件。
 
 Windows 用户推荐下载 `Setup.exe` 安装版：应用只在安装时解压，之后从已安装目录直接启动，速度更稳定。`portable.exe` 便携版无需安装，但每次启动都要先释放程序文件，在机械硬盘、低速设备或杀毒软件扫描环境下会明显更慢。各平台包由同一版本提交在对应原生环境构建，通过发布门禁后才开放下载。
 
@@ -349,24 +356,28 @@ Ubuntu / Debian 推荐下载 `.deb`，通过系统包管理器安装或覆盖升
 
 macOS 请按芯片选择 Intel 或 Apple 芯片版本。v3.12.1 起 macOS 应用会执行完整的 ad-hoc 签名与 CI 签名校验，但由于项目尚无付费 Apple Developer ID，仍未经过 Apple 公证，首次打开时可能需要在“隐私与安全性”中确认来源。
 
+### Windows 升级
+
+v4.2.2 及更早 Windows 版本需先手动下载并安装 v4.3.0 的 `Setup.exe`。之后可在「数据中心 → 应用更新」检查后续稳定版；自动检查可关闭，下载与退出安装均需明确操作。便携版仍通过 Release 手动更新，正在进行自定义训练赛时不能安装更新。
+
 ### Linux 升级
 
-v4.2.1 AppImage 没有标准更新信息，必须先从 Release **手动下载一次 v4.2.2**。v4.2.2 的稳定版 AppImage 嵌入更新目标，外部 AppImageUpdate 等工具可利用同一 Release 中匹配的 `.AppImage.zsync` 查找后续稳定版本；`.zsync` 是更新数据，不是另一个安装包，也不需要手动运行。CF Compass 内部不会自动检查、下载或安装更新。
+v4.2.1 及更早 AppImage 没有标准更新信息，需从 Release **手动下载当前 v4.3.0**。从 v4.2.2 起，稳定版 AppImage 嵌入更新目标，外部 AppImageUpdate 等工具可利用同一 Release 中匹配的 `.AppImage.zsync` 查找后续稳定版本；`.zsync` 是更新数据，不是另一个安装包，也不需要手动运行。AppImage 版本不在应用内自动检查、下载或安装更新。
 
-后续跨版本更新依赖未来稳定版本及其匹配 sidecar 发布；当前的元数据和本地重构验证不能代替一次真实跨版本升级。使用上述 Ubuntu 24.04 固定路径安装方式时，先在用户可写目录用外部工具更新副本，再由管理员安装到固定路径，不要以 root 身份运行更新工具的图形界面。`.deb` 用户下载新版 `.deb` 后用系统包管理器覆盖安装。升级前可在数据中心导出重要数据，已有用户数据与本地素材配置继续沿用。
+元数据和本地重构验证不能代替真实的公网跨版本升级验证。使用上述 Ubuntu 24.04 固定路径安装方式时，先在用户可写目录用外部工具更新副本，再由管理员安装到固定路径，不要以 root 身份运行更新工具的图形界面。`.deb` 用户下载新版 `.deb` 后用系统包管理器覆盖安装。升级前可在数据中心导出重要数据，已有用户数据与本地素材配置继续沿用。
 
 ### 下载校验与系统提示
 
 最新版 Release 不再附带单独的 `.sha256` 或 `SHA256SUMS.txt` 文件，减少下载列表中的重复条目。需要核对时，可将 GitHub 在安装包资产下显示的 SHA-256 摘要与本机计算结果比较。例如 Windows 可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\CF-Compass-4.2.2-Windows-x64-Setup.exe
+Get-FileHash -Algorithm SHA256 .\CF-Compass-4.3.0-Windows-x64-Setup.exe
 ```
 
 Linux 可运行：
 
 ```bash
-sha256sum CF-Compass-4.2.2-x86_64.AppImage
+sha256sum CF-Compass-4.3.0-x86_64.AppImage
 ```
 
 macOS 可运行 `shasum -a 256 <文件名>`，与 GitHub 资产下显示的摘要比较。
@@ -425,9 +436,9 @@ pnpm desktop:build:linux
 pnpm desktop:build:mac
 ```
 
-构建产物位于 `release/`，不会提交到 Git。正式 Release 提供 Windows x64 安装版与便携版、Linux AppImage / deb、macOS Intel 与 macOS Apple 芯片包，以及 AppImage 的 `.zsync` 更新数据。CI 内部保留 SHA-256 校验，不发布任何 `.sha256` 或 `SHA256SUMS.txt` 附件。
+构建产物位于 `release/`，不会提交到 Git。正式 Release 提供 Windows x64 安装版与便携版、Linux AppImage / deb、macOS Intel 与 macOS Apple 芯片包，以及 AppImage 的 `.zsync`、Windows 安装版的 `.blockmap` 和 `latest.yml` 更新数据。CI 内部保留 SHA-256 校验，Windows 更新器保留 SHA-512 校验，不发布任何 `.sha256` 或 `SHA256SUMS.txt` 附件。
 
-主分支和 Pull Request 会自动安装依赖、检查生产依赖安全性并运行重点回归测试；版本标签会在 GitHub Actions 的 Windows、Linux 与 macOS 环境中分别构建真实安装包，全部成功后才创建 Release。
+主分支和 Pull Request 会自动安装依赖、检查生产依赖安全性并运行重点回归测试；版本标签会在 GitHub Actions 的 Windows、Linux 与 macOS 环境中分别构建真实安装包，全部成功后创建草稿 Release，通过下载回验和 Windows 安装/便携版验证后才公开。
 
 ## 技术组成
 
@@ -517,6 +528,14 @@ cf-compass/
 日常使用推荐 `Setup.exe`：安装一次后直接从已安装目录启动。`portable.exe` 无需安装，适合临时体验或放在移动设备中，但每次启动都需要释放程序文件，可能更慢。
 
 </details>
+
+## 自定义训练赛
+
+左侧「自定义训练赛」使用专属秒表图标，可从题库、收藏或目标题单选题，设置顺序和时长，分别选择隐藏标签与难度后开始限时练习。训练会话保存在本地，重启可恢复；使用原账号在 Codeforces 原站提交，再同步本场结果并通过笔记和题单安排补题。自组训练不影响官方或综合估计 Rating。用法与提交统计边界见 [自定义训练赛说明](./docs/custom-training.md)。
+
+## Windows 安装版更新
+
+从 v4.3.0 起，Windows x64 安装版在「数据中心 → 应用更新」检查稳定版，用户主动下载并确认安装；自动检查不自动下载或安装。便携版和其他运行方式仍通过发布页手动更新。v4.2.2 及更早版本需要先手动安装一次 v4.3.0。使用、校验边界和发布资产见 [Windows 更新说明 / Windows updates](./docs/windows-auto-update.md)。
 
 ## 许可证
 

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getCurrentLocale } from "../i18n";
+import AppUpdatePanel from "./AppUpdatePanel";
 import { DEFAULT_AI_CONFIG, loadAiConfig, saveAiConfig } from "../lib/ai";
 import {
   DEFAULT_CODEFORCES_SOURCE_CONFIG,
@@ -161,13 +162,15 @@ export default function DataCenter({
   }
 
   return (
-    <section className="feature-page data-center">
+    <section className="feature-page data-center data-center--updates">
       <div className="data-summary">
         <div><Database size={17} /><span>本地提交</span><strong>{status?.submissionCount || 0}</strong><small>最新 ID {status?.latestSubmissionId || "—"}</small></div>
         <div><RefreshCw size={17} /><span>上次新增</span><strong>{status?.lastNewSubmissions || 0}</strong><small>{status?.incremental ? "增量同步" : "完整同步"}</small></div>
         <div><ShieldCheck size={17} /><span>自动备份</span><strong>{settings.autoBackup ? "已开启" : "已关闭"}</strong><small>保留 {settings.backupRetention} 份</small></div>
         <div><Archive size={17} /><span>备份文件</span><strong>{status?.backups?.length || 0}</strong><small>{status?.backups?.[0] ? formatDate(status.backups[0].createdAt) : "尚未创建"}</small></div>
       </div>
+
+      <AppUpdatePanel onToast={onToast} />
 
       <div className="data-grid">
         <section className="feature-card sync-card">

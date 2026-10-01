@@ -1,7 +1,25 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("cfBridge", {
+  getAppUpdateState: () => ipcRenderer.invoke("app-update:get"),
+  checkAppUpdate: () => ipcRenderer.invoke("app-update:check"),
+  setAutoUpdateCheck: (enabled) => ipcRenderer.invoke("app-update:set-auto-check", enabled),
+  downloadAppUpdate: () => ipcRenderer.invoke("app-update:download"),
+  cancelAppUpdate: () => ipcRenderer.invoke("app-update:cancel"),
+  installAppUpdate: () => ipcRenderer.invoke("app-update:install"),
+  openAppRelease: () => ipcRenderer.invoke("app-update:open-release"),
+  onAppUpdateChanged: (callback) => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.on("app-update:changed", listener);
+    return () => ipcRenderer.removeListener("app-update:changed", listener);
+  },
   getCache: () => ipcRenderer.invoke("data:get-cache"),
+  getTrainingSessions: () => ipcRenderer.invoke("training:get"),
+  saveTrainingDraft: (input) => ipcRenderer.invoke("training:save-draft", input),
+  startTrainingSession: (id) => ipcRenderer.invoke("training:start", id),
+  finishTrainingSession: (id) => ipcRenderer.invoke("training:finish", id),
+  cancelTrainingSession: (id) => ipcRenderer.invoke("training:cancel", id),
+  syncTrainingSession: (id) => ipcRenderer.invoke("training:sync", id),
   sync: (handle) => ipcRenderer.invoke("data:sync", handle),
   getContestReplay: () => ipcRenderer.invoke("contests:get"),
   getEstimatedRating: (retry = false) => ipcRenderer.invoke("rating:estimated", retry),
