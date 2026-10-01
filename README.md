@@ -38,9 +38,9 @@
 
 <p align="center"><sub>题库工作台 · 天空蓝主题 · 仓库内置虚构演示数据</sub></p>
 
-## 当前版本：v4.3.2
+## 当前版本：v4.3.3
 
-v4.3.2 新增计划题单计时表，继续保留自定义训练赛与 Windows 安装版更新，下载入口见 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)。
+v4.3.3 新增计划题单计时表，继续保留自定义训练赛与 Windows 安装版更新，下载入口见 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)。
 
 - **计划题单计时表**：在「计划题单 → 计时表」打开独立窗口，使用正向、反向或定点计时；只有定点模式响铃，支持有播放上限的默认短铃声和本地音频。用法与恢复边界见 [计时表说明](./docs/study-timer.md)。
 - **自定义训练赛**：从题库、收藏或目标题单选题，设置顺序与时长，查看已有做题记录；开始后锁定组题，倒计时和会话重启可恢复。
@@ -61,7 +61,7 @@ Ubuntu / Debian 用户优先选择 `.deb`。受用户命名空间限制的 Ubunt
 | 全局学习记录 | 在题库、今日训练、复习、比赛和推荐结果中使用同一套笔记与目标题单。 |
 | 可定制桌面工作台 | 隐藏、恢复和调整左侧功能入口顺序，切换字号与全页赛事复盘布局。 |
 
-完整变化见 [v4.3.2 发布说明](./docs/releases/v4.3.2.md)。Linux 分发的历史验证见 [v4.2.2 发布说明](./docs/releases/v4.2.2.md)，既有功能见 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
+完整变化见 [v4.3.3 发布说明](./docs/releases/v4.3.3.md)。Linux 分发的历史验证见 [v4.2.2 发布说明](./docs/releases/v4.2.2.md)，既有功能见 [v4.0.0 功能说明](./docs/releases/v4.0.0.md)。
 
 ## 为什么是 CF Compass
 
@@ -336,19 +336,19 @@ AI 比赛复盘把比赛结果和提交过程整理成可执行的复盘建议�
 
 ### 下载桌面版本
 
-打开 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)，按设备下载。v4.3.2 提供六个程序包和三项更新数据：
+打开 [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest)，按设备下载。v4.3.3 提供六个程序包和三项更新数据：
 
 | 平台或用途 | 文件 |
 | --- | --- |
-| Windows x64（推荐安装版） | `CF-Compass-4.3.2-Windows-x64-Setup.exe` |
-| Windows x64（便携版） | `CF-Compass-4.3.2-Windows-x64-portable.exe` |
-| Windows 安装版更新数据 | `CF-Compass-4.3.2-Windows-x64-Setup.exe.blockmap` |
+| Windows x64（推荐安装版） | `CF-Compass-4.3.3-Windows-x64-Setup.exe` |
+| Windows x64（便携版） | `CF-Compass-4.3.3-Windows-x64-portable.exe` |
+| Windows 安装版更新数据 | `CF-Compass-4.3.3-Windows-x64-Setup.exe.blockmap` |
 | Windows 稳定版更新元数据 | `latest.yml` |
-| Linux x64 AppImage | `CF-Compass-4.3.2-x86_64.AppImage` |
-| Linux AppImage 更新数据 | `CF-Compass-4.3.2-x86_64.AppImage.zsync` |
-| Linux Debian x64 | `CF-Compass-4.3.2-Linux-amd64.deb` |
-| macOS Intel | `CF-Compass-4.3.2-macOS-x64.dmg` |
-| macOS Apple 芯片 | `CF-Compass-4.3.2-macOS-arm64.dmg` |
+| Linux x64 AppImage | `CF-Compass-4.3.3-x86_64.AppImage` |
+| Linux AppImage 更新数据 | `CF-Compass-4.3.3-x86_64.AppImage.zsync` |
+| Linux Debian x64 | `CF-Compass-4.3.3-Linux-amd64.deb` |
+| macOS Intel | `CF-Compass-4.3.3-macOS-x64.dmg` |
+| macOS Apple 芯片 | `CF-Compass-4.3.3-macOS-arm64.dmg` |
 
 `.blockmap`、`latest.yml` 和 `.zsync` 供更新工具读取，不是程序包，也无需手动运行。Release 不附带独立 `.sha256` 或 `SHA256SUMS.txt` 文件。
 
@@ -364,7 +364,7 @@ v4.2.2 及更早 Windows 版本需先手动下载并安装 v4.3.1 的 `Setup.exe
 
 ### Linux 升级
 
-v4.2.1 及更早 AppImage 没有标准更新信息，需从 Release **手动下载当前 v4.3.2**。从 v4.2.2 起，稳定版 AppImage 嵌入更新目标，外部 AppImageUpdate 等工具可利用同一 Release 中匹配的 `.AppImage.zsync` 查找后续稳定版本；`.zsync` 是更新数据，不是另一个安装包，也不需要手动运行。AppImage 版本不在应用内自动检查、下载或安装更新。
+v4.2.1 及更早 AppImage 没有标准更新信息，需从 Release **手动下载当前 v4.3.3**。从 v4.2.2 起，稳定版 AppImage 嵌入更新目标，外部 AppImageUpdate 等工具可利用同一 Release 中匹配的 `.AppImage.zsync` 查找后续稳定版本；`.zsync` 是更新数据，不是另一个安装包，也不需要手动运行。AppImage 版本不在应用内自动检查、下载或安装更新。
 
 元数据和本地重构验证不能代替真实的公网跨版本升级验证。使用上述 Ubuntu 24.04 固定路径安装方式时，先在用户可写目录用外部工具更新副本，再由管理员安装到固定路径，不要以 root 身份运行更新工具的图形界面。`.deb` 用户下载新版 `.deb` 后用系统包管理器覆盖安装。升级前可在数据中心导出重要数据，已有用户数据与本地素材配置继续沿用。
 
@@ -373,13 +373,13 @@ v4.2.1 及更早 AppImage 没有标准更新信息，需从 Release **手动下�
 最新版 Release 不再附带单独的 `.sha256` 或 `SHA256SUMS.txt` 文件，减少下载列表中的重复条目。需要核对时，可将 GitHub 在安装包资产下显示的 SHA-256 摘要与本机计算结果比较。例如 Windows 可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\CF-Compass-4.3.2-Windows-x64-Setup.exe
+Get-FileHash -Algorithm SHA256 .\CF-Compass-4.3.3-Windows-x64-Setup.exe
 ```
 
 Linux 可运行：
 
 ```bash
-sha256sum CF-Compass-4.3.2-x86_64.AppImage
+sha256sum CF-Compass-4.3.3-x86_64.AppImage
 ```
 
 macOS 可运行 `shasum -a 256 <文件名>`，与 GitHub 资产下显示的摘要比较。

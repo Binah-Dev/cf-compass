@@ -252,18 +252,17 @@ jobs:
         run: |
           app="$(find release -type d -name '*.app' -print -quit)"
           executable="$app/Contents/MacOS/CF Compass"
-          log="$(mktemp)"
-          ELECTRON_ENABLE_LOGGING=1 "$executable" --disable-gpu >"$log" 2>&1 &
-          pid=$!
-          sleep 10
-          if ! kill -0 "$pid" 2>/dev/null; then
-            cat "$log"
-            wait "$pid"
-            exit 1
-          fi
-          kill "$pid"
-          wait "$pid" || true
-          cat "$log"
+          export CF_COMPASS_QA_EXECUTABLE="$executable"
+          export CF_COMPASS_QA_OUTPUT="$PWD/.qa-output/macos-smoke"
+          pnpm exec node scripts/qa-macos-smoke.cjs
+      - name: Upload macOS launch and exit evidence
+        if: always() && runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-smoke-${{ matrix.target }}
+          path: .qa-output/macos-smoke
+          include-hidden-files: true
+          if-no-files-found: warn
       - name: Upload ${{ matrix.target }} package
         if: success() || (runner.os == 'Linux' && steps.repack.outcome == 'success')
         uses: actions/upload-artifact@v4
