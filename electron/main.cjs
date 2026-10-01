@@ -43,6 +43,34 @@ const {
   safeMaterialRelativePath,
 } = require("./services/material-library-service.cjs");
 const { createStudyPlanService, sanitizeStudyPlan } = require("./services/study-plan-service.cjs");
+const { createCustomTrainingService } = require("./services/custom-training-service.cjs");
+const { createAppUpdateService, detectUpdateEligibility } = require("./services/app-update-service.cjs");
+let appUpdateService;
+let trainingInstallQueue = Promise.resolve();
+function withTrainingInstallLock(action) {
+  const task = trainingInstallQueue.then(action);
+  trainingInstallQueue = task.catch(() => undefined);
+  return task;
+}
+let customTrainingService;
+let sanitizeTrainingStore;
+function getCustomTrainingService() {
+  if (!customTrainingService) customTrainingService = createCustomTrainingService({
+    readStore: () => readJson("custom-training.json", { version: 1, sessions: [] }),
+    writeStore: async (value) => {
+      await writeJson("custom-training.json", value);
+      scheduleAutomaticBackup("custom-training-update");
+    },
+    loadContext: async () => {
+      const [cache, plan] = await Promise.all([
+        readJson("cache.json", {}), getStudyPlanService().getQueue(),
+      ]);
+      return { ...cache, problems: [...plan.items, ...(cache.problems || [])] };
+    },
+    fetchJson: fetchCodeforces,
+  });
+  return customTrainingService;
+}
 const { createAiService, normalizeAiReview } = require("./services/ai-service.cjs");
 const { sanitizeReviewEvidence } = require("./services/ai-review-storage.cjs");
 const { buildDemoAiData } = require("./services/ai-demo-data.cjs");
@@ -344,7 +372,7 @@ async function writeJsonPath(target, value, { pretty = true } = {}) {
 }
 
 async function writeJson(filename, value, options) {
-  if (["study.json", "contest-replay.json"].includes(filename)) return writeAtomicJson(dataPath(filename), value, options);
+  if (["study.json", "contest-replay.json", "custom-training.json", "update-settings.json"].includes(filename)) return writeAtomicJson(dataPath(filename), value, options);
   await writeJsonPath(dataPath(filename), value, options);
 }
 
@@ -1873,6 +1901,7 @@ async function collectDataBundle(reason = "manual", snapshot = null) {
       study: snapshotStudy || (await readStudyData()),
       contestReplay: validContestReplay(contestReplay) ? contestReplay : null,
       studyPlan: sanitizeStudyPlan(await readJson("study-plan.json", { version: 1, items: [] })),
+      customTraining: await getCustomTrainingService().get(),
     },
   };
 }
@@ -2070,6 +2099,7 @@ function validateImportBundle(bundle) {
       ? bundle.data.contestReplay
       : emptyContestReplay(bundle.data.cache.handle),
     studyPlan: sanitizeStudyPlan(bundle.data.studyPlan || bundle.data.agentTodo),
+    customTraining: bundle.data.customTraining == null ? null : sanitizeTrainingStore(bundle.data.customTraining),
   };
 }
 
@@ -2103,26 +2133,35 @@ async function importData() {
     noLink: true,
   });
   if (confirmation.response !== 1) return { canceled: true };
-  await createAutomaticBackup("before-import", true);
-  await Promise.all([
-    writeJson("cache.json", imported.cache, { pretty: false }),
-    writeJson("favorites.json", imported.favorites),
-    writeJson("study.json", imported.study),
-    writeJson("contest-replay.json", imported.contestReplay),
-    writeJson("study-plan.json", imported.studyPlan),
-  ]);
-  await appendActivity(
-    "手动导入",
-    `已导入 ${imported.cache.submissions.length} 条提交与 ${Object.keys(imported.study.notes).length} 份笔记`,
-  );
-  return {
-    canceled: false,
-    path: sourcePath,
-    cache: imported.cache,
-    favorites: imported.favorites,
-    study: imported.study,
-    studyPlan: imported.studyPlan,
-  };
+  // Import can restore an active training session. Serialize its commit with
+  // starting training and installing; do not hold the lock while dialogs open.
+  return withTrainingInstallLock(async () => {
+    if ((await appUpdateService.get()).status === "installing") {
+      throw new Error(english ? "Update installation is starting. Wait for the app to restart." : "更新安装正在启动，请等待应用重启。");
+    }
+    await createAutomaticBackup("before-import", true);
+    await Promise.all([
+      writeJson("cache.json", imported.cache, { pretty: false }),
+      writeJson("favorites.json", imported.favorites),
+      writeJson("study.json", imported.study),
+      writeJson("contest-replay.json", imported.contestReplay),
+      writeJson("study-plan.json", imported.studyPlan),
+    ]);
+    // Old backups do not contain this independent store; preserve current sessions.
+    if (imported.customTraining) await getCustomTrainingService().replaceStore(imported.customTraining);
+    await appendActivity(
+      "手动导入",
+      `已导入 ${imported.cache.submissions.length} 条提交与 ${Object.keys(imported.study.notes).length} 份笔记`,
+    );
+    return {
+      canceled: false,
+      path: sourcePath,
+      cache: imported.cache,
+      favorites: imported.favorites,
+      study: imported.study,
+      studyPlan: imported.studyPlan,
+    };
+  });
 }
 
 async function getDataCenterStatus() {
@@ -2274,6 +2313,7 @@ function onTrusted(channel, listener) {
 }
 
 app.whenReady().then(async () => {
+  ({ sanitizeTrainingStore } = await import("../src/lib/training-session-model.mjs"));
   ({ normalizeTrainingProfiles } = await import("./shared/training-profile.mjs"));
   protocol.handle("cf-material", async (request) => {
     const requestUrl = new URL(request.url);
@@ -2292,7 +2332,61 @@ app.whenReady().then(async () => {
   });
   session.defaultSession.setPermissionCheckHandler(() => false);
 
+  const updateEligibility = detectUpdateEligibility({
+    platform: process.platform,
+    arch: process.arch,
+    isPackaged: app.isPackaged,
+    execPath: app.getPath("exe"),
+    resourcesPath: process.resourcesPath,
+    env: process.env,
+  });
+  // The renderer supplies actions only. The update provider is fixed in the main process.
+  const updater = updateEligibility.supported
+    ? new (require("electron-updater").NsisUpdater)({
+        provider: "github", owner: "Binah-Dev", repo: "cf-compass",
+        private: false, releaseType: "release",
+      })
+    : null;
+  appUpdateService = createAppUpdateService({
+    ...updateEligibility,
+    updater,
+    currentVersion: app.getVersion(),
+    readConfig: () => readJson("update-settings.json", {}),
+    writeConfig: value => writeJson("update-settings.json", value),
+    hasActiveTraining: async () => {
+      const store = await getCustomTrainingService().get();
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      return store.sessions.some(item => item.status === "running" && item.endTimeSeconds > nowSeconds);
+    },
+    onChanged: value => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        if (!window.isDestroyed()) window.webContents.send("app-update:changed", value);
+      }
+    },
+    openExternal: () => shell.openExternal("https://github.com/Binah-Dev/cf-compass/releases"),
+  });
+  await appUpdateService.init();
+  handleTrusted("app-update:get", () => appUpdateService.get());
+  handleTrusted("app-update:check", () => appUpdateService.check());
+  handleTrusted("app-update:set-auto-check", (_event, enabled) => appUpdateService.setAutoCheck(enabled));
+  handleTrusted("app-update:download", () => appUpdateService.download());
+  handleTrusted("app-update:cancel", () => appUpdateService.cancel());
+  handleTrusted("app-update:install", () => withTrainingInstallLock(() => appUpdateService.install()));
+  handleTrusted("app-update:open-release", () => appUpdateService.openRelease());
+
   handleTrusted("data:get-cache", () => readJson("cache.json", null));
+  handleTrusted("training:get", () => getCustomTrainingService().get());
+  handleTrusted("training:save-draft", (_event, input) => getCustomTrainingService().saveDraft(input));
+  handleTrusted("training:start", (_event, id) => withTrainingInstallLock(async () => {
+    if ((await appUpdateService.get()).status === "installing") {
+      const english = (await readUiLanguage()) === "en-US";
+      throw new Error(english ? "Update installation is starting. Wait for the app to restart." : "更新安装正在启动，请等待应用重启。");
+    }
+    return getCustomTrainingService().start(id);
+  }));
+  handleTrusted("training:finish", (_event, id) => getCustomTrainingService().finish(id));
+  handleTrusted("training:cancel", (_event, id) => getCustomTrainingService().cancel(id));
+  handleTrusted("training:sync", (_event, id) => getCustomTrainingService().sync(id));
   handleTrusted("data:sync", (_event, handle) => syncHandle(handle));
   handleTrusted("contests:get", async () => {
     const replay = await refreshContestReplayIndex();
@@ -2415,6 +2509,10 @@ app.whenReady().then(async () => {
   onTrusted("window:close", () => mainWindow?.close());
 
   createWindow();
+  const updateStartupTimer = setTimeout(() => {
+    void appUpdateService.startup().catch(() => undefined);
+  }, 5000);
+  updateStartupTimer.unref();
   app.on("activate", () => {
     if (!mainWindow || mainWindow.isDestroyed()) createWindow();
   });

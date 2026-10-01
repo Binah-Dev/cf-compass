@@ -268,7 +268,11 @@ test("the private checksum manifest covers the update sidecar without publishing
   const manifestPath = path.join(verificationDirectory, "SHA256SUMS.txt");
   const asset = "CF-Compass-4.2.2-x86_64.AppImage";
   const sidecar = `${asset}.zsync`;
-  const contents = new Map([[asset, "test-appimage"], [sidecar, "test-zsync"]]);
+  const contents = new Map([
+    [asset, "test-appimage"], [sidecar, "test-zsync"],
+    ["latest.yml", "test-windows-update-metadata"],
+    ["CF-Compass-4.2.2-Windows-x64-Setup.exe.blockmap", "test-windows-blockmap"],
+  ]);
   try {
     await mkdir(assetsDirectory);
     for (const [name, content] of contents) {

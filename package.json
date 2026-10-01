@@ -1,7 +1,7 @@
 {
   "name": "cf-compass",
   "desktopName": "cf-compass.desktop",
-  "version": "4.2.2",
+  "version": "4.3.0",
   "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": {
@@ -21,6 +21,12 @@
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
+    "test:app-update": "node --test scripts/test-app-update-service.cjs scripts/test-release-assets.mjs",
+    "qa:app-update": "node scripts/qa-app-update.cjs",
+    "qa:app-update:main": "node scripts/qa-app-update-main.cjs",
+    "qa:app-update:local": "node scripts/qa-app-update-local.cjs",
+    "test:custom-training": "node --test scripts/test-custom-training.mjs scripts/test-custom-training-browser.mjs",
+    "qa:custom-training": "node scripts/qa-custom-training.cjs",
     "test:virtual-rating": "node --test scripts/test-virtual-rating.cjs",
     "qa:dual-rating": "node scripts/qa-dual-rating.cjs",
     "test:training-profile": "node --test scripts/test-training-profile.mjs",
@@ -59,6 +65,7 @@
     "test:performance": "node scripts/test-performance.mjs"
   },
   "dependencies": {
+    "electron-updater": "6.8.9",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -80,6 +87,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "src/lib/training-session-model.mjs",
       "build/icon.*",
       "package.json"
     ],
@@ -89,6 +97,13 @@
     "win": {
       "icon": "build/icon.ico",
       "signExecutable": false,
+      "publish": {
+        "provider": "github",
+        "owner": "Binah-Dev",
+        "repo": "cf-compass",
+        "private": false,
+        "releaseType": "release"
+      },
       "target": [
         {
           "target": "nsis",
@@ -105,6 +120,7 @@
       ]
     },
     "nsis": {
+      "include": "build/nsis-update.nsh",
       "artifactName": "CF-Compass-${version}-Windows-${arch}-Setup.${ext}",
       "oneClick": false,
       "perMachine": false,

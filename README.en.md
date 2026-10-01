@@ -27,13 +27,16 @@
 
 ![CF Compass problem dashboard](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/dashboard-sky.png)
 
-## Current release: v4.2.2
+## Current release: v4.3.0
 
-v4.2.2 focuses on Linux distribution and the first-launch experience. Download it from [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest).
+v4.3.0 adds Custom Training and Windows installer updates. Download it from [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest).
 
-- AppImage packaging gains a static runtime, standard AppStream metadata and a workbench screenshot. Its filename becomes `CF-Compass-4.2.2-x86_64.AppImage`.
-- Stable AppImages include a matching `.AppImage.zsync` for external tools such as AppImageUpdate. There is no in-app automatic updater. Users of v4.2.1 must download v4.2.2 manually once; later updates require a future stable release.
-- The built-in demo workbench is available on first launch without a connection, with clear demo identity and statistics-source labels. Sync your own Codeforces handle when you want to use personal data.
+- Compose a timed session from the problem library, favorites, or study plan, inspect previous attempts, and choose the problem order. Starting locks the selection; sessions and the absolute countdown survive restart.
+- Hide tags and ratings independently during training and in results. Synchronization matches the bound account, complete problem ID, and session submission window. Custom sessions never enter official or combined estimated Rating.
+- Windows x64 installer editions check stable releases under **Data Center → App Updates**. Downloading and installing require explicit user actions, and active Custom Training blocks installation. Windows v4.2.2 and older require one manual installation of v4.3.0 first.
+- A dedicated stopwatch-and-play rail icon identifies Custom Training and follows the existing icon style.
+
+The static AppImage runtime, AppStream metadata, `.AppImage.zsync` support for external tools, and offline demo workbench introduced in v4.2.2 remain available. AppImage editions use external update tools and do not check for, download, or install updates inside the app.
 
 The combined Rating estimate, Daily Training, contest reviews and local notes from v4.2.1 remain available. The estimate processes eligible official and virtual sessions chronologically as a training reference without overwriting official data; a manual training rating takes priority. See the [v4.2.1 rules](./docs/releases/v4.2.1.md). Core training and estimates require no AI.
 
@@ -46,7 +49,7 @@ Ubuntu / Debian users should prefer `.deb`. On Ubuntu 24.04 hosts that restrict 
 | One learning record | Use the same notes and target list from the problem set, daily training, reviews, contests, and recommendations. |
 | Customizable workbench | Hide, restore, and reorder rail items; choose a UI scale; and review contests in a full-page layout. |
 
-See the [v4.2.2 release notes](./docs/releases/v4.2.2.md) and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
+See the [v4.3.0 release notes](./docs/releases/v4.3.0.md), the historical Linux validation in [v4.2.2](./docs/releases/v4.2.2.md), and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
 
 ## Why CF Compass?
 
@@ -222,17 +225,21 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 
 ### Desktop downloads
 
-Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the v4.2.2 package for your device:
+Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the v4.3.0 package for your device. The release contains six packages and three update assets:
 
-```text
-Windows x64 (recommended installer): CF-Compass-4.2.2-Windows-x64-Setup.exe
-Windows x64 (portable):              CF-Compass-4.2.2-Windows-x64-portable.exe
-Linux x64 AppImage:                  CF-Compass-4.2.2-x86_64.AppImage
-Linux AppImage update data:          CF-Compass-4.2.2-x86_64.AppImage.zsync
-Linux Debian x64:                    CF-Compass-4.2.2-Linux-amd64.deb
-macOS Intel:                         CF-Compass-4.2.2-macOS-x64.dmg
-macOS Apple Silicon:                 CF-Compass-4.2.2-macOS-arm64.dmg
-```
+| Platform or purpose | File |
+| --- | --- |
+| Windows x64 (recommended installer) | `CF-Compass-4.3.0-Windows-x64-Setup.exe` |
+| Windows x64 (portable) | `CF-Compass-4.3.0-Windows-x64-portable.exe` |
+| Windows installer update data | `CF-Compass-4.3.0-Windows-x64-Setup.exe.blockmap` |
+| Windows stable update metadata | `latest.yml` |
+| Linux x64 AppImage | `CF-Compass-4.3.0-x86_64.AppImage` |
+| Linux AppImage update data | `CF-Compass-4.3.0-x86_64.AppImage.zsync` |
+| Linux Debian x64 | `CF-Compass-4.3.0-Linux-amd64.deb` |
+| macOS Intel | `CF-Compass-4.3.0-macOS-x64.dmg` |
+| macOS Apple Silicon | `CF-Compass-4.3.0-macOS-arm64.dmg` |
+
+The `.blockmap`, `latest.yml`, and `.zsync` files are read by update tools, not separate applications to run. No standalone `.sha256` or `SHA256SUMS.txt` files are attached.
 
 Windows users should normally choose the `Setup.exe` installer. It extracts the application once during installation, so later launches start directly from the installed files. The `portable.exe` build requires no installation, but it extracts its program files on every launch and can be noticeably slower on low-end disks or while antivirus scanning is active. Packages are built from the same version commit on native runners and made available only after the release gates pass.
 
@@ -240,11 +247,15 @@ Ubuntu / Debian users should prefer `.deb` and install or upgrade it through the
 
 macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS apps receive a complete ad-hoc signature and CI signature verification. They are not Apple-notarized because the project does not own a paid Developer ID, so the first launch may still require approval under Privacy & Security.
 
+### Windows upgrades
+
+Windows v4.2.2 and older require one manual installation of the v4.3.0 `Setup.exe`. Afterward, use **Data Center → App Updates** for later stable releases. Startup checking can be disabled; downloading and quitting to install require explicit actions. Portable editions still update manually, and installation is blocked during active Custom Training.
+
 ### Linux upgrades
 
-The v4.2.1 AppImage has no standard update metadata, so **download v4.2.2 manually once** from Releases. Stable AppImages starting with v4.2.2 embed an update target for external tools such as AppImageUpdate, which use the adjacent `.AppImage.zsync` release asset to locate later stable versions. The sidecar is update data, not another installer, and does not need to be run. CF Compass itself does not automatically check for, download or install updates.
+AppImages from v4.2.1 and older have no standard update metadata, so **download the current v4.3.0 manually** from Releases. Stable AppImages starting with v4.2.2 embed an update target for external tools such as AppImageUpdate, which use the adjacent `.AppImage.zsync` release asset to locate later stable versions. The sidecar is update data, not another installer, and does not need to be run. AppImage editions do not automatically check for, download or install updates inside the app.
 
-An actual cross-version update requires a future stable release and its matching sidecar. Metadata checks and local reconstruction do not establish that a live cross-version upgrade has succeeded. With the Ubuntu 24.04 fixed-path installation above, update a copy in a user-writable directory first, then have an administrator install it at the fixed path; do not run an updater GUI as root. For `.deb`, download the newer package and upgrade through the system package manager. Existing user data and local asset settings are retained; export important data from Data Center before upgrading.
+Metadata checks and local reconstruction do not establish that a live public cross-version upgrade has succeeded. With the Ubuntu 24.04 fixed-path installation above, update a copy in a user-writable directory first, then have an administrator install it at the fixed path; do not run an updater GUI as root. For `.deb`, download the newer package and upgrade through the system package manager. Existing user data and local asset settings are retained; export important data from Data Center before upgrading.
 
 ### Download verification and system prompts
 
@@ -278,7 +289,7 @@ pnpm desktop:build:linux  # Linux AppImage and deb
 pnpm desktop:build:mac    # macOS Intel and Apple Silicon dmg; run on macOS
 ```
 
-GitHub Actions installs dependencies, audits production packages, runs focused regression tests, and builds real packages on Windows, Linux, and macOS. A tagged build becomes a Release only after every platform succeeds; package SHA-256 values are checked internally without publishing separate checksum files.
+GitHub Actions installs dependencies, audits production packages, runs focused regression tests, and builds real packages on Windows, Linux, and macOS. The six packages, AppImage `.zsync`, Windows installer `.blockmap`, and `latest.yml` form the release inventory. A tagged build creates a draft only after every platform succeeds and makes it public after download verification and Windows installer/portable checks. SHA-256 verification remains internal; Windows updating retains SHA-512 validation without publishing separate checksum files.
 
 ## Privacy and open-source boundary
 
@@ -293,6 +304,14 @@ Before opening an issue, remove any handle, local path, log content, or backup d
 ## Contributing
 
 Issues, ideas, translations, and pull requests are welcome. Start with [CONTRIBUTING.md](./CONTRIBUTING.md), follow the [Code of Conduct](./CODE_OF_CONDUCT.md), and include privacy-safe screenshots for visual changes.
+
+## Custom Training
+
+Open **Custom Training**, identified by its dedicated stopwatch icon, in the left navigation to choose problems from the problem library, favorites, or study plan, set their order and duration, and hide tags and ratings independently during practice. Sessions stay local and resume after restart. Submit on Codeforces using the bound account, synchronize the session results, and use shared notes and the study plan for upsolving. Custom sessions do not affect official or combined estimated Rating. See [Custom Training](./docs/custom-training.md) for counting rules and usage.
+
+## Windows installer updates
+
+Starting with v4.3.0, Windows x64 installer updates are available in **Data Center → App Updates**. Startup checks can be disabled; downloading and quitting to install require your explicit action. Windows v4.2.2 and older need one manual installation of v4.3.0 first. Portable builds and other platforms still update manually. See [Windows installer updates](./docs/windows-auto-update.md) for usage, verification limits, and release assets.
 
 ## License and attribution
 

@@ -40,6 +40,8 @@ jobs:
         run: |
           pnpm exec node --test scripts/test-appimage-release.mjs
           pnpm exec node --test scripts/test-appimage-apparmor.mjs scripts/test-release-assets.mjs
+          pnpm test:custom-training
+          pnpm test:app-update
           pnpm exec node scripts/test-template-summary-format.mjs
           pnpm exec node scripts/test-carrot.mjs
           pnpm exec node scripts/test-analytics.mjs
@@ -111,6 +113,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          pnpm exec node scripts/verify-release-assets.mjs release --windows-only
+          if ($LASTEXITCODE -ne 0) { throw 'Windows updater metadata validation failed.' }
           $executable = Get-ChildItem release/win-unpacked -File -Filter '*.exe' | Select-Object -First 1
           if (-not $executable) {
             throw 'No unpacked Windows executable was found.'
@@ -126,6 +130,12 @@ jobs:
             pnpm exec node "scripts/$check"
             if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
           }
+          foreach ($check in @('qa-custom-training.cjs', 'qa-app-update.cjs')) {
+            pnpm exec node "scripts/$check"
+            if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
+          }
+          pnpm qa:app-update:main
+          if ($LASTEXITCODE -ne 0) { throw 'Updater/training main IPC regression failed.' }
           pnpm exec node scripts/qa-issue-27.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Packaged regression failed: qa-issue-27.cjs' }
           pnpm exec node scripts/qa-combined-rating.cjs
@@ -261,6 +271,8 @@ jobs:
           if-no-files-found: error
           path: |
             release/*.exe
+            release/*.exe.blockmap
+            release/latest.yml
             release/*.AppImage
             release/*.zsync
             release/*.deb
@@ -344,13 +356,22 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install verification dependencies
+        run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
           pattern: CF-Compass-*
           path: release
           merge-multiple: true
       - name: Verify exact public asset inventory
-        run: node scripts/verify-release-assets.mjs release
+        run: node scripts/verify-release-assets.mjs release --require-tag-match
       - name: Generate private verification manifest
         run: node scripts/generate-checksums.mjs release --manifest=release-verification-manifest/SHA256SUMS.txt
       - name: Publish GitHub Release
@@ -358,7 +379,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           shopt -s nullglob
-          assets=(release/*.exe release/*.AppImage release/*.zsync release/*.deb release/*.dmg)
+          assets=(release/*.exe release/*.exe.blockmap release/*.AppImage release/*.zsync release/*.deb release/*.dmg)
+          if [[ -f release/latest.yml ]]; then assets+=(release/latest.yml); fi
           node scripts/verify-release-assets.mjs release
           notes="docs/releases/$GITHUB_REF_NAME.md"
           prerelease=""

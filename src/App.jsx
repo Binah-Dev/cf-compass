@@ -66,6 +66,7 @@ const ReviewLibrary = lazy(() => import("./components/ReviewLibrary"));
 const StudyPlan = lazy(() => import("./components/StudyPlan"));
 const TemplateLibrary = lazy(() => import("./components/TemplateLibrary"));
 const TodayTraining = lazy(() => import("./components/TodayTraining"));
+const CustomTraining = lazy(() => import("./components/CustomTraining"));
 const TrainingAnalytics = lazy(() => import("./components/TrainingAnalytics"));
 
 const PAGE_SIZE = 14;
@@ -109,6 +110,7 @@ function applyRotatedWallpaper(settings, pageId, wallpapers) {
 }
 
 const pageMeta = {
+  "custom-training": ["自定义训练赛", "从题库、收藏或目标题单组题，限时训练并回看本场结果"],
   library: ["题库工作台", "筛选、追踪并完成下一道值得做的题"],
   today: ["今日训练", "复习该复习的，补强最值得补强的"],
   plan: ["计划题单", "把想刷的题排进清单，用完成轨迹推动下一步"],
@@ -801,6 +803,16 @@ export default function App() {
             onOpenNote={setNoteProblem}
             plannedKeys={plannedKeys}
             onAddToPlan={addProblemToPlan}
+          />
+        ) : activeNav === "custom-training" ? (
+          <CustomTraining
+            data={rawData}
+            submissionMap={submissionMap}
+            favorites={favorites}
+            planItems={planItems}
+            onOpenNote={setNoteProblem}
+            onAddToPlan={addProblemToPlan}
+            onToast={showToast}
           />
         ) : activeNav === "plan" ? (
           <StudyPlan
