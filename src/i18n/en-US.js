@@ -1,3 +1,19 @@
+export const studyTimerMessages = {
+  title: "Study Timer", intro: "Make room for focused problem solving", stopwatch: "Stopwatch", countdown: "Countdown", target: "Target time",
+  idle: "Ready", running: "Running", paused: "Paused", completed: "Completed", elapsed: "Elapsed time", remaining: "Time remaining",
+  hours: "Hours", minutes: "Minutes", seconds: "Seconds", duration: "Countdown duration", durationHint: "1 second to 7 days. Minutes and seconds must be 0–59.",
+  targetDate: "End date and time", targetHint: "Choose a local end time, up to 366 days ahead. Dates can cross midnight.", timezone: "Local time zone", today: "Today", tomorrow: "Tomorrow", crossDay: "Another day", pastDay: "Past date",
+  targetAbsolute: "Ends at the specified time. Target timers cannot pause; cancel to change the end time.",
+  start: "Start", pause: "Pause", resume: "Resume", reset: "Reset", cancel: "Cancel target timer", startAgain: "Start again", resetHint: "Reset stops this timer and clears its elapsed time.",
+  switchHint: "The mode is locked while timing. Reset or cancel before switching modes.", stopwatchHint: "Uses real elapsed time. Paused time is excluded.", countdownHint: "Pausing preserves the remaining duration. Resume to continue from there.",
+  finished: "Time is up", completedHint: "This timer has ended. The notice stays available after you close the window.", recoveredHint: "The timer ended during sleep or while the app was closed; its result has been restored.",
+  lifecycle: "Timer state is saved locally after you click Start; inputs that have not been started are not saved. A running timer continues when you switch pages, minimize or close this window, and is restored using real elapsed time after an app restart. Paused timers stay paused.",
+  audioLifecycle: "Target time: the bell works while the app is running, even with this window closed. A closed app or sleeping system cannot ring on time; a notice is shown when you return.",
+  silent: "This mode is silent. Completion only shows a notice.", loading: "Loading the timer…", working: "Working…", loadFailed: "Could not load the timer. Please retry.", failed: "The action did not finish. Please retry.", retry: "Retry",
+  invalidDuration: "Enter a whole-number duration from 1 second to 7 days; minutes and seconds cannot exceed 59.", invalidTarget: "Choose a valid future local date and time within 366 days.", busy: "Reset or cancel the running timer before changing modes.", fixedTarget: "Target timers cannot pause. Cancel to change the end time.",
+  audio: "Completion bell", defaultAudio: "Default short bell", customAudio: "Local audio", chooseAudio: "Choose local audio", resetAudio: "Use default bell", previewAudio: "Preview bell", stopAudio: "Stop bell", audioHint: "Local audio may be up to 20 MB. Preview and completion audio stop after 15 seconds. Only target timers can play sound.", audioFailed: "Audio could not play. Choose another file or use the default bell.", audioMissing: "The saved audio is missing. The default bell will be used.", audioFallback: "The custom audio could not play. The default bell was used instead.", audioFormat: "Choose an MP3, WAV, OGG, M4A, AAC or FLAC audio file.", audioTooLarge: "The audio file must not be empty or larger than 20 MB.",
+};
+
 export const appUpdateMessages = {
   title: "App updates", intro: "Check for a new version, then decide when to download and install it. The app will never quit automatically to install.", currentVersion: "Current version", availableVersion: "Available version", lastChecked: "Last checked", neverChecked: "Not checked yet", loading: "Loading update settings…",
   idle: "Ready to check", checking: "Checking for updates…", available: "New version available", notAvailable: "You're up to date", downloading: "Downloading update…", downloaded: "Update downloaded. Waiting for installation confirmation.", cancelled: "Cancelled. Check or download again when ready.", installing: "Quitting and installing…", error: "Update action did not complete",
@@ -22,6 +38,9 @@ export const customTrainingMessages = {
 };
 
 export const exactMessages = {
+  "打开计时表": "Open timer",
+  "计时表由 CF Compass 桌面端提供": "The timer is available in CF Compass desktop",
+  "计时表窗口打开失败": "Could not open the timer window",
   "自定义训练赛": "Custom Training",
   "从题库、收藏或目标题单组题，限时训练并回看本场结果": "Build a timed practice from the problem library, favorites or target plan, then review its results",
   "同步后自动估分，结果保存在本机；失败可手动重试。": "Estimates run automatically after sync and stay local; retry manually if needed.",

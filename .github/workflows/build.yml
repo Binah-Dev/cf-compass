@@ -41,6 +41,7 @@ jobs:
           pnpm exec node --test scripts/test-appimage-release.mjs
           pnpm exec node --test scripts/test-appimage-apparmor.mjs scripts/test-release-assets.mjs
           pnpm test:custom-training
+          pnpm test:study-timer
           pnpm test:app-update
           pnpm exec node scripts/test-template-summary-format.mjs
           pnpm exec node scripts/test-carrot.mjs
@@ -130,7 +131,7 @@ jobs:
             pnpm exec node "scripts/$check"
             if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
           }
-          foreach ($check in @('qa-custom-training.cjs', 'qa-app-update.cjs')) {
+          foreach ($check in @('qa-custom-training.cjs', 'qa-app-update.cjs', 'qa-study-timer.cjs')) {
             pnpm exec node "scripts/$check"
             if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
           }
@@ -411,6 +412,15 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install upgrade verification dependencies
+        run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
           name: CF-Compass-Windows-x64
@@ -442,6 +452,30 @@ jobs:
           $portable = Get-ChildItem release-verification -File -Filter '*Windows-x64-portable.exe' | Select-Object -First 1
           & ./scripts/qa-windows-installer.ps1 -Installer $installer.FullName
           & ./scripts/qa-windows-portable.ps1 -Executable $portable.FullName
+      - name: Verify previous stable installer upgrade in the isolated runner
+        if: ${{ !contains(github.ref_name, '-') }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $previousTag = gh release view --json tagName --jq .tagName
+          if ($LASTEXITCODE -ne 0 -or $previousTag -notmatch '^v\d+\.\d+\.\d+$') { throw 'Cannot resolve the previous stable release.' }
+          $previousVersion = $previousTag.TrimStart('v')
+          $version = (Get-Content -LiteralPath package.json -Raw | ConvertFrom-Json).version
+          if ([Version]$previousVersion -ge [Version]$version) { throw 'The previous stable release must be older than the candidate.' }
+          New-Item -ItemType Directory -Force release-upgrade | Out-Null
+          gh release download $previousTag --dir release-upgrade --pattern '*Windows-x64-Setup.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot download the previous stable Windows installer.' }
+          $previous = Get-ChildItem release-upgrade -File -Filter '*Windows-x64-Setup.exe' | Select-Object -First 1
+          $candidate = Get-ChildItem release-verification -File -Filter '*Windows-x64-Setup.exe' | Select-Object -First 1
+          $previousRelease = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$previousTag" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot verify the previous stable installer digest.' }
+          $previousAsset = $previousRelease.assets | Where-Object { $_.name -eq $previous.Name } | Select-Object -First 1
+          if ($previousAsset.digest -notmatch '^sha256:[a-f0-9]{64}$' -or "sha256:$((Get-FileHash -LiteralPath $previous.FullName -Algorithm SHA256).Hash)" -ne $previousAsset.digest) {
+            throw 'The previous stable installer differs from its official GitHub digest.'
+          }
+          & ./scripts/qa-windows-upgrade.ps1 -PreviousInstaller $previous.FullName -Installer $candidate.FullName -ExpectedPreviousVersion $previousVersion -ExpectedVersion $version
+          if ($LASTEXITCODE -ne 0) { throw 'The previous-stable installer upgrade verification failed.' }
       - name: Publish verified release
         shell: bash
         env:

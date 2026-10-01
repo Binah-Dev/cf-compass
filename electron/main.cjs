@@ -29,6 +29,8 @@ const {
   net,
   nativeImage,
   nativeTheme,
+  Notification,
+  powerMonitor,
   protocol,
   safeStorage,
   session,
@@ -43,6 +45,8 @@ const {
   safeMaterialRelativePath,
 } = require("./services/material-library-service.cjs");
 const { createStudyPlanService, sanitizeStudyPlan } = require("./services/study-plan-service.cjs");
+const { createStudyTimerService } = require("./services/study-timer-service.cjs");
+const { createStudyTimerAudioService } = require("./services/study-timer-audio-service.cjs");
 const { createCustomTrainingService } = require("./services/custom-training-service.cjs");
 const { createAppUpdateService, detectUpdateEligibility } = require("./services/app-update-service.cjs");
 let appUpdateService;
@@ -82,6 +86,10 @@ protocol.registerSchemesAsPrivileged([
   {
     scheme: "cf-material",
     privileges: { standard: true, secure: true, supportFetchAPI: true },
+  },
+  {
+    scheme: "cf-timer-audio",
+    privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
   },
 ]);
 
@@ -170,6 +178,18 @@ function createFirstLaunchStudyData() {
 
 let mainWindow;
 let studyPlanWindow;
+let studyTimerWindow;
+let studyTimerAudioWindow;
+let studyTimerService;
+let studyTimerAudioService;
+let studyTimerInterval;
+let studyTimerAudioGeneration = 0;
+let studyTimerAudioCommand = null;
+let studyTimerAudioPlaying = false;
+let studyTimerAudioError = "";
+let studyTimerQuitting = false;
+let studyTimerQuitFlushed = false;
+let studyTimerQuitFlush;
 let apiQueue = Promise.resolve();
 let lastApiCallAt = 0;
 let carrotModulePromise;
@@ -2222,6 +2242,7 @@ function createWindow() {
   mainWindow.once("ready-to-show", () => mainWindow.show());
   mainWindow.on("closed", () => {
     mainWindow = null;
+    quitWithoutVisibleWindows();
   });
 }
 
@@ -2267,8 +2288,149 @@ function createStudyPlanWindow() {
     studyPlanWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"), { query: { studyPlanWindow: "1" } });
   }
   studyPlanWindow.once("ready-to-show", () => studyPlanWindow?.show());
-  studyPlanWindow.on("closed", () => { studyPlanWindow = null; });
+  studyPlanWindow.on("closed", () => { studyPlanWindow = null; quitWithoutVisibleWindows(); });
   return studyPlanWindow;
+}
+
+// The audio host is hidden and must not keep a closed Windows/Linux app alive.
+function quitWithoutVisibleWindows() {
+  if (process.platform !== "darwin" && !mainWindow && !studyPlanWindow && !studyTimerWindow) app.quit();
+}
+
+function broadcastStudyTimer(channel, value) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send(channel, value);
+  }
+}
+
+function getStudyTimerService() {
+  if (!studyTimerService) studyTimerService = createStudyTimerService({
+    readStore: () => readJson("study-timer.json", null),
+    writeStore: (value) => writeJson("study-timer.json", value),
+    shouldNotify: () => !studyTimerQuitting,
+    onChanged: (value) => broadcastStudyTimer("timer:changed", value),
+    onElapsed: (value) => { void notifyStudyTimerElapsed(value).catch(() => undefined); },
+  });
+  return studyTimerService;
+}
+
+function getStudyTimerAudioService() {
+  if (!studyTimerAudioService) studyTimerAudioService = createStudyTimerAudioService({
+    directory: path.join(app.getPath("userData"), "study-timer-audio"),
+    readStore: () => readJson("study-timer-audio.json", null),
+    writeStore: (value) => writeJson("study-timer-audio.json", value),
+    chooseFile: () => dialog.showOpenDialog(studyTimerWindow || mainWindow, {
+      title: "CF Compass · Timer audio",
+      properties: ["openFile"],
+      filters: [{ name: "Audio", extensions: ["mp3", "wav", "ogg", "m4a", "aac", "flac"] }],
+    }),
+    onChanged: (value) => broadcastStudyTimer("timer:audio-changed", {
+      ...value, playing: studyTimerAudioPlaying, error: studyTimerAudioError || value.error || "",
+    }),
+  });
+  return studyTimerAudioService;
+}
+
+async function getStudyTimerAudioConfig() {
+  let config;
+  try { config = await getStudyTimerAudioService().getConfig(); }
+  catch { config = { source: "default", name: "", error: "audio-unavailable" }; }
+  return { ...config, playing: studyTimerAudioPlaying, error: studyTimerAudioError || config.error || "" };
+}
+
+async function broadcastStudyTimerAudio() {
+  broadcastStudyTimer("timer:audio-changed", await getStudyTimerAudioConfig());
+}
+
+function stopStudyTimerAudio() {
+  studyTimerAudioGeneration += 1;
+  studyTimerAudioPlaying = false;
+  studyTimerAudioCommand = { type: "stop", id: `timer-audio-${studyTimerAudioGeneration}`, source: "default", reason: "preview" };
+  if (studyTimerAudioWindow && !studyTimerAudioWindow.isDestroyed()) {
+    studyTimerAudioWindow.webContents.send("timer:audio-command", studyTimerAudioCommand);
+  }
+}
+
+function createStudyTimerAuxiliaryWindow(audioHost = false) {
+  let existing = audioHost ? studyTimerAudioWindow : studyTimerWindow;
+  if (existing && !existing.isDestroyed()) {
+    if (!audioHost) { if (existing.isMinimized()) existing.restore(); existing.show(); existing.focus(); }
+    return existing;
+  }
+  const window = new BrowserWindow({
+    width: audioHost ? 160 : 480,
+    height: audioHost ? 100 : 690,
+    minWidth: audioHost ? 100 : 380,
+    minHeight: audioHost ? 80 : 540,
+    title: "CF Compass · Timer",
+    backgroundColor: "#071825",
+    icon: path.join(__dirname, "..", "build", "icon.ico"),
+    show: false,
+    skipTaskbar: audioHost,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true, nodeIntegration: false, sandbox: true,
+      backgroundThrottling: false,
+      ...(audioHost ? { autoplayPolicy: "no-user-gesture-required" } : {}),
+    },
+  });
+  if (audioHost) studyTimerAudioWindow = window;
+  else studyTimerWindow = window;
+  window.setMenuBarVisibility(false);
+  window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  window.webContents.on("will-navigate", (event, url) => { if (!isTrustedRendererUrl(url)) event.preventDefault(); });
+  const query = audioHost ? { studyTimerAudio: "1" } : { studyTimerWindow: "1" };
+  if (process.env.VITE_DEV_SERVER_URL) {
+    const target = new URL(process.env.VITE_DEV_SERVER_URL);
+    for (const [key, value] of Object.entries(query)) target.searchParams.set(key, value);
+    void window.loadURL(target.toString());
+  } else {
+    void window.loadFile(path.join(__dirname, "..", "dist", "index.html"), { query });
+  }
+  if (!audioHost) window.once("ready-to-show", () => { if (!window.isDestroyed()) window.show(); });
+  window.on("closed", () => {
+    if (audioHost) {
+      studyTimerAudioWindow = null;
+      studyTimerAudioPlaying = false;
+      studyTimerAudioCommand = null;
+    } else {
+      studyTimerWindow = null;
+      quitWithoutVisibleWindows();
+    }
+  });
+  return window;
+}
+
+async function playStudyTimerAudio(reason, expectedCompletedAt = null) {
+  const generation = ++studyTimerAudioGeneration;
+  const [config, state] = await Promise.all([getStudyTimerAudioService().getConfig(), getStudyTimerService().getState()]);
+  if (studyTimerQuitting || generation !== studyTimerAudioGeneration || state.mode !== "target") return;
+  if (reason === "alarm" && (state.status !== "completed" || state.completedAt !== expectedCompletedAt)) return;
+  studyTimerAudioError = config.error || "";
+  studyTimerAudioCommand = { type: "play", id: `timer-audio-${generation}`, source: config.source, reason };
+  studyTimerAudioPlaying = true;
+  const window = createStudyTimerAuxiliaryWindow(true);
+  window.webContents.send("timer:audio-command", studyTimerAudioCommand);
+  await broadcastStudyTimerAudio();
+}
+
+async function notifyStudyTimerElapsed(state) {
+  if (studyTimerQuitting) return;
+  const english = (await readStudyData()).settings.language === "en-US";
+  const title = state.mode === "target"
+    ? (english ? "Target time reached" : "定点计时已到时")
+    : (english ? "Countdown finished" : "反向计时已结束");
+  if (studyTimerWindow && !studyTimerWindow.isDestroyed()) studyTimerWindow.flashFrame(true);
+  else mainWindow?.flashFrame(true);
+  // OS notification sound is disabled. Only target mode may play our bounded local audio.
+  if (Notification.isSupported()) new Notification({ title: `CF Compass · ${title}`, body: english ? "Open the study timer to review or reset it." : "打开计划题单计时表查看或重置。", silent: true }).show();
+  if (state.mode === "target") await playStudyTimerAudio("alarm", state.completedAt);
+}
+
+function assertStudyTimerAudioHost(event) {
+  if (!studyTimerAudioWindow || event.sender !== studyTimerAudioWindow.webContents || event.senderFrame !== event.sender.mainFrame) {
+    throw new Error("Audio playback reports are restricted to the timer audio host");
+  }
 }
 
 function trustedRendererUrl() {
@@ -2326,6 +2488,17 @@ app.whenReady().then(async () => {
     });
     if (!target) return new Response("Not found", { status: 404 });
     return net.fetch(pathToFileURL(target).href);
+  });
+  protocol.handle("cf-timer-audio", async (request) => {
+    const target = new URL(request.url);
+    const kind = target.pathname.slice(1);
+    if (target.hostname !== "local" || target.username || target.password || target.port || !["default", "custom"].includes(kind) || request.method !== "GET") {
+      return new Response("Not found", { status: 404 });
+    }
+    const audioPath = await getStudyTimerAudioService().getAudioPath(kind);
+    const range = request.headers.get("range");
+    const headers = range && /^bytes=\d*-\d*$/.test(range) ? { Range: range } : undefined;
+    return net.fetch(pathToFileURL(audioPath).href, { headers });
   });
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
     callback(false);
@@ -2477,6 +2650,62 @@ app.whenReady().then(async () => {
     createStudyPlanWindow();
     return { opened: true };
   });
+  handleTrusted("timer:get", () => getStudyTimerService().getState());
+  handleTrusted("timer:control", async (_event, action) => {
+    const stopsAudio = ["configure", "reset", "cancel"].includes(action?.type);
+    if (stopsAudio) stopStudyTimerAudio();
+    const result = await getStudyTimerService().dispatch(action);
+    // Invalidate an alarm whose asynchronous setup raced with this mutation.
+    if (stopsAudio) { stopStudyTimerAudio(); void broadcastStudyTimerAudio(); }
+    return result;
+  });
+  handleTrusted("timer:window-open", () => {
+    createStudyTimerAuxiliaryWindow();
+    return { opened: true };
+  });
+  handleTrusted("timer:audio-get", () => getStudyTimerAudioConfig());
+  handleTrusted("timer:audio-choose", async () => {
+    if ((await getStudyTimerService().getState()).mode !== "target") throw new Error("Audio is available only in target-time mode");
+    stopStudyTimerAudio();
+    studyTimerAudioError = "";
+    await getStudyTimerAudioService().choose();
+    await broadcastStudyTimerAudio();
+    return getStudyTimerAudioConfig();
+  });
+  handleTrusted("timer:audio-reset", async () => {
+    if ((await getStudyTimerService().getState()).mode !== "target") throw new Error("Audio is available only in target-time mode");
+    stopStudyTimerAudio();
+    studyTimerAudioError = "";
+    await getStudyTimerAudioService().reset();
+    await broadcastStudyTimerAudio();
+    return getStudyTimerAudioConfig();
+  });
+  handleTrusted("timer:audio-preview", async () => {
+    if ((await getStudyTimerService().getState()).mode !== "target") throw new Error("Audio is available only in target-time mode");
+    await playStudyTimerAudio("preview");
+    return getStudyTimerAudioConfig();
+  });
+  handleTrusted("timer:audio-stop", async () => {
+    stopStudyTimerAudio();
+    await broadcastStudyTimerAudio();
+    return getStudyTimerAudioConfig();
+  });
+  handleTrusted("timer:audio-host-ready", (event) => {
+    assertStudyTimerAudioHost(event);
+    return studyTimerAudioCommand;
+  });
+  handleTrusted("timer:audio-playback", async (event, value) => {
+    assertStudyTimerAudioHost(event);
+    if (!value || typeof value.id !== "string" || value.id.length > 80 || typeof value.playing !== "boolean" || (value.error !== undefined && (typeof value.error !== "string" || value.error.length > 80)) || (value.source !== undefined && !["default", "custom"].includes(value.source))) {
+      throw new Error("Invalid audio playback report");
+    }
+    if (value.id !== studyTimerAudioCommand?.id) return { accepted: false };
+    studyTimerAudioPlaying = value.playing;
+    if (value.error) studyTimerAudioError = value.error;
+    if (!value.playing) studyTimerAudioCommand = null;
+    await broadcastStudyTimerAudio();
+    return { accepted: true };
+  });
   handleTrusted("appearance:get-wallpaper", () => wallpaperService.get());
   handleTrusted("appearance:get-local-library", () => materialLibraryService.get());
   handleTrusted("appearance:choose-wallpaper", () => wallpaperService.choose());
@@ -2509,6 +2738,12 @@ app.whenReady().then(async () => {
   onTrusted("window:close", () => mainWindow?.close());
 
   createWindow();
+  void getStudyTimerService().tick().catch((error) => console.error("Study timer restore failed:", error.message));
+  studyTimerInterval = setInterval(() => {
+    void getStudyTimerService().tick().catch((error) => console.error("Study timer tick failed:", error.message));
+  }, 1000);
+  studyTimerInterval.unref();
+  powerMonitor.on("resume", () => { void getStudyTimerService().tick().catch(() => undefined); });
   const updateStartupTimer = setTimeout(() => {
     void appUpdateService.startup().catch(() => undefined);
   }, 5000);
@@ -2520,4 +2755,19 @@ app.whenReady().then(async () => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
+});
+
+app.on("before-quit", (event) => {
+  studyTimerQuitting = true;
+  clearInterval(studyTimerInterval);
+  stopStudyTimerAudio();
+  if (studyTimerService && !studyTimerQuitFlushed) {
+    event.preventDefault();
+    if (!studyTimerQuitFlush) studyTimerQuitFlush = studyTimerService.getState().catch(() => undefined).finally(() => {
+      studyTimerQuitFlushed = true;
+      app.quit();
+    });
+  } else {
+    studyTimerService?.dispose();
+  }
 });

@@ -32,6 +32,7 @@ import {
   updateCustomWallpaperMetadata,
 } from "./lib/appearance";
 import { addStudyPlanProblem, getStudyPlan, onStudyPlanChanged, openStudyPlanWindow, removeStudyPlanItem, reorderStudyPlan, setStudyPlanStatus } from "./lib/study-plan";
+import { openStudyTimerWindow } from "./lib/study-timer";
 import {
   loadFavorites,
   loadInitialData,
@@ -823,6 +824,7 @@ export default function App() {
             onOpenNote={setNoteProblem}
             onOpenLibrary={() => navigate("library")}
             onOpenWindow={() => openStudyPlanWindow().catch((error) => setToast({ type: "error", message: error.message || "待做题单窗口打开失败" }))}
+            onOpenTimerWindow={() => openStudyTimerWindow().catch((error) => setToast({ type: "error", message: error.message || "计时表窗口打开失败" }))}
           />
         ) : activeNav === "contests" ? (
           <ContestReplayPage

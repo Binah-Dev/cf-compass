@@ -1,7 +1,7 @@
 {
   "name": "cf-compass",
   "desktopName": "cf-compass.desktop",
-  "version": "4.3.1",
+  "version": "4.3.2",
   "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": {
@@ -21,6 +21,8 @@
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
+    "test:study-timer": "node --test scripts/test-study-timer.mjs scripts/test-study-timer-audio.cjs",
+    "qa:study-timer": "node scripts/qa-study-timer.cjs",
     "test:app-update": "node --test scripts/test-app-update-service.cjs scripts/test-release-assets.mjs",
     "qa:app-update": "node scripts/qa-app-update.cjs",
     "qa:app-update:main": "node scripts/qa-app-update-main.cjs",
@@ -88,6 +90,7 @@
       "dist/**/*",
       "electron/**/*",
       "src/lib/training-session-model.mjs",
+      "src/lib/study-timer-model.mjs",
       "build/icon.*",
       "package.json"
     ],
