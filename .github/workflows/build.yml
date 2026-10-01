@@ -219,7 +219,7 @@ jobs:
           if unshare -Ur true; then echo 'Unrelated programs unexpectedly gained namespace permission.' >&2; exit 1; fi
       - name: Upload AppImage first-launch evidence
         if: always() && runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: AppImage-first-launch-ubuntu-current
           path: |
@@ -257,7 +257,7 @@ jobs:
           pnpm exec node scripts/qa-macos-smoke.cjs
       - name: Upload macOS launch and exit evidence
         if: always() && runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macOS-smoke-${{ matrix.target }}
           path: .qa-output/macos-smoke
@@ -265,7 +265,7 @@ jobs:
           if-no-files-found: warn
       - name: Upload ${{ matrix.target }} package
         if: success() || (runner.os == 'Linux' && steps.repack.outcome == 'success')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CF-Compass-${{ matrix.target }}
           if-no-files-found: error
@@ -339,7 +339,7 @@ jobs:
           exit "$qa_failed"
       - name: Upload Ubuntu 22.04 first-launch evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: AppImage-first-launch-ubuntu-22.04
           path: .qa-output/appimage-*
