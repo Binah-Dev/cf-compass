@@ -64,6 +64,31 @@ contextBridge.exposeInMainWorld("cfBridge", {
   removeStudyPlanItem: (itemId) => ipcRenderer.invoke("plan:remove", itemId),
   reorderStudyPlan: (itemIds) => ipcRenderer.invoke("plan:reorder", itemIds),
   openStudyPlanWindow: () => ipcRenderer.invoke("plan:window-open"),
+  getStudyTimer: () => ipcRenderer.invoke("timer:get"),
+  controlStudyTimer: (action) => ipcRenderer.invoke("timer:control", action),
+  openStudyTimerWindow: () => ipcRenderer.invoke("timer:window-open"),
+  onStudyTimerChanged: (callback) => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.on("timer:changed", listener);
+    return () => ipcRenderer.removeListener("timer:changed", listener);
+  },
+  getStudyTimerAudio: () => ipcRenderer.invoke("timer:audio-get"),
+  chooseStudyTimerAudio: () => ipcRenderer.invoke("timer:audio-choose"),
+  resetStudyTimerAudio: () => ipcRenderer.invoke("timer:audio-reset"),
+  previewStudyTimerAudio: () => ipcRenderer.invoke("timer:audio-preview"),
+  stopStudyTimerAudio: () => ipcRenderer.invoke("timer:audio-stop"),
+  onStudyTimerAudioChanged: (callback) => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.on("timer:audio-changed", listener);
+    return () => ipcRenderer.removeListener("timer:audio-changed", listener);
+  },
+  onStudyTimerAudioCommand: (callback) => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.on("timer:audio-command", listener);
+    return () => ipcRenderer.removeListener("timer:audio-command", listener);
+  },
+  studyTimerAudioHostReady: () => ipcRenderer.invoke("timer:audio-host-ready"),
+  studyTimerAudioPlayback: (value) => ipcRenderer.invoke("timer:audio-playback", value),
   onStudyPlanChanged: (callback) => {
     const listener = (_event, queue) => callback(queue);
     ipcRenderer.on("plan:changed", listener);

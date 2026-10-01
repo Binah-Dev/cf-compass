@@ -1,4 +1,4 @@
-import { Check, Circle, ExternalLink, GripVertical, ListChecks, LoaderCircle, PanelRightOpen, Plus, Trash2 } from "lucide-react";
+import { Check, Circle, ExternalLink, GripVertical, ListChecks, LoaderCircle, PanelRightOpen, Plus, Timer, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { openProblem } from "../lib/codeforces";
 import { displayTag, ratingTone } from "../lib/stats";
@@ -10,7 +10,7 @@ const filters = [
   { id: "done", label: "已完成" },
 ];
 
-export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, onOpenLibrary, onOpenWindow, onOpenNote }) {
+export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, onOpenLibrary, onOpenWindow, onOpenTimerWindow, onOpenNote }) {
   const [filter, setFilter] = useState("all");
   const [busyId, setBusyId] = useState("");
   const [draggedId, setDraggedId] = useState("");
@@ -43,6 +43,7 @@ export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, 
           <div><span>MY TRAINING PLAN</span><h2>把想刷的题，一道道变成完成</h2><p>完成后题目不会消失，而是留下一道划线的轨迹；只有手动删除才会移出队列。</p></div>
         </div>
         <div className="study-plan-hero__actions">
+          <button type="button" className="study-plan-float-toggle" disabled={busyId === "timer-window"} data-testid="study-timer-open" onClick={() => run("timer-window", onOpenTimerWindow)}><Timer size={16} /> 打开计时表</button>
           <button type="button" className="study-plan-float-toggle" onClick={onOpenWindow}><PanelRightOpen size={16} /> 打开独立题单</button>
           <button type="button" className="study-plan-add" onClick={onOpenLibrary}><Plus size={16} /> 从题库加题</button>
         </div>

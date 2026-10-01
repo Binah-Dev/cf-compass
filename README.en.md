@@ -27,10 +27,11 @@
 
 ![CF Compass problem dashboard](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/dashboard-sky.png)
 
-## Current release: v4.3.1
+## Current release: v4.3.2
 
-v4.3.1 adds Custom Training and Windows installer updates. Download it from [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest).
+v4.3.2 adds the Study Plan timer while retaining Custom Training and Windows installer updates. Download it from [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest).
 
+- Open **Study Plan → Timer** for a separate stopwatch, countdown, or target-time window. Only target-time mode plays a bounded default bell or local audio. See [Study timer](./docs/study-timer.md) for usage and recovery limits.
 - Compose a timed session from the problem library, favorites, or study plan, inspect previous attempts, and choose the problem order. Starting locks the selection; sessions and the absolute countdown survive restart.
 - Hide tags and ratings independently during training and in results. Synchronization matches the bound account, complete problem ID, and session submission window. Custom sessions never enter official or combined estimated Rating.
 - Windows x64 installer editions check stable releases under **Data Center → App Updates**. Downloading and installing require explicit user actions, and active Custom Training blocks installation. Windows v4.2.2 and older require one manual installation of v4.3.1 first.
@@ -49,7 +50,7 @@ Ubuntu / Debian users should prefer `.deb`. On Ubuntu 24.04 hosts that restrict 
 | One learning record | Use the same notes and target list from the problem set, daily training, reviews, contests, and recommendations. |
 | Customizable workbench | Hide, restore, and reorder rail items; choose a UI scale; and review contests in a full-page layout. |
 
-See the [v4.3.1 release notes](./docs/releases/v4.3.1.md), the historical Linux validation in [v4.2.2](./docs/releases/v4.2.2.md), and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
+See the [v4.3.2 release notes](./docs/releases/v4.3.2.md), the historical Linux validation in [v4.2.2](./docs/releases/v4.2.2.md), and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
 
 ## Why CF Compass?
 
@@ -225,19 +226,19 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 
 ### Desktop downloads
 
-Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the v4.3.1 package for your device. The release contains six packages and three update assets:
+Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the v4.3.2 package for your device. The release contains six packages and three update assets:
 
 | Platform or purpose | File |
 | --- | --- |
-| Windows x64 (recommended installer) | `CF-Compass-4.3.1-Windows-x64-Setup.exe` |
-| Windows x64 (portable) | `CF-Compass-4.3.1-Windows-x64-portable.exe` |
-| Windows installer update data | `CF-Compass-4.3.1-Windows-x64-Setup.exe.blockmap` |
+| Windows x64 (recommended installer) | `CF-Compass-4.3.2-Windows-x64-Setup.exe` |
+| Windows x64 (portable) | `CF-Compass-4.3.2-Windows-x64-portable.exe` |
+| Windows installer update data | `CF-Compass-4.3.2-Windows-x64-Setup.exe.blockmap` |
 | Windows stable update metadata | `latest.yml` |
-| Linux x64 AppImage | `CF-Compass-4.3.1-x86_64.AppImage` |
-| Linux AppImage update data | `CF-Compass-4.3.1-x86_64.AppImage.zsync` |
-| Linux Debian x64 | `CF-Compass-4.3.1-Linux-amd64.deb` |
-| macOS Intel | `CF-Compass-4.3.1-macOS-x64.dmg` |
-| macOS Apple Silicon | `CF-Compass-4.3.1-macOS-arm64.dmg` |
+| Linux x64 AppImage | `CF-Compass-4.3.2-x86_64.AppImage` |
+| Linux AppImage update data | `CF-Compass-4.3.2-x86_64.AppImage.zsync` |
+| Linux Debian x64 | `CF-Compass-4.3.2-Linux-amd64.deb` |
+| macOS Intel | `CF-Compass-4.3.2-macOS-x64.dmg` |
+| macOS Apple Silicon | `CF-Compass-4.3.2-macOS-arm64.dmg` |
 
 The `.blockmap`, `latest.yml`, and `.zsync` files are read by update tools, not separate applications to run. No standalone `.sha256` or `SHA256SUMS.txt` files are attached.
 
@@ -253,7 +254,7 @@ Windows v4.2.2 and older require one manual installation of the v4.3.1 `Setup.ex
 
 ### Linux upgrades
 
-AppImages from v4.2.1 and older have no standard update metadata, so **download the current v4.3.1 manually** from Releases. Stable AppImages starting with v4.2.2 embed an update target for external tools such as AppImageUpdate, which use the adjacent `.AppImage.zsync` release asset to locate later stable versions. The sidecar is update data, not another installer, and does not need to be run. AppImage editions do not automatically check for, download or install updates inside the app.
+AppImages from v4.2.1 and older have no standard update metadata, so **download the current v4.3.2 manually** from Releases. Stable AppImages starting with v4.2.2 embed an update target for external tools such as AppImageUpdate, which use the adjacent `.AppImage.zsync` release asset to locate later stable versions. The sidecar is update data, not another installer, and does not need to be run. AppImage editions do not automatically check for, download or install updates inside the app.
 
 Metadata checks and local reconstruction do not establish that a live public cross-version upgrade has succeeded. With the Ubuntu 24.04 fixed-path installation above, update a copy in a user-writable directory first, then have an administrator install it at the fixed path; do not run an updater GUI as root. For `.deb`, download the newer package and upgrade through the system package manager. Existing user data and local asset settings are retained; export important data from Data Center before upgrading.
 
@@ -308,6 +309,10 @@ Issues, ideas, translations, and pull requests are welcome. Start with [CONTRIBU
 ## Custom Training
 
 Open **Custom Training**, identified by its dedicated stopwatch icon, in the left navigation to choose problems from the problem library, favorites, or study plan, set their order and duration, and hide tags and ratings independently during practice. Sessions stay local and resume after restart. Submit on Codeforces using the bound account, synchronize the session results, and use shared notes and the study plan for upsolving. Custom sessions do not affect official or combined estimated Rating. See [Custom Training](./docs/custom-training.md) for counting rules and usage.
+
+## Study Plan timer
+
+Open **Study Plan → Timer**, or use the timer button in the separate plan window, to choose stopwatch, countdown, or target-time mode. Repeated opens focus one auxiliary window. Stopwatch and countdown are silent; target-time mode supports a short default bell or local audio up to 20 MiB, with a 15-second non-looping playback limit. Starting saves the timer; closing its window does not pause it. While the app is fully exited or the computer sleeps, a punctual alarm is unavailable; recovery recalibrates from the system clock and shows missed completion. Unstarted form inputs stay in the current window only. See [Study timer](./docs/study-timer.md) for controls and migration limits.
 
 ## Windows installer updates
 

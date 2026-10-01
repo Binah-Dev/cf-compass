@@ -1,7 +1,8 @@
-import { Check, Circle, ExternalLink, GripVertical, ListChecks, LoaderCircle, Trash2 } from "lucide-react";
+import { Check, Circle, ExternalLink, GripVertical, ListChecks, LoaderCircle, Timer, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { openProblem } from "../lib/codeforces";
 import { loadStudyData, onStudyDataChanged, saveProblemNote } from "../lib/study";
+import { openStudyTimerWindow } from "../lib/study-timer";
 import {
   getStudyPlan,
   onStudyPlanChanged,
@@ -72,6 +73,7 @@ export default function StudyPlanWindow() {
       <header className="study-plan-window-header">
         <span><ListChecks size={21} /></span>
         <div><small>MY TRAINING PLAN</small><strong>待做题单</strong></div>
+        <button type="button" className="study-plan-window-timer" data-testid="study-timer-open" aria-label="打开计时表" title="打开计时表" disabled={busyId === "timer-window"} onClick={() => run("timer-window", openStudyTimerWindow)}><Timer size={17} /></button>
         <b>{items.length - doneCount}<small> / {items.length}</small></b>
       </header>
       <section className="study-plan-window-progress" aria-label="计划完成进度">
