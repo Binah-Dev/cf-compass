@@ -20,7 +20,7 @@ test("browser adapter persists independent store, locks draft after start, resol
   let requested;
   globalThis.fetch = async (url) => {
     requested = url;
-    return { ok: true, json: async () => ({ status: "OK", result: [{ id: 1, creationTimeSeconds: started.startTimeSeconds,
+    return { url, ok: true, json: async () => ({ status: "OK", result: [{ id: 1, creationTimeSeconds: started.startTimeSeconds,
       problem: { contestId: 100, index: "A" }, author: { participantType: "PRACTICE", members: [{ handle: "Fixture" }] }, verdict: "OK" }] }) };
   };
   const synced = (await api.syncTrainingSession(id)).sessions[0];

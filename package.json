@@ -21,6 +21,7 @@
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
+    "test:codeforces-transport": "node --test scripts/test-codeforces-transport.mjs scripts/test-codeforces-transport-adapters.mjs",
     "test:study-timer": "node --test scripts/test-study-timer.mjs scripts/test-study-timer-audio.cjs",
     "qa:study-timer": "node scripts/qa-study-timer.cjs",
     "test:app-update": "node --test scripts/test-app-update-service.cjs scripts/test-release-assets.mjs",
