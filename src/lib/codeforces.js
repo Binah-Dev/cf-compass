@@ -4,8 +4,11 @@ const CACHE_KEY = "cf-compass-cache-v1";
 const FAVORITES_KEY = "cf-compass-favorites-v1";
 
 async function fetchApi(endpoint) {
-  const response = await fetch(`https://codeforces.com/api/${endpoint}`);
+  const response = await fetch(`https://codeforces.com/api/${endpoint}`, { redirect: "error" });
   if (!response.ok) throw new Error(`Codeforces 请求失败（HTTP ${response.status}）`);
+  if (!/^https:\/\/codeforces\.com\//.test(response.url)) {
+    throw new Error("Codeforces 响应来源校验失败");
+  }
   const body = await response.json();
   if (body.status !== "OK") throw new Error(body.comment || "Codeforces API 返回异常");
   return body.result;
