@@ -27,13 +27,13 @@
 
 ![CF Compass problem dashboard](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/dashboard-sky.png)
 
-## Current release: v4.3.0
+## Current release: v4.3.1
 
-v4.3.0 adds Custom Training and Windows installer updates. Download it from [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest).
+v4.3.1 adds Custom Training and Windows installer updates. Download it from [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest).
 
 - Compose a timed session from the problem library, favorites, or study plan, inspect previous attempts, and choose the problem order. Starting locks the selection; sessions and the absolute countdown survive restart.
 - Hide tags and ratings independently during training and in results. Synchronization matches the bound account, complete problem ID, and session submission window. Custom sessions never enter official or combined estimated Rating.
-- Windows x64 installer editions check stable releases under **Data Center → App Updates**. Downloading and installing require explicit user actions, and active Custom Training blocks installation. Windows v4.2.2 and older require one manual installation of v4.3.0 first.
+- Windows x64 installer editions check stable releases under **Data Center → App Updates**. Downloading and installing require explicit user actions, and active Custom Training blocks installation. Windows v4.2.2 and older require one manual installation of v4.3.1 first.
 - A dedicated stopwatch-and-play rail icon identifies Custom Training and follows the existing icon style.
 
 The static AppImage runtime, AppStream metadata, `.AppImage.zsync` support for external tools, and offline demo workbench introduced in v4.2.2 remain available. AppImage editions use external update tools and do not check for, download, or install updates inside the app.
@@ -49,7 +49,7 @@ Ubuntu / Debian users should prefer `.deb`. On Ubuntu 24.04 hosts that restrict 
 | One learning record | Use the same notes and target list from the problem set, daily training, reviews, contests, and recommendations. |
 | Customizable workbench | Hide, restore, and reorder rail items; choose a UI scale; and review contests in a full-page layout. |
 
-See the [v4.3.0 release notes](./docs/releases/v4.3.0.md), the historical Linux validation in [v4.2.2](./docs/releases/v4.2.2.md), and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
+See the [v4.3.1 release notes](./docs/releases/v4.3.1.md), the historical Linux validation in [v4.2.2](./docs/releases/v4.2.2.md), and the complete [v4.0.0 feature notes](./docs/releases/v4.0.0.md).
 
 ## Why CF Compass?
 
@@ -225,19 +225,19 @@ Optional local PNG, JPG, WebP, MP4, or WebM backgrounds can be imported through 
 
 ### Desktop downloads
 
-Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the v4.3.0 package for your device. The release contains six packages and three update assets:
+Open [Latest Release](https://github.com/Binah-Dev/cf-compass/releases/latest) and choose the v4.3.1 package for your device. The release contains six packages and three update assets:
 
 | Platform or purpose | File |
 | --- | --- |
-| Windows x64 (recommended installer) | `CF-Compass-4.3.0-Windows-x64-Setup.exe` |
-| Windows x64 (portable) | `CF-Compass-4.3.0-Windows-x64-portable.exe` |
-| Windows installer update data | `CF-Compass-4.3.0-Windows-x64-Setup.exe.blockmap` |
+| Windows x64 (recommended installer) | `CF-Compass-4.3.1-Windows-x64-Setup.exe` |
+| Windows x64 (portable) | `CF-Compass-4.3.1-Windows-x64-portable.exe` |
+| Windows installer update data | `CF-Compass-4.3.1-Windows-x64-Setup.exe.blockmap` |
 | Windows stable update metadata | `latest.yml` |
-| Linux x64 AppImage | `CF-Compass-4.3.0-x86_64.AppImage` |
-| Linux AppImage update data | `CF-Compass-4.3.0-x86_64.AppImage.zsync` |
-| Linux Debian x64 | `CF-Compass-4.3.0-Linux-amd64.deb` |
-| macOS Intel | `CF-Compass-4.3.0-macOS-x64.dmg` |
-| macOS Apple Silicon | `CF-Compass-4.3.0-macOS-arm64.dmg` |
+| Linux x64 AppImage | `CF-Compass-4.3.1-x86_64.AppImage` |
+| Linux AppImage update data | `CF-Compass-4.3.1-x86_64.AppImage.zsync` |
+| Linux Debian x64 | `CF-Compass-4.3.1-Linux-amd64.deb` |
+| macOS Intel | `CF-Compass-4.3.1-macOS-x64.dmg` |
+| macOS Apple Silicon | `CF-Compass-4.3.1-macOS-arm64.dmg` |
 
 The `.blockmap`, `latest.yml`, and `.zsync` files are read by update tools, not separate applications to run. No standalone `.sha256` or `SHA256SUMS.txt` files are attached.
 
@@ -249,11 +249,11 @@ macOS users should select Intel or Apple Silicon. Starting with v3.12.1, macOS a
 
 ### Windows upgrades
 
-Windows v4.2.2 and older require one manual installation of the v4.3.0 `Setup.exe`. Afterward, use **Data Center → App Updates** for later stable releases. Startup checking can be disabled; downloading and quitting to install require explicit actions. Portable editions still update manually, and installation is blocked during active Custom Training.
+Windows v4.2.2 and older require one manual installation of the v4.3.1 `Setup.exe`. Afterward, use **Data Center → App Updates** for later stable releases. Startup checking can be disabled; downloading and quitting to install require explicit actions. Portable editions still update manually, and installation is blocked during active Custom Training.
 
 ### Linux upgrades
 
-AppImages from v4.2.1 and older have no standard update metadata, so **download the current v4.3.0 manually** from Releases. Stable AppImages starting with v4.2.2 embed an update target for external tools such as AppImageUpdate, which use the adjacent `.AppImage.zsync` release asset to locate later stable versions. The sidecar is update data, not another installer, and does not need to be run. AppImage editions do not automatically check for, download or install updates inside the app.
+AppImages from v4.2.1 and older have no standard update metadata, so **download the current v4.3.1 manually** from Releases. Stable AppImages starting with v4.2.2 embed an update target for external tools such as AppImageUpdate, which use the adjacent `.AppImage.zsync` release asset to locate later stable versions. The sidecar is update data, not another installer, and does not need to be run. AppImage editions do not automatically check for, download or install updates inside the app.
 
 Metadata checks and local reconstruction do not establish that a live public cross-version upgrade has succeeded. With the Ubuntu 24.04 fixed-path installation above, update a copy in a user-writable directory first, then have an administrator install it at the fixed path; do not run an updater GUI as root. For `.deb`, download the newer package and upgrade through the system package manager. Existing user data and local asset settings are retained; export important data from Data Center before upgrading.
 
@@ -311,7 +311,7 @@ Open **Custom Training**, identified by its dedicated stopwatch icon, in the lef
 
 ## Windows installer updates
 
-Starting with v4.3.0, Windows x64 installer updates are available in **Data Center → App Updates**. Startup checks can be disabled; downloading and quitting to install require your explicit action. Windows v4.2.2 and older need one manual installation of v4.3.0 first. Portable builds and other platforms still update manually. See [Windows installer updates](./docs/windows-auto-update.md) for usage, verification limits, and release assets.
+Starting with v4.3.1, Windows x64 installer updates are available in **Data Center → App Updates**. Startup checks can be disabled; downloading and quitting to install require your explicit action. Windows v4.2.2 and older need one manual installation of v4.3.1 first. Portable builds and other platforms still update manually. See [Windows installer updates](./docs/windows-auto-update.md) for usage, verification limits, and release assets.
 
 ## License and attribution
 

@@ -14,9 +14,9 @@ Failed checks or downloads leave the current application and local data intact. 
 
 Portable builds, unpacked directories, development, browsers, and other platforms provide a manual download link. Eligibility checks require Windows x64, a packaged app, no portable environment, the dedicated installer-written marker, and the expected uninstaller beside the executable. `app.isPackaged` alone is insufficient. Moving or copying an installation may invalidate detection; rerun the installer.
 
-v4.3.0 首次提供 Windows 安装版内置更新。v4.2.2 及更早版本没有此入口，也没有 Windows 更新元数据；需要先从 [本仓库稳定发布页](https://github.com/Binah-Dev/cf-compass/releases/latest) 手动安装一次 v4.3.0 的 `Setup.exe`，之后才能通过此入口获取后续稳定版。
+v4.3.1 首次提供 Windows 安装版内置更新。v4.2.2 及更早版本没有此入口，也没有 Windows 更新元数据；需要先从 [本仓库稳定发布页](https://github.com/Binah-Dev/cf-compass/releases/latest) 手动安装一次 v4.3.1 的 `Setup.exe`，之后才能通过此入口获取后续稳定版。
 
-v4.3.0 introduces in-app updates for Windows installer editions. Windows v4.2.2 and older have no updater or Windows update metadata. First manually install the v4.3.0 `Setup.exe` from the [official stable release page](https://github.com/Binah-Dev/cf-compass/releases/latest); the in-app updater can then obtain later stable releases.
+v4.3.1 introduces in-app updates for Windows installer editions. Windows v4.2.2 and older have no updater or Windows update metadata. First manually install the v4.3.1 `Setup.exe` from the [official stable release page](https://github.com/Binah-Dev/cf-compass/releases/latest); the in-app updater can then obtain later stable releases.
 
 ## 来源与校验 / Source and verification
 
@@ -52,17 +52,17 @@ Stable Windows updates require three matching assets in the same release:
 
 保持 `appId`、安装 GUID、产品名和用户数据位置稳定，以便原安装程序识别升级。不得为测试修改生产更新源或推送测试版本到正式仓库。
 
-本功能首个正式版本为 `4.3.0`，Git tag 必须严格等于 `v` + `package.json.version`；CI 执行此一致性门禁。后续正式版本继续提升版本号，保留既有公开版本及其资产。
+本功能首个正式版本为 `4.3.1`，Git tag 必须严格等于 `v` + `package.json.version`；CI 执行此一致性门禁。后续正式版本继续提升版本号，保留既有公开版本及其资产。
 
 Keep the production app ID, installer GUID, product name, and user-data location stable so installers recognize upgrades. Do not change the production feed or publish test versions to the real repository for testing.
 
-The first production version containing this feature is `4.3.0`. Its Git tag must exactly equal `v` plus `package.json.version`; CI enforces this match. Increment the version for subsequent production releases and retain existing public versions and their assets.
+The first production version containing this feature is `4.3.1`. Its Git tag must exactly equal `v` plus `package.json.version`; CI enforces this match. Increment the version for subsequent production releases and retain existing public versions and their assets.
 
 ## 验收 / Validation
 
-本地已通过两个隔离 NSIS fixture 版本（`0.0.1 → 0.0.2`）的实际升级测试，验证错误 SHA-512 拒绝、下载、明确安装、重启版本变化和数据保留。它使用独立身份与本机 loopback 源，不能证明生产 GitHub 渠道向未来公开版本的升级。本次正式发布仍需通过 CI 的各平台构建与发布门禁；详细边界见 [v4.3.0 发布说明](./releases/v4.3.0.md)。
+本地已通过两个隔离 NSIS fixture 版本（`0.0.1 → 0.0.2`）的实际升级测试，验证错误 SHA-512 拒绝、下载、明确安装、重启版本变化和数据保留。它使用独立身份与本机 loopback 源，不能证明生产 GitHub 渠道向未来公开版本的升级。本次正式发布仍需通过 CI 的各平台构建与发布门禁；详细边界见 [v4.3.1 发布说明](./releases/v4.3.1.md)。
 
-The local two-version NSIS fixture test (`0.0.1 → 0.0.2`) passed incorrect SHA-512 rejection, downloading, explicit installation, restart/version changes, and data retention. Its separate identity and loopback feed do not establish an upgrade through the production GitHub channel to a future public release. This production release still requires the CI platform builds and publication gates described in the [v4.3.0 notes](./releases/v4.3.0.md).
+The local two-version NSIS fixture test (`0.0.1 → 0.0.2`) passed incorrect SHA-512 rejection, downloading, explicit installation, restart/version changes, and data retention. Its separate identity and loopback feed do not establish an upgrade through the production GitHub channel to a future public release. This production release still requires the CI platform builds and publication gates described in the [v4.3.1 notes](./releases/v4.3.1.md).
 
 `node scripts/qa-app-update.cjs` 使用虚构用户、独立 `CF_COMPASS_USER_DATA` 和主进程内 mock updater，操作真实 Electron 窗口。它验证双语入口、检查与下载状态、重复操作、取消、错误、纯文本发布说明、明确安装确认及训练保护；mock 的安装方法只记录调用，不执行安装。此类验收不能证明跨版本 NSIS 安装成功。
 
