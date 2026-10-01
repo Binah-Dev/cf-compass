@@ -48,7 +48,9 @@ function Read-Registration {
           $key = $base.OpenSubKey($keyPath, $false)
           if ($null -ne $key) {
             try { $entries += [pscustomobject]@{ hive=$hive; view=$view; key=$keyPath;
-              location=$key.GetValue('InstallLocation'); version=$key.GetValue('DisplayVersion') } }
+              type=$(if ($keyPath -eq "Software\$installerGuid") { 'install' } else { 'uninstall' });
+              location=$key.GetValue('InstallLocation'); version=$key.GetValue('DisplayVersion');
+              uninstallString=$key.GetValue('UninstallString') } }
             finally { $key.Dispose() }
           }
         }
@@ -57,12 +59,29 @@ function Read-Registration {
   }
   return $entries
 }
-function Assert-OwnedRegistration {
+function Assert-OwnedRegistration([string]$expectedDisplayVersion = '') {
   $entries = @(Read-Registration)
   if ($entries.Count -eq 0) { throw 'Installed application registration was not created.' }
   foreach ($entry in $entries) {
-    if (-not $entry.location -or [IO.Path]::GetFullPath($entry.location).TrimEnd('\') -ne $installRoot.TrimEnd('\')) {
-      throw 'An application registration points outside the owned installation.'
+    if ($entry.type -eq 'install') {
+      if (-not $entry.location -or [IO.Path]::GetFullPath($entry.location).TrimEnd('\') -ne $installRoot.TrimEnd('\')) {
+        throw 'An application registration points outside the owned installation.'
+      }
+    } elseif ($entry.type -eq 'uninstall') {
+      # NSIS writes InstallLocation only to Software\APP_GUID. Its uninstall
+      # entry owns the quoted executable plus the explicit installation mode.
+      $command = [regex]::Match([string]$entry.uninstallString, '^"([^"]+)"\s+/currentuser\s*$', [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+      if (-not $command.Success) { throw 'Unexpected current-user uninstall registration.' }
+      $registeredUninstaller = Assert-OwnedPath $command.Groups[1].Value
+      if ($registeredUninstaller -ne (Join-Path $installRoot 'Uninstall CF Compass.exe')) {
+        throw 'An uninstall registration points outside the owned installation.'
+      }
+      if ($entry.version -notin @($ExpectedPreviousVersion, $ExpectedVersion) -or
+          ($expectedDisplayVersion -and $entry.version -ne $expectedDisplayVersion)) {
+        throw 'Installed application registration has an unexpected version.'
+      }
+    } else {
+      throw 'Unexpected application registration type.'
     }
   }
 }
@@ -99,11 +118,11 @@ try {
     previousVersion=$ExpectedPreviousVersion; version=$ExpectedVersion } | ConvertTo-Json | Set-Content -LiteralPath $contextPath -Encoding utf8
   $installationStarted = $true
   Run-Installer $previous @('/S', '/currentuser', "/D=$installRoot")
-  Assert-OwnedRegistration
+  Assert-OwnedRegistration $ExpectedPreviousVersion
   if (-not (Test-Path -LiteralPath (Join-Path $installRoot 'CF Compass.exe') -PathType Leaf)) { throw 'Previous installed executable is missing.' }
   Cold-Launch 'initial'
   Run-Installer $candidate @('/S', '/currentuser', "/D=$installRoot")
-  Assert-OwnedRegistration
+  Assert-OwnedRegistration $ExpectedVersion
   Cold-Launch 'upgraded'
   $report.passed = $true
 } catch {

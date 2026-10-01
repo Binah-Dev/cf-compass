@@ -392,7 +392,7 @@ async function writeJsonPath(target, value, { pretty = true } = {}) {
 }
 
 async function writeJson(filename, value, options) {
-  if (["study.json", "contest-replay.json", "custom-training.json", "update-settings.json"].includes(filename)) return writeAtomicJson(dataPath(filename), value, options);
+  if (["study.json", "contest-replay.json", "custom-training.json", "update-settings.json", "study-timer.json", "study-timer-audio.json"].includes(filename)) return writeAtomicJson(dataPath(filename), value, options);
   await writeJsonPath(dataPath(filename), value, options);
 }
 
@@ -2765,7 +2765,7 @@ app.on("before-quit", (event) => {
     event.preventDefault();
     if (!studyTimerQuitFlush) studyTimerQuitFlush = studyTimerService.getState().catch(() => undefined).finally(() => {
       studyTimerQuitFlushed = true;
-      app.quit();
+      setImmediate(() => app.quit());
     });
   } else {
     studyTimerService?.dispose();
