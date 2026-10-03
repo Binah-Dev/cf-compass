@@ -793,11 +793,11 @@ function wait(milliseconds) {
 }
 
 async function fetchCodeforcesNow(endpoint) {
+  const { fetchCodeforcesDesktopResponse, codeforcesResult } = await import("./shared/codeforces-transport.mjs");
   let lastError;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      const response = await fetch(`https://codeforces.com/api/${endpoint}`, {
-        signal: AbortSignal.timeout(20000),
+      const response = await fetchCodeforcesDesktopResponse(endpoint, {
         headers: {
           "User-Agent": "CF-Compass/2.0",
           Accept: "application/json",
@@ -820,12 +820,10 @@ async function fetchCodeforcesNow(endpoint) {
         throw failure;
       }
       const body = await response.json();
-      if (body.status !== "OK") {
-        throw new Error(body.comment || "Codeforces API 返回异常");
-      }
-      return body.result;
+      return codeforcesResult(body);
     } catch (error) {
       lastError = error;
+      if (error.retryable === false) break;
       if (error.httpStatus >= 400 && error.httpStatus < 500 && error.httpStatus !== 429) break;
       // An unpublished rating is expected state, not a transient transport fault.
       if (endpoint.startsWith('contest.ratingChanges?') && /rating changes (?:are )?(?:unavailable|not available)|has not been rated|not rated yet/i.test(error.message || '')) break;

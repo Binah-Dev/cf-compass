@@ -50,6 +50,7 @@ jobs:
           pnpm exec node scripts/test-ai-review-storage.cjs
           pnpm exec node scripts/test-contest-recommendations.cjs
           pnpm exec node scripts/test-codeforces-source-service.cjs
+          pnpm test:codeforces-transport
           pnpm exec node scripts/test-codeforces-standings.cjs
           pnpm exec node scripts/test-study-plan-service.cjs
           pnpm exec node scripts/test-material-library.cjs

@@ -1,14 +1,14 @@
 import { demoData } from "../data/demo";
+import { fetchCodeforcesResponse, codeforcesResult } from "../../electron/shared/codeforces-transport.mjs";
 
 const CACHE_KEY = "cf-compass-cache-v1";
 const FAVORITES_KEY = "cf-compass-favorites-v1";
 
 async function fetchApi(endpoint) {
-  const response = await fetch(`https://codeforces.com/api/${endpoint}`);
+  const response = await fetchCodeforcesResponse(endpoint);
   if (!response.ok) throw new Error(`Codeforces 请求失败（HTTP ${response.status}）`);
   const body = await response.json();
-  if (body.status !== "OK") throw new Error(body.comment || "Codeforces API 返回异常");
-  return body.result;
+  return codeforcesResult(body);
 }
 
 function buildRatingStanding(ratedUsers, rating) {

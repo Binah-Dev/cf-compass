@@ -1,4 +1,5 @@
 import { loadInitialData } from "./codeforces";
+import { fetchCodeforcesResponse, codeforcesResult } from "../../electron/shared/codeforces-transport.mjs";
 import { createTrainingSessionController, TrainingSessionError } from "./training-session-model.mjs";
 
 export { summarizeTrainingSession } from "./training-session-model.mjs";
@@ -16,17 +17,17 @@ function fetchTrainingApi(endpoint) {
       const delay = Math.max(0, API_MIN_INTERVAL_MS - (Date.now() - lastApiCallAt));
       if (delay) await wait(delay);
       try {
-        const response = await fetch(`https://codeforces.com/api/${endpoint}`, { signal: AbortSignal.timeout(20000) });
+        const response = await fetchCodeforcesResponse(endpoint);
         if (!response.ok) {
           const error = new Error(`Codeforces request failed (HTTP ${response.status}).`);
           error.httpStatus = response.status;
           throw error;
         }
         const body = await response.json();
-        if (body.status !== "OK") throw new Error(body.comment || "Codeforces API request failed.");
-        return body.result;
+        return codeforcesResult(body, "Codeforces API request failed.");
       } catch (error) {
         lastError = error;
+        if (error.retryable === false) break;
         if (error.httpStatus >= 400 && error.httpStatus < 500 && error.httpStatus !== 429) break;
       } finally { lastApiCallAt = Date.now(); }
     }
