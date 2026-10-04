@@ -27,11 +27,87 @@ test('invalid, missing, pending, duplicate and ambiguous inputs refuse a score',
     f => { f.standings.rows[0].penalty = 999; },
     f => { f.standings.rows[0].problemResults[0].type = 'PRELIMINARY'; },
     f => { f.standings.rows[2].penalty -= 10; f.standings.rows[2].problemResults[0].rejectedAttemptCount = 0; },
-    f => { f.cache.submissions[1].creationTimeSeconds++; },
+    f => { f.cache.submissions[1].creationTimeSeconds += 2; },
   ]) { const f = makeScoreFixture(); mutate(f); assert.throws(() => reconstructVirtualScore(f)); }
   const repeat = makeScoreFixture('CF');
   repeat.cache.submissions[3].problem.index = 'A';
   assert.throws(() => reconstructVirtualScore(repeat), /重复提交/);
+});
+test('CF and ICPC tolerate one-second timestamp rounding on every submission', async () => {
+  for (const type of ['CF', 'ICPC']) for (const skew of [-1, 1]) {
+    const f = makeScoreFixture(type);
+    // Ten extra rejected attempts make this a many-submission session (#45).
+    for (let i = 0; i < 10; i++) {
+      const extra = structuredClone(f.cache.submissions[1]);
+      extra.id = 100 + i; extra.relativeTimeSeconds = 200 + i;
+      extra.creationTimeSeconds = f.entry.sessionStartTimeSeconds + extra.relativeTimeSeconds;
+      f.cache.submissions.push(extra);
+    }
+    const expected = reconstructVirtualScore(f);
+    for (const s of f.cache.submissions) if (s.author.participantType === 'VIRTUAL') s.creationTimeSeconds += skew;
+    const actual = reconstructVirtualScore(f);
+    assert.equal(actual.submissionCount, 14);
+    // ACs start on minute boundaries: -1 crosses into the preceding minute.
+    assert.equal(actual.problemResults[0].bestSubmissionTimeSeconds, 600 + skew);
+    assert.equal(actual.problemResults[1].bestSubmissionTimeSeconds, 1200 + skew);
+    assert.equal(actual.penalty, type === 'ICPC' ? expected.penalty + (skew < 0 ? -2 : 0) : 0);
+    assert.equal(actual.points, expected.points + (type === 'CF' && skew < 0 ? 4 : 0));
+    const estimate = await estimateVirtualReference(f);
+    assert.equal(estimate.status, 'ready');
+    assert.ok(Number.isFinite(estimate.performance));
+  }
+});
+test('reported CF submission timestamp pair no longer prevents an estimate', async () => {
+  const f = makeScoreFixture('CF');
+  const s = f.cache.submissions[1];
+  s.id = 237345931; s.relativeTimeSeconds = 982;
+  s.creationTimeSeconds = f.entry.sessionStartTimeSeconds + 983;
+  // Keep this wrong answer before the first AC.
+  f.cache.submissions[2].relativeTimeSeconds = 1200;
+  f.cache.submissions[2].creationTimeSeconds = f.entry.sessionStartTimeSeconds + 1200;
+  assert.equal((await estimateVirtualReference(f)).status, 'ready');
+});
+test('rounding away from a minute boundary leaves score and estimate unchanged', async () => {
+  for (const type of ['CF', 'ICPC']) {
+    const f = makeScoreFixture(type);
+    for (const s of f.cache.submissions) { s.relativeTimeSeconds += 30; s.creationTimeSeconds += 30; }
+    const expected = await estimateVirtualReference(f);
+    for (const skew of [-1, 1]) {
+      const rounded = structuredClone(f);
+      for (const s of rounded.cache.submissions) s.creationTimeSeconds += skew;
+      const actual = await estimateVirtualReference(rounded);
+      for (const key of ['points', 'penalty', 'performance', 'referenceRank']) assert.equal(actual[key], expected[key]);
+    }
+  }
+});
+test('timestamp tolerance never admits negative, boundary, fractional or corrupt times', () => {
+  for (const mutate of [
+    s => { s.creationTimeSeconds += 5; },
+    s => { s.creationTimeSeconds -= 2; },
+    s => { s.creationTimeSeconds = NaN; },
+    s => { s.creationTimeSeconds += .5; },
+    s => { s.relativeTimeSeconds += .5; },
+    s => { s.relativeTimeSeconds = '120'; },
+    (s, start) => { s.relativeTimeSeconds = 0; s.creationTimeSeconds = start - 1; },
+    (s, start) => { s.relativeTimeSeconds = 7200; s.creationTimeSeconds = start + 7199; },
+    (s, start) => { s.relativeTimeSeconds = 7199; s.creationTimeSeconds = start + 7200; },
+  ]) {
+    const f = makeScoreFixture(); mutate(f.cache.submissions[1], f.entry.sessionStartTimeSeconds);
+    assert.throws(() => reconstructVirtualScore(f), { code: 'VIRTUAL_SCORE_UNAVAILABLE' });
+  }
+});
+test('missing relative time uses the validated absolute time', () => {
+  const f = makeScoreFixture();
+  for (const s of f.cache.submissions) delete s.relativeTimeSeconds;
+  assert.equal(reconstructVirtualScore(f).penalty, 40);
+});
+test('one-second skew does not change exact virtual-session identity', () => {
+  const f = makeScoreFixture();
+  const extra = structuredClone(f.cache.submissions[2]);
+  extra.id = 999; extra.author.startTimeSeconds++;
+  extra.creationTimeSeconds++;
+  f.cache.submissions.push(extra);
+  assert.equal(reconstructVirtualScore(f).submissionCount, 4);
 });
 test('other virtual sessions and post-contest submissions are excluded', () => {
   const f = makeScoreFixture();
