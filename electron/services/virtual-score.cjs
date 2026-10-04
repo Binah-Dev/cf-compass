@@ -3,6 +3,20 @@ const ignored = new Set(['COMPILATION_ERROR', 'DENIAL_OF_JUDGEMENT']);
 const rejected = new Set(['WRONG_ANSWER', 'TIME_LIMIT_EXCEEDED', 'MEMORY_LIMIT_EXCEEDED', 'RUNTIME_ERROR', 'IDLENESS_LIMIT_EXCEEDED', 'PRESENTATION_ERROR', 'CRASHED']);
 function unavailable(message) { const error = Error(message); error.code = 'VIRTUAL_SCORE_UNAVAILABLE'; throw error; }
 const minute = seconds => Math.floor(seconds / 60);
+// CF's absolute and relative timestamps can differ by one rounded second.
+// Keep session identity exact and use absolute time for both validation and scoring.
+const TIMING_TOLERANCE_SECONDS = 1;
+function sessionSeconds(submission, start, duration) {
+  const seconds = submission.creationTimeSeconds - Number(start);
+  const relative = submission.relativeTimeSeconds ?? seconds;
+  if (!Number.isSafeInteger(submission.creationTimeSeconds) || !Number.isSafeInteger(Number(start)) ||
+      !Number.isInteger(duration) || duration <= 0 || !Number.isInteger(seconds) ||
+      seconds < 0 || seconds >= duration || !Number.isInteger(relative) || relative < 0 || relative >= duration ||
+      Math.abs(seconds - relative) > TIMING_TOLERANCE_SECONDS) {
+    unavailable('提交时间处于场次边界或不一致，暂不估分');
+  }
+  return seconds;
+}
 function cfPoints(maximum, seconds, wrong, duration, normalized) {
   return Math.max(.3 * maximum, maximum - Math.floor(maximum * minute(seconds) / 250 * (normalized ? 7200 / duration : 1) + 1e-9) - 50 * wrong);
 }
@@ -52,14 +66,13 @@ function reconstructVirtualScore({ entry, cache, standings }) {
   if (!attempts.length) unavailable('没有找到这次虚拟赛的场内提交');
   const indices = new Set(problems.map(p => p.index));
   const ids = new Set();
+  const times = new Map();
   for (const s of attempts) {
     if (s.author?.members?.length !== 1 || s.author.ghost || s.author.teamId ||
         String(s.author.members[0].handle).toLowerCase() !== handle || !indices.has(s.problem?.index) ||
         !Number.isSafeInteger(s.id) || ids.has(s.id)) unavailable('本场提交身份或题目数据不完整');
     ids.add(s.id);
-    const seconds = s.relativeTimeSeconds ?? (s.creationTimeSeconds - entry.sessionStartTimeSeconds);
-    if (!Number.isInteger(seconds) || seconds >= contest.durationSeconds ||
-        s.creationTimeSeconds !== Number(entry.sessionStartTimeSeconds) + seconds) unavailable('提交时间处于场次边界或不一致，暂不估分');
+    times.set(s.id, sessionSeconds(s, entry.sessionStartTimeSeconds, contest.durationSeconds));
     if (s.verdict !== 'OK' && !ignored.has(s.verdict) && !rejected.has(s.verdict)) unavailable('存在未完成判题或无法还原的提交，请同步后重试');
   }
   const { models, evidence } = scoringModels(standings);
@@ -72,7 +85,7 @@ function reconstructVirtualScore({ entry, cache, standings }) {
       // CF resubmissions can replace a pretest-passing solution. Final verdicts
       // alone cannot establish that history; do not silently choose earliest AC.
       if (contest.type === 'CF' && list.slice(accepted + 1).some(s => !ignored.has(s.verdict))) unavailable('CF 题目通过后有重复提交，无法可靠还原预评测历史');
-      const seconds = list[accepted].creationTimeSeconds - entry.sessionStartTimeSeconds;
+      const seconds = times.get(list[accepted].id);
       const wrong = list.slice(0, accepted).filter(s => rejected.has(s.verdict)).length;
       if (contest.type === 'CF' && !(Number.isFinite(problem.points) && problem.points > 0)) unavailable('题目缺少原始分值，无法重建 CF 成绩');
       const value = contest.type === 'ICPC' ? 1 : cfPoints(problem.points, seconds, wrong, contest.durationSeconds, model === 'duration-normalized');

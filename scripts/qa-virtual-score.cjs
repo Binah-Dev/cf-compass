@@ -6,6 +6,8 @@ const output = path.join(root, 'output/playwright', `virtual-score-${Date.now()}
 const profile = path.join(output, 'user-data');
 fs.mkdirSync(profile, { recursive: true });
 const fixture = makeScoreFixture();
+// #45: a one-second CF rounding difference must survive the full packaged UI flow.
+fixture.cache.submissions[1].creationTimeSeconds++;
 fixture.center.contests[0] = fixture.standings.contest;
 fixture.center.details[1900].problems = fixture.standings.problems;
 fixture.cache.problems = fixture.standings.problems;
@@ -58,7 +60,14 @@ async function launch() {
   await page.waitForFunction(() => document.querySelector('.contest-virtual-reference')?.textContent.includes('fixture offline'), null, { timeout: 45000 });
   assert.equal(await page.locator('.contest-performance strong').first().innerText(), String(reference.performance));
   assert.equal(await page.locator('.contest-problem-row').count(), 2);
+  await app.evaluate(() => { globalThis.scoreOffline = false; });
+  await page.getByRole('button', { name: '重新估分', exact: true }).click();
+  await page.waitForFunction(() => !document.querySelector('.contest-virtual-reference')?.textContent.includes('fixture offline') &&
+    [...document.querySelectorAll('button')].some(button => button.textContent === '重新估分'), null, { timeout: 45000 });
+  const retried = JSON.parse(fs.readFileSync(path.join(profile, 'contest-replay.json'), 'utf8')).contests[0].virtualReference;
+  assert.equal(retried.status, 'ready'); assert.equal(retried.refreshError, undefined);
+  assert.equal(retried.performance, reference.performance);
   assert.deepEqual(errors, []);
-  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ passed: true, reference, errors, offlineRetained: true, coldStart: true }, null, 2));
+  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ passed: true, reference, errors, offlineRetained: true, coldStart: true, timestampSkewSeconds: 1, retryRecovered: true }, null, 2));
   console.log(JSON.stringify({ passed: true, output, reference }));
 })().catch(e => { console.error(e); process.exitCode = 1; }).finally(async () => { if (app) await app.close(); });
