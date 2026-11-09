@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   EyeOff,
+  FolderPlus,
   ListPlus,
   Search,
   Star,
@@ -14,6 +15,8 @@ import { acCountTone, displayTag, formatNumber, ratingTone } from "../lib/stats"
 import { openProblem, problemKey } from "../lib/codeforces";
 import RatingRange from "./RatingRange";
 import ProblemNoteButton from "./ProblemNoteButton";
+import ProblemListsControl from "./ProblemListsControl";
+import { useState } from "react";
 
 const statusOptions = [
   { id: "all", label: "全部题目" },
@@ -22,7 +25,7 @@ const statusOptions = [
   { id: "favorite", label: "已收藏" },
 ];
 
-function ProblemRow({ problem, stats, isFavorite, isPlanned, onToggleFavorite, onAddToPlan, onOpenNote, showTags }) {
+function ProblemRow({ problem, stats, isFavorite, isPlanned, onToggleFavorite, onAddToPlan, onOpenNote, onOpenProblemLists, showTags }) {
   const key = problemKey(problem);
   const solved = Boolean(stats?.accepted);
   return (
@@ -52,10 +55,13 @@ function ProblemRow({ problem, stats, isFavorite, isPlanned, onToggleFavorite, o
         {problem.contestId}
         {problem.index}
       </button>
-      <button type="button" className="problem-name" onClick={() => openProblem(problem)}>
-        <span>{problem.name}</span>
-        <ArrowUpRight size={14} />
-      </button>
+      <div className="problem-name-cell">
+        <button type="button" className="problem-name" onClick={() => openProblem(problem)}>
+          <span>{problem.name}</span>
+          <ArrowUpRight size={14} />
+        </button>
+        <button type="button" className="problem-list-row-button" title="收录到自建题单" aria-label={`收录 ${key} 到自建题单`} onClick={() => onOpenProblemLists(problem)}><FolderPlus size={15} /></button>
+      </div>
       <div>
         <span className={`rating rating--${ratingTone(problem.rating)}`}>
           {problem.rating || "—"}
@@ -90,6 +96,10 @@ function ProblemRow({ problem, stats, isFavorite, isPlanned, onToggleFavorite, o
 
 export default function ProblemWorkspace({
   problems,
+  problemLists = [],
+  selectedProblemListId = "",
+  onSelectProblemList,
+  onProblemListsChange,
   totalFiltered,
   submissionMap,
   favorites,
@@ -112,16 +122,20 @@ export default function ProblemWorkspace({
   showTags,
   onToggleTags,
 }) {
+  const [listProblem, setListProblem] = useState(null);
   return (
     <main className="problem-workspace">
       <div className="workspace-topline">
-        <div>
+        <div className="workspace-heading">
           <span className="workspace-kicker">当前题单</span>
-          <h2>{selectedTagLabel}</h2>
+          <h2 data-i18n-preserve={selectedProblemListId ? "" : undefined}>{selectedTagLabel}</h2>
         </div>
-        <span className="result-count">
-          <strong>{formatNumber(totalFiltered)}</strong> 道匹配题目
-        </span>
+        <div className="workspace-topline__lists">
+          <ProblemListsControl lists={problemLists} selectedId={selectedProblemListId} onSelect={onSelectProblemList} onChange={onProblemListsChange} problem={listProblem} onCloseProblem={() => setListProblem(null)} />
+          <span className="result-count">
+            <strong>{formatNumber(totalFiltered)}</strong> 道匹配题目
+          </span>
+        </div>
       </div>
 
       <div className="filter-row">
@@ -199,14 +213,15 @@ export default function ProblemWorkspace({
                 onToggleFavorite={onToggleFavorite}
                 onOpenNote={onOpenNote}
                 onAddToPlan={onAddToPlan}
+                onOpenProblemLists={setListProblem}
                 showTags={showTags}
               />
             ))
           ) : (
             <div className="empty-state">
               <Search size={25} />
-              <strong>没有找到匹配的题目</strong>
-              <span>试试调整 Rating、状态或搜索关键词</span>
+              <strong>{selectedProblemListId ? "这份题单没有匹配的题目" : "没有找到匹配的题目"}</strong>
+              <span>{selectedProblemListId ? "切换到全部题目，点击题目旁的题单按钮收录；也可调整筛选条件。" : "试试调整 Rating、状态或搜索关键词"}</span>
             </div>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { normalizeAiReview } from "./ai";
 import { normalizeTrainingProfiles } from "../../electron/shared/training-profile.mjs";
+import { normalizeProblemLists } from "../../electron/shared/problem-lists.mjs";
 import { getTrainingSessions, replaceTrainingSessions } from "./custom-training";
 import { sanitizeTrainingStore } from "./training-session-model.mjs";
 
@@ -15,6 +16,7 @@ export const DEFAULT_STUDY_DATA = {
   contestQueueProblems: {},
   plan: null,
   trainingProfiles: {},
+  problemLists: [],
   settings: {
     language: "zh-CN",
     themeVersion: 6,
@@ -127,6 +129,7 @@ export function normalizeStudyData(value) {
     ...DEFAULT_STUDY_DATA,
     ...source,
     trainingProfiles: normalizeTrainingProfiles(source.trainingProfiles),
+    problemLists: normalizeProblemLists(source.problemLists),
     notes: { ...(source.notes || {}) },
     reviews: { ...(source.reviews || {}) },
     aiReviews,

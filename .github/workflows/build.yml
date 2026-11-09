@@ -53,6 +53,7 @@ jobs:
           pnpm test:codeforces-transport
           pnpm exec node scripts/test-codeforces-standings.cjs
           pnpm exec node scripts/test-study-plan-service.cjs
+          pnpm test:problem-lists
           pnpm exec node scripts/test-material-library.cjs
           pnpm exec node scripts/test-performance.mjs
           pnpm exec node scripts/test-training-profile.mjs

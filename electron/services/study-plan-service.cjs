@@ -19,9 +19,7 @@ function templateKey(filePath) {
 }
 
 function sanitizeStudyPlan(source) {
-  return {
-    version: 1,
-    items: (Array.isArray(source?.items) ? source.items : []).slice(0, 500).map((item) => {
+  const items = (Array.isArray(source?.items) ? source.items : []).slice(0, 500).map((item) => {
       const isTemplate = item?.type === "template";
       const filePath = isTemplate ? normalizeTemplatePath(item.filePath) : "";
       const problemKey = isTemplate ? (filePath ? templateKey(filePath) : "") : normalizeProblemKey(item?.problemKey);
@@ -44,7 +42,24 @@ function sanitizeStudyPlan(source) {
           language: String(item.language || "").slice(0, 40),
         } : {}),
       };
-    }).filter(Boolean),
+    }).filter(Boolean);
+  // Upgrade the old newest-first queue once; subsequent manual ordering survives.
+  if (source?.orderVersion !== 1) {
+    items.sort((a, b) => (Date.parse(a.addedAt) || 0) - (Date.parse(b.addedAt) || 0));
+  }
+  const templateCompletions = {};
+  for (const [key, value] of Object.entries(source?.templateCompletions || {}).slice(0, 10000)) {
+    if (/^template:[a-f0-9]{64}$/.test(key) && Number.isFinite(Number(value))) {
+      templateCompletions[key] = Math.max(0, Math.min(1000000, Math.floor(Number(value))));
+    }
+  }
+  for (const item of items) {
+    if (item.type === "template" && !(item.problemKey in templateCompletions)) {
+      templateCompletions[item.problemKey] = item.status === "done" ? 1 : 0;
+    }
+  }
+  return {
+    version: 1, orderVersion: 1, items, templateCompletions,
   };
 }
 
@@ -63,11 +78,11 @@ function createStudyPlanService({ readJson, writeJson, getTemplate = null, onCha
     return sanitizeStudyPlan(await readJson("agent-todo.json", { version: 1, items: [] }));
   }
 
-  async function save(items) {
-    const queue = sanitizeStudyPlan({ version: 1, items });
+  async function save(value) {
+    const queue = sanitizeStudyPlan(value);
     await writeJson(PLAN_FILE, queue);
     notify();
-    return queue.items;
+    return queue;
   }
 
   async function addProblem(problemKeyValue) {
@@ -103,18 +118,18 @@ function createStudyPlanService({ readJson, writeJson, getTemplate = null, onCha
     const existing = queue.items.find((item) => item.problemKey === snapshot.problemKey);
     if (existing) {
       if (existing.status === "done") {
-        const revived = { ...existing, ...snapshot, status: "pending", completedAt: null };
-        const items = await save([revived, ...queue.items.filter((item) => item.id !== existing.id)]);
-        return { added: false, revived: true, item: revived, items };
+        const revived = { ...existing, ...snapshot, status: "pending", addedAt: new Date().toISOString(), completedAt: null };
+        const saved = await save({ ...queue, items: [...queue.items.filter((item) => item.id !== existing.id), revived] });
+        return { added: false, revived: true, item: revived, ...saved };
       }
-      return { added: false, revived: false, item: existing, items: queue.items };
+      return { added: false, revived: false, item: existing, ...queue };
     }
     if (queue.items.length >= 500) throw new Error("计划题单已满，请先移除不再需要的题目");
     const item = sanitizeStudyPlan({ items: [{
       ...snapshot, id: randomUUID(), status: "pending", addedAt: new Date().toISOString(), completedAt: null,
     }] }).items[0];
-    const items = await save([item, ...queue.items]);
-    return { added: true, revived: false, item, items };
+    const saved = await save({ ...queue, items: [...queue.items, item] });
+    return { added: true, revived: false, item, ...saved };
   }
 
   async function setStatus(itemId, statusValue) {
@@ -124,9 +139,14 @@ function createStudyPlanService({ readJson, writeJson, getTemplate = null, onCha
     const queue = await getQueue();
     const current = queue.items.find((item) => item.id === id);
     if (!current) throw new Error("这道计划题已经不存在");
+    if (current.status === status) return { item: current, ...queue };
+    if (current.type === "template") {
+      const count = queue.templateCompletions[current.problemKey] || 0;
+      queue.templateCompletions[current.problemKey] = Math.max(0, count + (status === "done" ? 1 : -1));
+    }
     const item = { ...current, status, completedAt: status === "done" ? new Date().toISOString() : null };
-    const items = await save(queue.items.map((entry) => entry.id === id ? item : entry));
-    return { item, items };
+    const saved = await save({ ...queue, items: queue.items.map((entry) => entry.id === id ? item : entry) });
+    return { item, ...saved };
   }
 
   async function remove(itemId) {
@@ -134,9 +154,9 @@ function createStudyPlanService({ readJson, writeJson, getTemplate = null, onCha
     if (!id) throw new Error("计划题目标识无效");
     const queue = await getQueue();
     const removed = queue.items.find((item) => item.id === id) || null;
-    if (!removed) return { removed, items: queue.items };
-    const items = await save(queue.items.filter((item) => item.id !== id));
-    return { removed, items };
+    if (!removed) return { removed, ...queue };
+    const saved = await save({ ...queue, items: queue.items.filter((item) => item.id !== id) });
+    return { removed, ...saved };
   }
 
   async function reorder(orderedIds) {
@@ -146,8 +166,7 @@ function createStudyPlanService({ readJson, writeJson, getTemplate = null, onCha
       throw new Error("计划题单顺序已经变化，请重试");
     }
     const byId = new Map(queue.items.map((item) => [item.id, item]));
-    const items = await save(ids.map((id) => byId.get(id)));
-    return { items };
+    return save({ ...queue, items: ids.map((id) => byId.get(id)) });
   }
 
   return {
@@ -160,4 +179,4 @@ function createStudyPlanService({ readJson, writeJson, getTemplate = null, onCha
   };
 }
 
-module.exports = { createStudyPlanService, normalizeProblemKey, sanitizeStudyPlan };
+module.exports = { createStudyPlanService, normalizeProblemKey, sanitizeStudyPlan, templateKey };

@@ -44,7 +44,7 @@ const {
   createMaterialLibraryService,
   safeMaterialRelativePath,
 } = require("./services/material-library-service.cjs");
-const { createStudyPlanService, sanitizeStudyPlan } = require("./services/study-plan-service.cjs");
+const { createStudyPlanService, sanitizeStudyPlan, templateKey } = require("./services/study-plan-service.cjs");
 const { createStudyTimerService } = require("./services/study-timer-service.cjs");
 const { createStudyTimerAudioService } = require("./services/study-timer-audio-service.cjs");
 const { createCustomTrainingService } = require("./services/custom-training-service.cjs");
@@ -672,6 +672,7 @@ async function scanTemplateLibrary(force = false) {
       );
       return {
         id: Buffer.from(relativePath).toString("base64url"),
+        planKey: templateKey(filePath),
         filename,
         title: path.basename(filename, extension),
         relativePath,
@@ -1463,6 +1464,7 @@ function sanitizeAiReviews(input) {
 }
 
 let normalizeTrainingProfiles;
+let normalizeProblemLists;
 function sanitizeStudyData(input) {
   const source = input && typeof input === "object" ? input : {};
   const settings = source.settings && typeof source.settings === "object"
@@ -1567,6 +1569,7 @@ function sanitizeStudyData(input) {
     contestQueueProblems,
     plan,
     trainingProfiles: normalizeTrainingProfiles(source.trainingProfiles),
+    problemLists: normalizeProblemLists(source.problemLists),
     settings: {
       language: ["zh-CN", "en-US"].includes(settings.language)
         ? settings.language
@@ -2479,6 +2482,7 @@ function onTrusted(channel, listener) {
 app.whenReady().then(async () => {
   ({ sanitizeTrainingStore } = await import("../src/lib/training-session-model.mjs"));
   ({ normalizeTrainingProfiles } = await import("./shared/training-profile.mjs"));
+  ({ normalizeProblemLists } = await import("./shared/problem-lists.mjs"));
   protocol.handle("cf-material", async (request) => {
     const requestUrl = new URL(request.url);
     const candidate = safeMaterialRelativePath(

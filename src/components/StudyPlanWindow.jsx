@@ -15,6 +15,7 @@ import ProblemNoteDrawer from "./ProblemNoteDrawer";
 
 export default function StudyPlanWindow() {
   const [items, setItems] = useState([]);
+  const [templateCompletions, setTemplateCompletions] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
@@ -27,12 +28,13 @@ export default function StudyPlanWindow() {
   useEffect(() => {
     let active = true;
     getStudyPlan()
-      .then((queue) => { if (active) setItems(queue?.items || []); })
+      .then((queue) => { if (active) { setItems(queue?.items || []); setTemplateCompletions(queue?.templateCompletions || {}); } })
       .catch((reason) => { if (active) setError(reason?.message || "题单读取失败"); })
       .finally(() => { if (active) setLoading(false); });
     const dispose = onStudyPlanChanged((queue) => {
       if (active) {
         setItems(queue?.items || []);
+        setTemplateCompletions(queue?.templateCompletions || {});
         setLoading(false);
         setError("");
       }
@@ -114,7 +116,7 @@ export default function StudyPlanWindow() {
                   <small>{isTemplate ? "本地模板 · VS Code" : item.problemKey}</small>
                   <strong data-i18n-preserve>{item.name}{isTemplate ? <CodeXml size={12} /> : <ExternalLink size={12} />}</strong>
                   {isTemplate
-                    ? <span title={item.relativePath} data-i18n-preserve>{item.language} · {item.relativePath}</span>
+                    ? <span title={item.relativePath}>{`${item.language} · 完成 ${templateCompletions[item.problemKey] || 0} 次 · ${item.relativePath}`}</span>
                     : <span>{item.rating || "—"}{item.tags?.length ? ` · ${item.tags.slice(0, 2).join(" / ")}` : ""}</span>}
                 </button>
                 {!isTemplate ? <ProblemNoteButton problem={item} onOpenNote={setNoteProblem} /> : null}

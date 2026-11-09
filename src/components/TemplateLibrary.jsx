@@ -112,7 +112,7 @@ function SummaryReader({ value }) {
   );
 }
 
-export default function TemplateLibrary({ onToast, templatePlanItems = [], onAddToPlan }) {
+export default function TemplateLibrary({ onToast, templatePlanItems = [], templateCompletions = {}, onAddToPlan }) {
   const [library, setLibrary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -129,7 +129,7 @@ export default function TemplateLibrary({ onToast, templatePlanItems = [], onAdd
   const [renderBatch, setRenderBatch] = useState({ source: null, count: 60 });
   const reviewByPath = useMemo(() => new Map(templatePlanItems.map((item) => [item.filePath, item])), [templatePlanItems]);
   const plannedTemplatePaths = new Set(templatePlanItems.filter((item) => item.status !== "done").map((item) => item.filePath));
-  const reviewedCount = (library?.items || []).filter((item) => reviewByPath.get(item.filePath)?.status === "done").length;
+  const reviewedCount = (library?.items || []).filter((item) => (templateCompletions[item.planKey] || 0) > 0).length;
   const pendingReviewCount = (library?.items || []).filter((item) => reviewByPath.get(item.filePath)?.status === "pending").length;
 
   useEffect(() => {
@@ -414,7 +414,7 @@ export default function TemplateLibrary({ onToast, templatePlanItems = [], onAdd
                 <span className="template-category-card__count">
                   <strong>{category.items.length}</strong>
                   <small>个模板</small>
-                  <small>{category.items.filter((item) => reviewByPath.get(item.filePath)?.status === "done").length} 已复习</small>
+                  <small>{category.items.filter((item) => (templateCompletions[item.planKey] || 0) > 0).length} 已复习</small>
                 </span>
                 <ChevronRight size={18} className="template-category-card__arrow" />
               </button>
@@ -436,13 +436,15 @@ export default function TemplateLibrary({ onToast, templatePlanItems = [], onAdd
               <div className="template-grid">
             {visibleItems.slice(0, renderCount).map((item) => {
               const category = categoryMap.get(item.categoryId) || { label: "待整理", tone: "muted" };
-              const reviewStatus = reviewByPath.get(item.filePath)?.status;
+              const completionCount = templateCompletions[item.planKey] || 0;
+              const reviewStatus = reviewByPath.get(item.filePath)?.status || (completionCount ? "done" : undefined);
               return (
                 <article
                   className={`template-card template-card--${category.tone}`}
                   key={item.id}
                   data-template-card
                   data-template-review={reviewStatus || "unplanned"}
+                  data-template-completions={completionCount}
                 >
                   <div className="template-card__topline">
                     <span className="template-card__category">{category.label}</span>
@@ -469,6 +471,7 @@ export default function TemplateLibrary({ onToast, templatePlanItems = [], onAdd
                     <ChevronRight size={17} />
                   </button>
                   <div className="template-card__meta">
+                    <span className="template-card__completion-count">{`完成 ${completionCount} 次`}</span>
                     <span className={item.source === "manual" ? "is-manual" : ""}>
                       {item.source === "manual" ? <CheckCircle2 size={14} /> : <Sparkles size={14} />}
                       {sourceLabel(item.source)}

@@ -168,6 +168,8 @@ Choose an existing algorithm-template directory and CF Compass builds a lightwei
 
 Add template cards to the study plan and open their source files in VS Code from the independent plan window. Completing a template updates its card, category count, and library review progress. Review it again when needed; completion and queue order survive restart.
 
+New study-plan entries go to the end, with manual reordering available. Each completed template review round adds one to its total; undoing completion reverses that round, while deleting a queue entry keeps the accumulated count. In the problem library, create and name personal lists, add a problem to several lists, rename lists, and remove entries. Lists persist with your study data and backups.
+
 ![CF Compass readable template summary](https://raw.githubusercontent.com/Binah-Dev/cf-compass/main/docs/screenshots/template-summary.png)
 
 Each template can carry a compact readable reference: problem idea, input, output, key constraints, use cases, core approach, and complexity. The formatter normalizes sections, spacing, common inequalities, powers, subscripts, multiplication signs, and scientific notation so the summary stays readable instead of leaking raw LaTeX commands.

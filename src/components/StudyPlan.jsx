@@ -10,7 +10,7 @@ const filters = [
   { id: "done", label: "已完成" },
 ];
 
-export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, onOpenLibrary, onOpenWindow, onOpenTimerWindow, onOpenNote }) {
+export default function StudyPlan({ items, templateCompletions = {}, onToggleStatus, onRemove, onReorder, onOpenLibrary, onOpenWindow, onOpenTimerWindow, onOpenNote }) {
   const [filter, setFilter] = useState("all");
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
@@ -83,7 +83,7 @@ export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, 
                   <button type="button" className="study-plan-item__problem" title={isTemplate ? "在 VS Code 中打开模板" : "打开 Codeforces 题目"} disabled={busyId === item.id} onClick={() => run(item.id, () => openStudyPlanItem(item))}>
                     <span className="study-plan-item__id">{isTemplate ? "本地模板" : item.problemKey}</span><span className="study-plan-item__title" data-i18n-preserve>{item.name}{isTemplate ? <CodeXml size={13} /> : <ExternalLink size={13} />}</span>
                     {isTemplate
-                      ? <span className="study-plan-item__meta"><em data-i18n-preserve>{item.language}</em><em>VS Code</em><small title={item.relativePath} data-i18n-preserve>{item.relativePath}</small></span>
+                      ? <span className="study-plan-item__meta"><em>{`完成 ${templateCompletions[item.problemKey] || 0} 次`}</em><em>VS Code</em><small title={item.relativePath} data-i18n-preserve>{item.relativePath}</small></span>
                       : <span className="study-plan-item__meta"><b className={`rating rating--${ratingTone(item.rating)}`}>{item.rating || "—"}</b>{(item.tags || []).slice(0, 2).map((tag) => <em key={tag}>{displayTag(tag)}</em>)}{item.reason ? <small>{item.reason}</small> : null}</span>}
                   </button>
                   {!isTemplate ? <ProblemNoteButton problem={item} onOpenNote={onOpenNote} /> : null}
