@@ -38,6 +38,22 @@ export const customTrainingMessages = {
 };
 
 export const exactMessages = {
+  "模板可加入待做，完成后同步记录复习进度。": "Add templates to your study plan and mark them complete to track review progress.",
+  "模板复习进度": "Template review progress",
+  "模板复习完成比例": "Template review completion",
+  "已复习": "Reviewed",
+  "待复习": "To review",
+  "未复习": "Not reviewed",
+  "再复习": "Review again",
+  "再次加入待做队列": "Add to the study plan again",
+  "本地模板": "Local template",
+  "本地模板 · VS Code": "Local template · VS Code",
+  "在 VS Code 中打开模板": "Open template in VS Code",
+  "模板路径无效": "Invalid template path",
+  "模板库中找不到这个文件，请刷新模板库": "This file is not in the template library. Refresh the library.",
+  "从模板库加入计划题单": "Added from the template library",
+  "模板文件不存在，请刷新模板库或检查文件位置": "Template file not found. Refresh the library or check its location.",
+  "计划题单已满，请先移除不再需要的题目": "The study plan is full. Remove items you no longer need first.",
   "打开计时表": "Open timer",
   "计时表由 CF Compass 桌面端提供": "The timer is available in CF Compass desktop",
   "计时表窗口打开失败": "Could not open the timer window",
@@ -1064,6 +1080,9 @@ export const exactMessages = {
 };
 
 export const patternMessages = [
+  [/^再次复习 (.+)$/, "Review $1 again"],
+  [/^(\d+) 待复习$/, "$1 to review"],
+  [/^(\d+) 已复习$/, "$1 reviewed"],
   [/^手动专项\s*·\s*(.+)$/, (_match, tag) => `Manual focus · ${exactMessages[tag.trim()] || tag.trim()}`],
   [/^加入待做 (.+)$/, "Add $1 to study plan"],
   [/^移出补题 (.+)$/, "Remove $1 from upsolving"],

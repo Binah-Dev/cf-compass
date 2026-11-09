@@ -1,11 +1,11 @@
-import { Check, Circle, ExternalLink, GripVertical, ListChecks, LoaderCircle, Timer, Trash2 } from "lucide-react";
+import { Check, Circle, CodeXml, ExternalLink, GripVertical, ListChecks, LoaderCircle, Timer, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { openProblem } from "../lib/codeforces";
 import { loadStudyData, onStudyDataChanged, saveProblemNote } from "../lib/study";
 import { openStudyTimerWindow } from "../lib/study-timer";
 import {
   getStudyPlan,
   onStudyPlanChanged,
+  openStudyPlanItem,
   removeStudyPlanItem,
   reorderStudyPlan,
   setStudyPlanStatus,
@@ -80,16 +80,18 @@ export default function StudyPlanWindow() {
         <div><span style={{ width: `${progress}%` }} /></div><b>{progress}%</b>
       </section>
 
-      {error ? <p className="study-plan-window-error" role="alert">{error}</p> : null}
+      <div>{error ? <p className="study-plan-window-error" role="alert">{error}</p> : null}</div>
       {loading ? (
         <div className="study-plan-window-empty"><LoaderCircle className="plan-spin" size={26} /><strong>正在打开题单…</strong></div>
       ) : items.length ? (
         <section className="study-plan-window-list" aria-label="独立待做题单">
           {items.map((item, index) => {
             const done = item.status === "done";
+            const isTemplate = item.type === "template";
+            const label = isTemplate ? item.name : item.problemKey;
             return (
               <article
-                className={`study-plan-window-item ${done ? "is-done" : ""} ${draggedId === item.id ? "is-dragging" : ""}`}
+                className={`study-plan-window-item ${isTemplate ? "is-template" : ""} ${done ? "is-done" : ""} ${draggedId === item.id ? "is-dragging" : ""}`}
                 key={item.id}
                 draggable
                 onDragStart={(event) => {
@@ -105,18 +107,21 @@ export default function StudyPlanWindow() {
                 <button
                   type="button"
                   className="study-plan-window-problem"
-                  title="打开 Codeforces 题目"
-                  onClick={() => openProblem(item)}
+                  title={isTemplate ? "在 VS Code 中打开模板" : "打开 Codeforces 题目"}
+                  disabled={busyId === item.id}
+                  onClick={() => run(item.id, () => openStudyPlanItem(item))}
                 >
-                  <small>{item.problemKey}</small>
-                  <strong>{item.name}<ExternalLink size={12} /></strong>
-                  <span>{item.rating || "—"}{item.tags?.length ? ` · ${item.tags.slice(0, 2).join(" / ")}` : ""}</span>
+                  <small>{isTemplate ? "本地模板 · VS Code" : item.problemKey}</small>
+                  <strong data-i18n-preserve>{item.name}{isTemplate ? <CodeXml size={12} /> : <ExternalLink size={12} />}</strong>
+                  {isTemplate
+                    ? <span title={item.relativePath} data-i18n-preserve>{item.language} · {item.relativePath}</span>
+                    : <span>{item.rating || "—"}{item.tags?.length ? ` · ${item.tags.slice(0, 2).join(" / ")}` : ""}</span>}
                 </button>
-                <ProblemNoteButton problem={item} onOpenNote={setNoteProblem} />
+                {!isTemplate ? <ProblemNoteButton problem={item} onOpenNote={setNoteProblem} /> : null}
                 <button
                   type="button"
                   className="study-plan-window-done"
-                  aria-label={done ? `将 ${item.problemKey} 恢复为待完成` : `完成 ${item.problemKey}`}
+                  aria-label={done ? `将 ${label} 恢复为待完成` : `完成 ${label}`}
                   aria-pressed={done}
                   disabled={busyId === item.id}
                   onClick={() => run(item.id, () => setStudyPlanStatus(item.id, done ? "pending" : "done"))}
@@ -126,7 +131,7 @@ export default function StudyPlanWindow() {
                 <button
                   type="button"
                   className="study-plan-window-delete"
-                  aria-label={`从独立题单删除 ${item.problemKey}`}
+                  aria-label={`从独立题单删除 ${label}`}
                   title="从题单删除"
                   disabled={busyId === item.id}
                   onClick={() => run(item.id, () => removeStudyPlanItem(item.id))}

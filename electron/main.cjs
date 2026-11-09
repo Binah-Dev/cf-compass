@@ -392,7 +392,7 @@ async function writeJsonPath(target, value, { pretty = true } = {}) {
 }
 
 async function writeJson(filename, value, options) {
-  if (["study.json", "contest-replay.json", "custom-training.json", "update-settings.json", "study-timer.json", "study-timer-audio.json"].includes(filename)) return writeAtomicJson(dataPath(filename), value, options);
+  if (["study.json", "study-plan.json", "contest-replay.json", "custom-training.json", "update-settings.json", "study-timer.json", "study-timer-audio.json"].includes(filename)) return writeAtomicJson(dataPath(filename), value, options);
   await writeJsonPath(dataPath(filename), value, options);
 }
 
@@ -401,6 +401,10 @@ function getStudyPlanService() {
     studyPlanService = createStudyPlanService({
       readJson,
       writeJson,
+      getTemplate: async (filePath) => {
+        const library = await scanTemplateLibrary(false);
+        return library.items.find((item) => path.relative(item.filePath, filePath) === "");
+      },
       onChanged: () => {
         scheduleAutomaticBackup("plan-update");
         void broadcastStudyPlan();
@@ -775,11 +779,11 @@ async function openTemplateFile(filePathValue) {
   if (!isPathWithin(config.root, target)) throw new Error("模板路径不安全");
   const extension = path.extname(target).toLowerCase();
   if (!TEMPLATE_SOURCE_EXTENSIONS.has(extension)) throw new Error("不支持打开该文件");
-  const stats = await fs.stat(target);
+  const stats = await fs.stat(target).catch(() => { throw new Error("模板文件不存在，请刷新模板库或检查文件位置"); });
   if (!stats.isFile()) throw new Error("模板文件不存在");
   const normalized = target.replace(/\\/g, "/");
   try {
-    await shell.openExternal(`vscode://file/${encodeURI(normalized)}`);
+    await shell.openExternal(`vscode://file/${encodeURI(normalized).replace(/[?#]/g, encodeURIComponent)}`);
     return { opened: true, method: "vscode" };
   } catch {
     const fallbackError = await shell.openPath(target);
@@ -2641,6 +2645,7 @@ app.whenReady().then(async () => {
   });
   handleTrusted("plan:get", () => getStudyPlanService().getQueue());
   handleTrusted("plan:add", (_event, problemKey) => getStudyPlanService().addProblem(problemKey));
+  handleTrusted("plan:add-template", (_event, filePath) => getStudyPlanService().addTemplate(filePath));
   handleTrusted("plan:status", (_event, itemId, status) => getStudyPlanService().setStatus(itemId, status));
   handleTrusted("plan:remove", (_event, itemId) => getStudyPlanService().remove(itemId));
   handleTrusted("plan:reorder", (_event, itemIds) => getStudyPlanService().reorder(itemIds));

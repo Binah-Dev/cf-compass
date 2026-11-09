@@ -60,6 +60,7 @@ contextBridge.exposeInMainWorld("cfBridge", {
   },
   getStudyPlan: () => ipcRenderer.invoke("plan:get"),
   addStudyPlanProblem: (problemKey) => ipcRenderer.invoke("plan:add", problemKey),
+  addStudyPlanTemplate: (filePath) => ipcRenderer.invoke("plan:add-template", filePath),
   setStudyPlanStatus: (itemId, status) => ipcRenderer.invoke("plan:status", itemId, status),
   removeStudyPlanItem: (itemId) => ipcRenderer.invoke("plan:remove", itemId),
   reorderStudyPlan: (itemIds) => ipcRenderer.invoke("plan:reorder", itemIds),

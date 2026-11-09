@@ -31,7 +31,7 @@ import {
   loadLocalWallpaperLibrary,
   updateCustomWallpaperMetadata,
 } from "./lib/appearance";
-import { addStudyPlanProblem, getStudyPlan, onStudyPlanChanged, openStudyPlanWindow, removeStudyPlanItem, reorderStudyPlan, setStudyPlanStatus } from "./lib/study-plan";
+import { addStudyPlanProblem, addStudyPlanTemplate, getStudyPlan, onStudyPlanChanged, openStudyPlanWindow, removeStudyPlanItem, reorderStudyPlan, setStudyPlanStatus } from "./lib/study-plan";
 import { openStudyTimerWindow } from "./lib/study-timer";
 import {
   loadFavorites,
@@ -504,9 +504,9 @@ export default function App() {
     });
   }
 
-  async function addProblemToPlan(key) {
+  async function addProblemToPlan(key, type = "codeforces") {
     try {
-      const result = await addStudyPlanProblem(key);
+      const result = await (type === "template" ? addStudyPlanTemplate(key) : addStudyPlanProblem(key));
       setPlanItems(Array.isArray(result?.items) ? result.items : []);
       setToast({
         type: result?.added || result?.revived ? "success" : "info",
@@ -528,7 +528,8 @@ export default function App() {
       const nextStatus = item.status === "done" ? "pending" : "done";
       const result = await setStudyPlanStatus(item.id, nextStatus);
       setPlanItems(Array.isArray(result?.items) ? result.items : []);
-      setToast({ type: "success", message: nextStatus === "done" ? `已完成 ${item.problemKey}` : `已恢复 ${item.problemKey}` });
+      const label = item.type === "template" ? item.name : item.problemKey;
+      setToast({ type: "success", message: nextStatus === "done" ? `已完成 ${label}` : `已恢复 ${label}` });
       return result;
     } catch (error) {
       setToast({ type: "error", message: error.message || "更新计划状态失败" });
@@ -540,7 +541,7 @@ export default function App() {
     try {
       const result = await removeStudyPlanItem(item.id);
       setPlanItems(Array.isArray(result?.items) ? result.items : []);
-      setToast({ type: "success", message: `已从计划题单删除 ${item.problemKey}` });
+      setToast({ type: "success", message: `已从计划题单删除 ${item.type === "template" ? item.name : item.problemKey}` });
       return result;
     } catch (error) {
       setToast({ type: "error", message: error.message || "删除计划题失败" });
@@ -849,7 +850,11 @@ export default function App() {
             onOpenNote={setNoteProblem}
           />
         ) : activeNav === "templates" ? (
-          <TemplateLibrary onToast={showToast} />
+          <TemplateLibrary
+            onToast={showToast}
+            templatePlanItems={planItems.filter((item) => item.type === "template")}
+            onAddToPlan={(filePath) => addProblemToPlan(filePath, "template")}
+          />
         ) : activeNav === "analytics" ? (
           <TrainingAnalytics data={data} />
         ) : activeNav === "data" ? (
