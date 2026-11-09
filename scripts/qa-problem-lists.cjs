@@ -40,6 +40,7 @@ async function launch() {
   page = await app.firstWindow();
   page.setDefaultTimeout(12000);
   page.on("pageerror", (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1500, height: 940 });
   await page.locator(".problem-row").first().waitFor();
 }
 async function chooseList(name) {
@@ -149,7 +150,11 @@ async function chooseList(name) {
   assert.deepEqual(errors, []);
   fs.writeFileSync(path.join(outputRoot, "report.json"), JSON.stringify({ checks, errors }, null, 2));
   console.log(JSON.stringify({ status: "ok", checks: checks.length, report: path.join(outputRoot, "report.json") }));
-})().catch((error) => {
+})().catch(async (error) => {
   console.error(error);
+  if (page && !page.isClosed()) {
+    const diagnostic = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, url: location.href })).catch(() => null);
+    console.error(JSON.stringify({ viewport: diagnostic }));
+  }
   process.exitCode = 1;
 }).finally(async () => { if (app) await app.close().catch(() => undefined); });
