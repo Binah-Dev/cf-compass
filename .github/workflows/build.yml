@@ -133,7 +133,7 @@ jobs:
             pnpm exec node "scripts/$check"
             if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
           }
-          foreach ($check in @('qa-custom-training.cjs', 'qa-app-update.cjs', 'qa-study-timer.cjs')) {
+          foreach ($check in @('qa-custom-training.cjs', 'qa-app-update.cjs', 'qa-study-timer.cjs', 'qa-problem-lists.cjs')) {
             pnpm exec node "scripts/$check"
             if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
           }

@@ -47,6 +47,7 @@ import {
   loadStudyData,
   openBackupFolder,
   saveProblemNote as saveProblemNoteData,
+  saveProblemLists,
   saveStudyData,
 } from "./lib/study";
 import {
@@ -612,6 +613,17 @@ export default function App() {
     }
   }
 
+  async function persistProblemLists(lists) {
+    try {
+      const saved = await saveProblemLists(lists);
+      setStudyData(saved);
+      return saved;
+    } catch (error) {
+      showToast("error", error.message || "题单保存失败，请重试");
+      return null;
+    }
+  }
+
   function previewAppearance(patch) {
     if (patch.language) setLocale(patch.language);
     // Preview must not leak into background sync or unrelated study saves.
@@ -916,7 +928,7 @@ export default function App() {
                     setRatingRange(DEFAULT_RATING_RANGE);
                     setPage(1);
                   }}
-                  onProblemListsChange={(lists) => persistStudy({ ...studyDataRef.current, problemLists: lists })}
+                  onProblemListsChange={persistProblemLists}
                   totalFiltered={filteredProblems.length}
                   submissionMap={submissionMap}
                   favorites={favorites}

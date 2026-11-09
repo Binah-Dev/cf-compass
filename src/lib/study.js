@@ -167,6 +167,15 @@ export async function saveStudyData(value) {
   return safe;
 }
 
+export async function saveProblemLists(lists) {
+  const safe = normalizeProblemLists(lists);
+  if (window.cfBridge) {
+    if (!window.cfBridge.setProblemLists) throw new Error("请重启 CF Compass 以保存自建题单");
+    return normalizeStudyData(await window.cfBridge.setProblemLists(safe));
+  }
+  return saveStudyData({ ...await loadStudyData(), problemLists: safe });
+}
+
 export async function saveProblemNote(problemKey, note) {
   const key = String(problemKey || "").trim().toUpperCase();
   if (window.cfBridge?.setProblemNote) {

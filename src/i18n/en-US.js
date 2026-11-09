@@ -38,6 +38,7 @@ export const customTrainingMessages = {
 };
 
 export const exactMessages = {
+  "请重启 CF Compass 以保存自建题单": "Restart CF Compass to save custom problem lists",
   "自建题单": "My problem lists",
   "查看题单": "View problem list",
   "新建题单": "New list",

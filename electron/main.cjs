@@ -51,6 +51,12 @@ const { createCustomTrainingService } = require("./services/custom-training-serv
 const { createAppUpdateService, detectUpdateEligibility } = require("./services/app-update-service.cjs");
 let appUpdateService;
 let trainingInstallQueue = Promise.resolve();
+let studyMutationQueue = Promise.resolve();
+function withStudyMutationLock(action) {
+  const task = studyMutationQueue.then(action);
+  studyMutationQueue = task.catch(() => undefined);
+  return task;
+}
 function withTrainingInstallLock(action) {
   const task = trainingInstallQueue.then(action);
   trainingInstallQueue = task.catch(() => undefined);
@@ -717,11 +723,14 @@ async function chooseTemplateRoot() {
   const nextRoot = path.resolve(result.filePaths[0]);
   const savedProfile = config.profiles?.[templateRootKey(nextRoot)];
   const sameRoot = templateRootKey(nextRoot) === templateRootKey(config.root);
+  const profiles = { ...config.profiles };
+  delete profiles[templateRootKey(config.root)];
+  profiles[templateRootKey(config.root)] = { root: config.root, overrides: config.overrides, summaries: config.summaries };
   await saveTemplateConfig({
     root: nextRoot,
     overrides: sameRoot ? config.overrides : savedProfile?.overrides || {},
     summaries: sameRoot ? config.summaries : savedProfile?.summaries || {},
-    profiles: config.profiles,
+    profiles,
   });
   templateLibraryCache = null;
   return { canceled: false, library: await scanTemplateLibrary(true) };
@@ -777,7 +786,8 @@ async function setTemplateSummary(relativePathValue, summaryValue) {
 async function openTemplateFile(filePathValue) {
   const config = await readTemplateConfig();
   const target = path.resolve(String(filePathValue || ""));
-  if (!isPathWithin(config.root, target)) throw new Error("模板路径不安全");
+  const roots = [config.root, ...Object.values(config.profiles || {}).map((profile) => profile?.root).filter((root) => typeof root === "string" && path.isAbsolute(root))];
+  if (!roots.some((root) => isPathWithin(root, target))) throw new Error("模板路径不安全");
   const extension = path.extname(target).toLowerCase();
   if (!TEMPLATE_SOURCE_EXTENSIONS.has(extension)) throw new Error("不支持打开该文件");
   const stats = await fs.stat(target).catch(() => { throw new Error("模板文件不存在，请刷新模板库或检查文件位置"); });
@@ -2627,14 +2637,22 @@ app.whenReady().then(async () => {
     return safe;
   });
   handleTrusted("study:get", () => readStudyData());
-  handleTrusted("study:set", async (_event, studyData) => {
+  handleTrusted("study:set", (_event, studyData) => withStudyMutationLock(async () => {
     const safe = sanitizeStudyData(studyData);
     await writeJson("study.json", safe);
     scheduleAutomaticBackup("study-update");
     await broadcastStudyData(safe);
     return safe;
-  });
-  handleTrusted("study:note-set", async (_event, problemKeyValue, noteValue) => {
+  }));
+  handleTrusted("study:problem-lists-set", (_event, lists) => withStudyMutationLock(async () => {
+    const current = await readStudyData();
+    const safe = sanitizeStudyData({ ...current, problemLists: lists });
+    await writeJson("study.json", safe);
+    scheduleAutomaticBackup("problem-lists-update");
+    await broadcastStudyData(safe);
+    return safe;
+  }));
+  handleTrusted("study:note-set", (_event, problemKeyValue, noteValue) => withStudyMutationLock(async () => {
     const problemKey = String(problemKeyValue || "").trim().toUpperCase().slice(0, 80);
     if (!/^\d+-?[A-Z][A-Z0-9]*$/.test(problemKey)) throw new Error("题目标识无效");
     const current = await readStudyData();
@@ -2646,7 +2664,7 @@ app.whenReady().then(async () => {
     scheduleAutomaticBackup("study-note-update");
     await broadcastStudyData(safe);
     return safe;
-  });
+  }));
   handleTrusted("plan:get", () => getStudyPlanService().getQueue());
   handleTrusted("plan:add", (_event, problemKey) => getStudyPlanService().addProblem(problemKey));
   handleTrusted("plan:add-template", (_event, filePath) => getStudyPlanService().addTemplate(filePath));

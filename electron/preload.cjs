@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld("cfBridge", {
   setFavorites: (favorites) => ipcRenderer.invoke("favorites:set", favorites),
   getStudyData: () => ipcRenderer.invoke("study:get"),
   setStudyData: (studyData) => ipcRenderer.invoke("study:set", studyData),
+  setProblemLists: (lists) => ipcRenderer.invoke("study:problem-lists-set", lists),
   setProblemNote: (problemKey, note) => ipcRenderer.invoke("study:note-set", problemKey, note),
   onStudyChanged: (callback) => {
     const listener = (_event, study) => callback(study);

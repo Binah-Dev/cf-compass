@@ -1,7 +1,7 @@
 {
   "name": "cf-compass",
   "desktopName": "cf-compass.desktop",
-  "version": "4.3.4",
+  "version": "4.4.0",
   "packageManager": "pnpm@11.19.0",
   "private": true,
   "author": {
@@ -23,6 +23,7 @@
   "scripts": {
     "test:study-plan": "node scripts/test-study-plan-service.cjs",
     "test:problem-lists": "node --test scripts/test-problem-lists.mjs",
+    "qa:problem-lists": "node scripts/qa-problem-lists.cjs",
     "test:codeforces-transport": "node --test scripts/test-codeforces-transport.mjs scripts/test-codeforces-transport-adapters.mjs",
     "test:study-timer": "node --test scripts/test-study-timer.mjs scripts/test-study-timer-audio.cjs",
     "qa:study-timer": "node scripts/qa-study-timer.cjs",
