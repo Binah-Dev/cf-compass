@@ -1,0 +1,30 @@
+.workspace-heading { min-width: 0; }
+.workspace-topline { flex-wrap: wrap; gap: 10px; }
+.workspace-topline__lists { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.problem-list-controls { min-width: 0; display: flex; align-items: center; gap: 5px; }
+.problem-list-controls select { width: 150px; min-width: 0; max-width: 190px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: rgba(8, 27, 43, .85); color: var(--text); font-size: 12px; }
+.problem-list-controls button { height: 30px; padding: 0 7px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 7px; background: rgba(47, 110, 147, .12); color: #a8dcef; white-space: nowrap; font-size: 12px; }
+.problem-list-controls button:hover { border-color: #72ccec; color: #d9f6ff; }
+.problem-name-cell { display: flex; align-items: center; min-width: 0; gap: 4px; }
+.problem-name-cell .problem-name { min-width: 0; flex: 1; }
+.problem-list-row-button { width: 25px; height: 28px; padding: 0; flex: 0 0 auto; display: grid; place-items: center; border: 0; background: transparent; color: #6d91a4; }
+.problem-list-row-button:hover { color: #9ae4ff; }
+.problem-list-backdrop { position: fixed; inset: 0; z-index: 180; display: grid; place-items: center; padding: 20px; background: rgba(2, 10, 19, .72); backdrop-filter: blur(5px); }
+.problem-list-dialog { width: min(460px, 100%); max-height: calc(100vh - 40px); overflow: auto; padding: 22px; border: 1px solid rgba(116, 202, 239, .28); border-radius: 16px; color: #dceef7; background: #0c2233; box-shadow: 0 24px 80px rgba(0, 0, 0, .45); }
+.problem-list-dialog header { display: flex; align-items: center; gap: 10px; color: #93dfff; }
+.problem-list-dialog h2 { flex: 1; margin: 0; font-size: 18px; }
+.problem-list-dialog header button { display: grid; place-items: center; border: 0; background: transparent; color: #a1b6c8; padding: 5px; }
+.problem-list-dialog p { color: #a1b6c8; line-height: 1.65; font-size: 13px; overflow-wrap: anywhere; }
+.problem-list-dialog .problem-list-error { color: #ffa3b5; }
+.problem-list-name { display: grid; gap: 9px; margin-top: 24px; color: #b7cedd; font-size: 13px; }
+.problem-list-name input { width: 100%; min-width: 0; padding: 11px 12px; color: #e1f2fa; border: 1px solid #36576d; border-radius: 9px; background: #071a29; }
+.problem-list-dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+.problem-list-picker { display: grid; gap: 7px; max-height: 330px; overflow: auto; }
+.problem-list-picker > button { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 10px; color: #dceef7; border: 1px solid var(--line); border-radius: 9px; background: rgba(50, 114, 148, .1); text-align: left; }
+.problem-list-picker > button[aria-pressed="true"] { border-color: #4aa589; background: rgba(53, 166, 125, .12); }
+.problem-list-picker strong { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+.problem-list-picker small { flex: 0 0 auto; color: #a1b6c8; }
+.problem-list-picker .is-included { color: #76e1ba; }
+.template-card__completion-count { color: #9de8cd; white-space: nowrap; }
+.template-card__meta { flex-wrap: wrap; gap: 6px; }
+@media (max-width: 1180px) { .problem-list-controls select { width: 130px; } }

@@ -53,6 +53,7 @@ jobs:
           pnpm test:codeforces-transport
           pnpm exec node scripts/test-codeforces-standings.cjs
           pnpm exec node scripts/test-study-plan-service.cjs
+          pnpm test:problem-lists
           pnpm exec node scripts/test-material-library.cjs
           pnpm exec node scripts/test-performance.mjs
           pnpm exec node scripts/test-training-profile.mjs
@@ -132,7 +133,7 @@ jobs:
             pnpm exec node "scripts/$check"
             if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
           }
-          foreach ($check in @('qa-custom-training.cjs', 'qa-app-update.cjs', 'qa-study-timer.cjs')) {
+          foreach ($check in @('qa-custom-training.cjs', 'qa-app-update.cjs', 'qa-study-timer.cjs', 'qa-problem-lists.cjs')) {
             pnpm exec node "scripts/$check"
             if ($LASTEXITCODE -ne 0) { throw "Packaged regression failed: $check (exit $LASTEXITCODE)" }
           }

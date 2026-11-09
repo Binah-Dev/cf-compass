@@ -1774,6 +1774,14 @@ select:focus-visible {
 }
 
 /* Local template library */
+.template-review-progress { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 7px; color: var(--text-3); font-size: var(--font-caption); }
+.template-review-progress strong { color: #76e1ba; font-variant-numeric: tabular-nums; }
+.template-review-progress progress { width: 90px; height: 5px; overflow: hidden; border: 0; border-radius: 99px; background: rgba(111, 173, 213, 0.17); accent-color: #76e1ba; }
+.template-review-progress progress::-webkit-progress-bar { border-radius: 99px; background: rgba(111, 173, 213, 0.17); }
+.template-review-progress progress::-webkit-progress-value { border-radius: 99px; background: #76e1ba; }
+.template-card__review { color: var(--text-3); font-size: var(--font-caption); white-space: nowrap; }
+.template-card__review.is-done { color: #76e1ba; }
+
 .template-library-page {
   height: 100%;
   overflow: hidden;
@@ -2453,7 +2461,7 @@ select:focus-visible {
 .template-card__actions label {
   min-width: 0;
   height: 30px;
-  flex: 1;
+  flex: 1 1 140px;
   gap: 5px;
   padding: 0 7px;
   color: var(--text-3);
@@ -2479,6 +2487,13 @@ select:focus-visible {
 
 .template-card__actions button:hover {
   background: color-mix(in srgb, var(--template-accent) 24%, rgba(5, 20, 34, 0.8));
+}
+
+.template-card__actions .plan-queue-action.is-active {
+  color: #76e1ba;
+  border-color: rgba(102, 222, 178, 0.3);
+  background: rgba(53, 166, 125, 0.12);
+  cursor: default;
 }
 
 .template-summary-backdrop {

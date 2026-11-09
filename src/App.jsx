@@ -31,7 +31,7 @@ import {
   loadLocalWallpaperLibrary,
   updateCustomWallpaperMetadata,
 } from "./lib/appearance";
-import { addStudyPlanProblem, getStudyPlan, onStudyPlanChanged, openStudyPlanWindow, removeStudyPlanItem, reorderStudyPlan, setStudyPlanStatus } from "./lib/study-plan";
+import { addStudyPlanProblem, addStudyPlanTemplate, getStudyPlan, onStudyPlanChanged, openStudyPlanWindow, removeStudyPlanItem, reorderStudyPlan, setStudyPlanStatus } from "./lib/study-plan";
 import { openStudyTimerWindow } from "./lib/study-timer";
 import {
   loadFavorites,
@@ -47,6 +47,7 @@ import {
   loadStudyData,
   openBackupFolder,
   saveProblemNote as saveProblemNoteData,
+  saveProblemLists,
   saveStudyData,
 } from "./lib/study";
 import {
@@ -180,6 +181,12 @@ export default function App() {
   const [handle, setHandle] = useState("tourist");
   const [favorites, setFavorites] = useState(() => new Set());
   const [planItems, setPlanItems] = useState([]);
+  const [templateCompletions, setTemplateCompletions] = useState({});
+  const [selectedProblemListId, setSelectedProblemListId] = useState("");
+  const applyPlanQueue = useCallback((queue) => {
+    setPlanItems(Array.isArray(queue?.items) ? queue.items : []);
+    setTemplateCompletions(queue?.templateCompletions || {});
+  }, []);
   const [selectedTag, setSelectedTag] = useState("all");
   const [ratingRange, setRatingRange] = useState(DEFAULT_RATING_RANGE);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -250,7 +257,7 @@ export default function App() {
       setData(initialData);
       setHandle(initialData.handle || initialData.user?.handle || "");
       setFavorites(new Set(initialFavorites));
-      setPlanItems(Array.isArray(initialPlan?.items) ? initialPlan.items : []);
+      applyPlanQueue(initialPlan);
       setStudyData(initialStudy);
       setLocale(initialStudy.settings?.language || "zh-CN");
       scheduleSecondaryData();
@@ -268,7 +275,7 @@ export default function App() {
 
   useEffect(() => {
     if (!window.cfBridge?.onStudyPlanChanged) return undefined;
-    return onStudyPlanChanged((queue) => setPlanItems(Array.isArray(queue?.items) ? queue.items : []));
+    return onStudyPlanChanged(applyPlanQueue);
   }, []);
 
   useEffect(() => {
@@ -394,6 +401,12 @@ export default function App() {
   ]);
 
   const problems = data?.problems || [];
+  const problemLists = studyData?.problemLists || [];
+  const selectedProblemList = problemLists.find((item) => item.id === selectedProblemListId);
+  const selectedProblemListKeys = useMemo(
+    () => selectedProblemList ? new Set(selectedProblemList.problemKeys) : null,
+    [selectedProblemList],
+  );
   const submissions = data?.submissions || [];
   const submissionMap = useMemo(() => buildSubmissionMap(submissions), [submissions]);
   const tagCounts = useMemo(() => buildTagCounts(problems), [problems]);
@@ -412,6 +425,7 @@ export default function App() {
     const result = [];
     for (const problem of problems) {
       const key = problemKey(problem);
+      if (selectedProblemListKeys && !selectedProblemListKeys.has(key)) continue;
       const stats = submissionMap.get(key);
       const solved = Boolean(stats?.accepted);
       const rating = problem.rating;
@@ -438,6 +452,7 @@ export default function App() {
     return result;
   }, [
     problems,
+    selectedProblemListKeys,
     selectedTag,
     deferredRatingRange,
     statusFilter,
@@ -504,10 +519,10 @@ export default function App() {
     });
   }
 
-  async function addProblemToPlan(key) {
+  async function addProblemToPlan(key, type = "codeforces") {
     try {
-      const result = await addStudyPlanProblem(key);
-      setPlanItems(Array.isArray(result?.items) ? result.items : []);
+      const result = await (type === "template" ? addStudyPlanTemplate(key) : addStudyPlanProblem(key));
+      applyPlanQueue(result);
       setToast({
         type: result?.added || result?.revived ? "success" : "info",
         message: result?.revived
@@ -527,8 +542,9 @@ export default function App() {
     try {
       const nextStatus = item.status === "done" ? "pending" : "done";
       const result = await setStudyPlanStatus(item.id, nextStatus);
-      setPlanItems(Array.isArray(result?.items) ? result.items : []);
-      setToast({ type: "success", message: nextStatus === "done" ? `已完成 ${item.problemKey}` : `已恢复 ${item.problemKey}` });
+      applyPlanQueue(result);
+      const label = item.type === "template" ? item.name : item.problemKey;
+      setToast({ type: "success", message: nextStatus === "done" ? `已完成 ${label}` : `已恢复 ${label}` });
       return result;
     } catch (error) {
       setToast({ type: "error", message: error.message || "更新计划状态失败" });
@@ -539,8 +555,8 @@ export default function App() {
   async function removePlanItem(item) {
     try {
       const result = await removeStudyPlanItem(item.id);
-      setPlanItems(Array.isArray(result?.items) ? result.items : []);
-      setToast({ type: "success", message: `已从计划题单删除 ${item.problemKey}` });
+      applyPlanQueue(result);
+      setToast({ type: "success", message: `已从计划题单删除 ${item.type === "template" ? item.name : item.problemKey}` });
       return result;
     } catch (error) {
       setToast({ type: "error", message: error.message || "删除计划题失败" });
@@ -551,7 +567,7 @@ export default function App() {
   async function reorderPlanItems(itemIds) {
     try {
       const result = await reorderStudyPlan(itemIds);
-      setPlanItems(Array.isArray(result?.items) ? result.items : []);
+      applyPlanQueue(result);
       return result;
     } catch (error) {
       setToast({ type: "error", message: error.message || "计划题单排序失败" });
@@ -593,6 +609,17 @@ export default function App() {
       const restored = await loadStudyData().catch(() => null);
       if (restored && version === studySaveVersionRef.current) setStudyData(restored);
       setToast({ type: "error", message: error.message || "学习记录保存失败" });
+      return null;
+    }
+  }
+
+  async function persistProblemLists(lists) {
+    try {
+      const saved = await saveProblemLists(lists);
+      setStudyData(saved);
+      return saved;
+    } catch (error) {
+      showToast("error", error.message || "题单保存失败，请重试");
       return null;
     }
   }
@@ -673,7 +700,7 @@ export default function App() {
       setData(result.cache);
       setHandle(result.cache.handle || result.cache.user?.handle || "");
       setFavorites(new Set(result.favorites));
-      setPlanItems(Array.isArray(result.studyPlan?.items) ? result.studyPlan.items : []);
+      applyPlanQueue(result.studyPlan);
       setStudyData(result.study);
       setLocale(result.study.settings?.language || "zh-CN");
       await refreshStatus().catch(() => undefined);
@@ -818,6 +845,7 @@ export default function App() {
         ) : activeNav === "plan" ? (
           <StudyPlan
             items={planItems}
+            templateCompletions={templateCompletions}
             onToggleStatus={togglePlanItem}
             onRemove={removePlanItem}
             onReorder={reorderPlanItems}
@@ -849,7 +877,12 @@ export default function App() {
             onOpenNote={setNoteProblem}
           />
         ) : activeNav === "templates" ? (
-          <TemplateLibrary onToast={showToast} />
+          <TemplateLibrary
+            onToast={showToast}
+            templatePlanItems={planItems.filter((item) => item.type === "template")}
+            templateCompletions={templateCompletions}
+            onAddToPlan={(filePath) => addProblemToPlan(filePath, "template")}
+          />
         ) : activeNav === "analytics" ? (
           <TrainingAnalytics data={data} />
         ) : activeNav === "data" ? (
@@ -885,6 +918,17 @@ export default function App() {
               problems: (
                 <ProblemWorkspace
                   problems={visibleProblems}
+                  problemLists={problemLists}
+                  selectedProblemListId={selectedProblemList?.id || ""}
+                  onSelectProblemList={(id) => {
+                    setSelectedProblemListId(id);
+                    setSelectedTag("all");
+                    setSearch("");
+                    setStatusFilter("all");
+                    setRatingRange(DEFAULT_RATING_RANGE);
+                    setPage(1);
+                  }}
+                  onProblemListsChange={persistProblemLists}
                   totalFiltered={filteredProblems.length}
                   submissionMap={submissionMap}
                   favorites={favorites}
@@ -906,7 +950,7 @@ export default function App() {
                   page={safePage}
                   totalPages={totalPages}
                   onPageChange={setPage}
-                   selectedTagLabel={selectedTag === "all" ? "所有题目" : displayTag(selectedTag)}
+                   selectedTagLabel={selectedProblemList?.name || (selectedTag === "all" ? "所有题目" : displayTag(selectedTag))}
                    showTags={studyData.settings.showProblemTags !== false}
                    onToggleTags={() =>
                      persistStudy(

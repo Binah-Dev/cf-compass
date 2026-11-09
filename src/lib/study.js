@@ -1,5 +1,6 @@
 import { normalizeAiReview } from "./ai";
 import { normalizeTrainingProfiles } from "../../electron/shared/training-profile.mjs";
+import { normalizeProblemLists } from "../../electron/shared/problem-lists.mjs";
 import { getTrainingSessions, replaceTrainingSessions } from "./custom-training";
 import { sanitizeTrainingStore } from "./training-session-model.mjs";
 
@@ -15,6 +16,7 @@ export const DEFAULT_STUDY_DATA = {
   contestQueueProblems: {},
   plan: null,
   trainingProfiles: {},
+  problemLists: [],
   settings: {
     language: "zh-CN",
     themeVersion: 6,
@@ -127,6 +129,7 @@ export function normalizeStudyData(value) {
     ...DEFAULT_STUDY_DATA,
     ...source,
     trainingProfiles: normalizeTrainingProfiles(source.trainingProfiles),
+    problemLists: normalizeProblemLists(source.problemLists),
     notes: { ...(source.notes || {}) },
     reviews: { ...(source.reviews || {}) },
     aiReviews,
@@ -162,6 +165,15 @@ export async function saveStudyData(value) {
   }
   localStorage.setItem(STUDY_KEY, JSON.stringify(safe));
   return safe;
+}
+
+export async function saveProblemLists(lists) {
+  const safe = normalizeProblemLists(lists);
+  if (window.cfBridge) {
+    if (!window.cfBridge.setProblemLists) throw new Error("请重启 CF Compass 以保存自建题单");
+    return normalizeStudyData(await window.cfBridge.setProblemLists(safe));
+  }
+  return saveStudyData({ ...await loadStudyData(), problemLists: safe });
 }
 
 export async function saveProblemNote(problemKey, note) {

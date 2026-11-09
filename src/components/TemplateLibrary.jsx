@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import PlanQueueButton from "./PlanQueueButton";
 import {
   changeTemplateCategory,
   chooseTemplateLibraryFolder,
@@ -111,7 +112,7 @@ function SummaryReader({ value }) {
   );
 }
 
-export default function TemplateLibrary({ onToast }) {
+export default function TemplateLibrary({ onToast, templatePlanItems = [], templateCompletions = {}, onAddToPlan }) {
   const [library, setLibrary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -126,6 +127,10 @@ export default function TemplateLibrary({ onToast }) {
   const [summaryOptimized, setSummaryOptimized] = useState(false);
   const deferredSearch = useDeferredValue(search.trim().toLocaleLowerCase("zh-CN"));
   const [renderBatch, setRenderBatch] = useState({ source: null, count: 60 });
+  const reviewByPath = useMemo(() => new Map(templatePlanItems.map((item) => [item.filePath, item])), [templatePlanItems]);
+  const plannedTemplatePaths = new Set(templatePlanItems.filter((item) => item.status !== "done").map((item) => item.filePath));
+  const reviewedCount = (library?.items || []).filter((item) => (templateCompletions[item.planKey] || 0) > 0).length;
+  const pendingReviewCount = (library?.items || []).filter((item) => reviewByPath.get(item.filePath)?.status === "pending").length;
 
   useEffect(() => {
     let alive = true;
@@ -314,7 +319,12 @@ export default function TemplateLibrary({ onToast }) {
           <span className="template-overview__mark"><CodeXml size={22} /></span>
           <div>
             <h2>我的算法工具箱</h2>
-            <p>只建立本地索引，不复制源码；点击卡片即可回到 VS Code。</p>
+            <p>模板可加入待做，完成后同步记录复习进度。</p>
+            <div className="template-review-progress" aria-label="模板复习进度">
+              <span>已复习</span><strong>{reviewedCount} / {library?.items.length || 0}</strong>
+              <progress aria-label="模板复习完成比例" value={reviewedCount} max={library?.items.length || 1} />
+              <span>{pendingReviewCount} 待复习</span>
+            </div>
           </div>
         </div>
         <div className="template-overview__stats">
@@ -404,6 +414,7 @@ export default function TemplateLibrary({ onToast }) {
                 <span className="template-category-card__count">
                   <strong>{category.items.length}</strong>
                   <small>个模板</small>
+                  <small>{category.items.filter((item) => (templateCompletions[item.planKey] || 0) > 0).length} 已复习</small>
                 </span>
                 <ChevronRight size={18} className="template-category-card__arrow" />
               </button>
@@ -425,15 +436,20 @@ export default function TemplateLibrary({ onToast }) {
               <div className="template-grid">
             {visibleItems.slice(0, renderCount).map((item) => {
               const category = categoryMap.get(item.categoryId) || { label: "待整理", tone: "muted" };
+              const completionCount = templateCompletions[item.planKey] || 0;
+              const reviewStatus = reviewByPath.get(item.filePath)?.status || (completionCount ? "done" : undefined);
               return (
                 <article
                   className={`template-card template-card--${category.tone}`}
                   key={item.id}
                   data-template-card
+                  data-template-review={reviewStatus || "unplanned"}
+                  data-template-completions={completionCount}
                 >
                   <div className="template-card__topline">
                     <span className="template-card__category">{category.label}</span>
                     <span className="template-card__language">{item.language}</span>
+                    <span className={`template-card__review ${reviewStatus === "done" ? "is-done" : ""}`}>{reviewStatus === "done" ? "已复习" : reviewStatus === "pending" ? "待复习" : "未复习"}</span>
                   </div>
                   <button type="button" className="template-card__title" onClick={() => handleOpen(item)}>
                     <span data-i18n-preserve>{item.title}</span>
@@ -455,6 +471,7 @@ export default function TemplateLibrary({ onToast }) {
                     <ChevronRight size={17} />
                   </button>
                   <div className="template-card__meta">
+                    <span className="template-card__completion-count">{`完成 ${completionCount} 次`}</span>
                     <span className={item.source === "manual" ? "is-manual" : ""}>
                       {item.source === "manual" ? <CheckCircle2 size={14} /> : <Sparkles size={14} />}
                       {sourceLabel(item.source)}
@@ -476,6 +493,7 @@ export default function TemplateLibrary({ onToast }) {
                         ))}
                       </select>
                     </label>
+                    <PlanQueueButton planKey={item.filePath} label={item.title} plannedKeys={plannedTemplatePaths} onAddToPlan={onAddToPlan} completed={reviewStatus === "done"} />
                     <button type="button" onClick={() => handleOpen(item)}>
                       <CodeXml size={16} /> 打开
                     </button>

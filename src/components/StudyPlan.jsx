@@ -1,6 +1,6 @@
-import { Check, Circle, ExternalLink, GripVertical, ListChecks, LoaderCircle, PanelRightOpen, Plus, Timer, Trash2 } from "lucide-react";
+import { Check, Circle, CodeXml, ExternalLink, GripVertical, ListChecks, LoaderCircle, PanelRightOpen, Plus, Timer, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { openProblem } from "../lib/codeforces";
+import { openStudyPlanItem } from "../lib/study-plan";
 import { displayTag, ratingTone } from "../lib/stats";
 import ProblemNoteButton from "./ProblemNoteButton";
 
@@ -10,9 +10,10 @@ const filters = [
   { id: "done", label: "已完成" },
 ];
 
-export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, onOpenLibrary, onOpenWindow, onOpenTimerWindow, onOpenNote }) {
+export default function StudyPlan({ items, templateCompletions = {}, onToggleStatus, onRemove, onReorder, onOpenLibrary, onOpenWindow, onOpenTimerWindow, onOpenNote }) {
   const [filter, setFilter] = useState("all");
   const [busyId, setBusyId] = useState("");
+  const [error, setError] = useState("");
   const [draggedId, setDraggedId] = useState("");
   const doneCount = items.filter((item) => item.status === "done").length;
   const progress = items.length ? Math.round(doneCount / items.length * 100) : 0;
@@ -24,7 +25,8 @@ export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, 
   async function run(itemId, action) {
     if (busyId) return;
     setBusyId(itemId);
-    try { await action(); } finally { setBusyId(""); }
+    setError("");
+    try { await action(); } catch (reason) { setError(reason?.message || "操作失败，请重试"); } finally { setBusyId(""); }
   }
 
   async function dropBefore(targetId) {
@@ -54,6 +56,7 @@ export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, 
         <div className="study-plan-progress__track"><span style={{ width: `${progress}%` }} /></div><b>{progress}%</b>
       </section>
 
+      {error ? <p className="study-plan-error" role="alert">{error}</p> : null}
       <section className="study-plan-board">
         <header>
           <div><span>计划题单</span><strong>{items.length ? `${items.length - doneCount} 道等待完成` : "先选一道想攻克的题"}</strong></div>
@@ -65,22 +68,26 @@ export default function StudyPlan({ items, onToggleStatus, onRemove, onReorder, 
           <div className="study-plan-list">
             {visibleItems.map((item) => {
               const done = item.status === "done";
+              const isTemplate = item.type === "template";
+              const label = isTemplate ? item.name : item.problemKey;
               const planNumber = items.findIndex((entry) => entry.id === item.id) + 1;
               return (
-                <article className={`study-plan-item ${done ? "is-done" : ""} ${draggedId === item.id ? "is-dragging" : ""}`} key={item.id} draggable
+                <article className={`study-plan-item ${isTemplate ? "is-template" : ""} ${done ? "is-done" : ""} ${draggedId === item.id ? "is-dragging" : ""}`} key={item.id} draggable
                   onDragStart={(event) => { setDraggedId(item.id); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", item.id); }}
                   onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
                   onDrop={(event) => { event.preventDefault(); dropBefore(item.id); }} onDragEnd={() => setDraggedId("")}>
                   <span className="study-plan-item__order" title="拖动调整顺序"><GripVertical size={14} /><b>{planNumber}</b></span>
-                  <button type="button" className="study-plan-item__check" aria-label={done ? `将 ${item.problemKey} 恢复为待完成` : `完成 ${item.problemKey}`} aria-pressed={done} disabled={busyId === item.id} onClick={() => run(item.id, () => onToggleStatus(item))}>
+                  <button type="button" className="study-plan-item__check" aria-label={done ? `将 ${label} 恢复为待完成` : `完成 ${label}`} aria-pressed={done} disabled={busyId === item.id} onClick={() => run(item.id, () => onToggleStatus(item))}>
                     {busyId === item.id ? <LoaderCircle className="plan-spin" size={18} /> : done ? <Check size={18} /> : <Circle size={18} />}
                   </button>
-                  <button type="button" className="study-plan-item__problem" onClick={() => openProblem(item)}>
-                    <span className="study-plan-item__id">{item.problemKey}</span><span className="study-plan-item__title">{item.name}<ExternalLink size={13} /></span>
-                    <span className="study-plan-item__meta"><b className={`rating rating--${ratingTone(item.rating)}`}>{item.rating || "—"}</b>{(item.tags || []).slice(0, 2).map((tag) => <em key={tag}>{displayTag(tag)}</em>)}{item.reason ? <small>{item.reason}</small> : null}</span>
+                  <button type="button" className="study-plan-item__problem" title={isTemplate ? "在 VS Code 中打开模板" : "打开 Codeforces 题目"} disabled={busyId === item.id} onClick={() => run(item.id, () => openStudyPlanItem(item))}>
+                    <span className="study-plan-item__id">{isTemplate ? "本地模板" : item.problemKey}</span><span className="study-plan-item__title" data-i18n-preserve>{item.name}{isTemplate ? <CodeXml size={13} /> : <ExternalLink size={13} />}</span>
+                    {isTemplate
+                      ? <span className="study-plan-item__meta"><em>{`完成 ${templateCompletions[item.problemKey] || 0} 次`}</em><em>VS Code</em><small title={item.relativePath} data-i18n-preserve>{item.relativePath}</small></span>
+                      : <span className="study-plan-item__meta"><b className={`rating rating--${ratingTone(item.rating)}`}>{item.rating || "—"}</b>{(item.tags || []).slice(0, 2).map((tag) => <em key={tag}>{displayTag(tag)}</em>)}{item.reason ? <small>{item.reason}</small> : null}</span>}
                   </button>
-                  <ProblemNoteButton problem={item} onOpenNote={onOpenNote} />
-                  <button type="button" className="study-plan-item__delete" aria-label={`从计划题单删除 ${item.problemKey}`} title="从计划题单删除" disabled={busyId === item.id} onClick={() => run(item.id, () => onRemove(item))}><Trash2 size={16} /></button>
+                  {!isTemplate ? <ProblemNoteButton problem={item} onOpenNote={onOpenNote} /> : null}
+                  <button type="button" className="study-plan-item__delete" aria-label={`从计划题单删除 ${label}`} title="从计划题单删除" disabled={busyId === item.id} onClick={() => run(item.id, () => onRemove(item))}><Trash2 size={16} /></button>
                 </article>
               );
             })}

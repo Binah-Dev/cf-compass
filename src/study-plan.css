@@ -2,6 +2,8 @@
   gap: 14px;
 }
 
+.study-plan-error { margin: 0; padding: 10px 14px; color: #ff9caf; border: 1px solid rgba(255, 109, 137, 0.2); border-radius: 10px; background: rgba(104, 23, 41, 0.25); }
+
 .study-plan-hero,
 .study-plan-progress,
 .study-plan-board {
@@ -51,7 +53,8 @@
 .study-plan-filters button.is-active { color: #dff7ef; background: rgba(61, 189, 146, 0.2); }
 
 .study-plan-list { min-height: 0; padding: 12px; overflow: auto; display: grid; align-content: start; gap: 8px; }
-.study-plan-item { min-height: 70px; display: grid; grid-template-columns: 52px 46px minmax(0, 1fr) 43px; align-items: stretch; overflow: hidden; border: 1px solid rgba(105, 182, 228, 0.13); border-radius: 13px; background: rgba(8, 27, 43, 0.66); transition: 150ms ease; }
+.study-plan-item { min-height: 70px; display: grid; grid-template-columns: 52px 46px minmax(0, 1fr) 43px 43px; align-items: stretch; overflow: hidden; border: 1px solid rgba(105, 182, 228, 0.13); border-radius: 13px; background: rgba(8, 27, 43, 0.66); transition: 150ms ease; }
+.study-plan-item.is-template { grid-template-columns: 52px 46px minmax(0, 1fr) 43px; }
 .study-plan-item:hover { border-color: rgba(107, 206, 252, 0.27); background: rgba(12, 38, 59, 0.8); }
 .study-plan-item.is-done { border-color: rgba(83, 175, 142, 0.13); background: rgba(10, 33, 34, 0.56); opacity: 0.78; }
 .study-plan-item.is-dragging { opacity: 0.42; transform: scale(0.992); }
